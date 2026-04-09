@@ -1,17 +1,22 @@
 import * as vscode from 'vscode';
-import { YamlCustomEditorProvider } from './YamlCustomEditorProvider';
+import { SoemConfigTreeDataProvider } from './SoemConfigTreeDataProvider';
 
 export function activate(context: vscode.ExtensionContext) {
-    context.subscriptions.push(
-        vscode.window.registerCustomEditorProvider(
-            'ethercatTaskEditor.yaml',
-            new YamlCustomEditorProvider(context),
-            {
-                webviewOptions: {
-                    retainContextWhenHidden: true,
-                },
-                supportsMultipleEditorsPerDocument: false,
-            }
-        )
-    );
+  const provider = new SoemConfigTreeDataProvider(context);
+  context.subscriptions.push(
+    vscode.window.registerTreeDataProvider(
+      'ethercatTaskEditor.sidebar',
+      provider,
+    ),
+  );
+  context.subscriptions.push(
+    vscode.commands.registerCommand('ethercatTaskEditor.refresh', () =>
+      provider.refresh(),
+    ),
+  );
+  context.subscriptions.push(
+    vscode.commands.registerCommand('ethercatTaskEditor.editValue', (item) =>
+      provider.editItem(item),
+    ),
+  );
 }

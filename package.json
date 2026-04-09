@@ -11,19 +11,22 @@
     "Other"
   ],
   "activationEvents": [
-    "onCustomEditor:ethercatTaskEditor.yaml"
+    "onCommand:ethercatTaskEditor.editValue"
   ],
   "main": "./out/extension.js",
   "contributes": {
-    "customEditors": [
+    "views": {
+      "explorer": [
+        {
+          "id": "ethercatTaskEditor.sidebar",
+          "name": "EtherCAT SOEM Editor"
+        }
+      ]
+    },
+    "commands": [
       {
-        "viewType": "ethercatTaskEditor.yaml",
-        "displayName": "EtherCAT YAML Editor",
-        "selector": [
-          {
-            "filenamePattern": "*.yaml"
-          }
-        ]
+        "command": "ethercatTaskEditor.refresh",
+        "title": "Refresh SOEM Editor"
       }
     ]
   },

@@ -8,46 +8,52 @@ type YamlParseOptions = yaml.ParseOptions &
 const CustomTags: yaml.Tags = [
   {
     tag: '!uint8_t',
-    resolve: (str: string) => Number(str),
+    identify: (value: unknown) => typeof value === 'number',
+    resolve: (value: string) => Number(value),
   },
   {
     tag: '!int8_t',
-    resolve: (str: string) => Number(str),
+    identify: (value: unknown) => typeof value === 'number',
+    resolve: (value: string) => Number(value),
   },
   {
     tag: '!uint16_t',
-    resolve: (str: string) => Number(str),
+    identify: (value: unknown) => typeof value === 'number',
+    resolve: (value: string) => Number(value),
   },
   {
     tag: '!int16_t',
-    resolve: (str: string) => Number(str),
+    identify: (value: unknown) => typeof value === 'number',
+    resolve: (value: string) => Number(value),
   },
   {
     tag: '!uint32_t',
-    resolve: (str: string) => Number(str),
+    identify: (value: unknown) => typeof value === 'number',
+    resolve: (value: string) => Number(value),
   },
   {
     tag: '!int32_t',
-    resolve: (str: string) => Number(str),
+    identify: (value: unknown) => typeof value === 'number',
+    resolve: (value: string) => Number(value),
   },
   {
     tag: '!float',
-    resolve: (str: string) => Number(str),
+    identify: (value: unknown) => typeof value === 'number',
+    resolve: (value: string) => Number(value),
   },
   {
     tag: '!std::string',
-    resolve: (str: string) => String(str),
+    identify: (value: unknown) => typeof value === 'string',
+    resolve: (value: string) => String(value),
   },
 ];
 
 const yamlParseOptions: YamlParseOptions = { customTags: CustomTags };
 
-export function parseYamlWithTags(text: string) {
+export function parseYamlWithTags(text: string): unknown {
   return yaml.parse(text, yamlParseOptions);
 }
 
-export function stringifyYamlWithTags(data: unknown) {
-  // Basic conversion logic requires manually traversing the AST and stringifying.
-  // For now we will stringify it and re-add standard tags where appropriate via JSON structure. Wait for explicit definition of stringify.
-  return yaml.stringify(data);
+export function stringifyYamlWithTags(data: unknown): string {
+  return yaml.stringify(data, { customTags: CustomTags });
 }
