@@ -1,0 +1,43 @@
+{
+  "name": "vscode-ethercat-task-editor",
+  "displayName": "EtherCAT Task Editor",
+  "description": "Visual editor for SOEM YAML config files based on MSG format.",
+  "version": "1.0.0",
+  "license": "MIT",
+  "engines": {
+    "vscode": "^1.104.0"
+  },
+  "categories": [
+    "Other"
+  ],
+  "activationEvents": [
+    "onCustomEditor:ethercatTaskEditor.yaml"
+  ],
+  "main": "./out/extension.js",
+  "contributes": {
+    "customEditors": [
+      {
+        "viewType": "ethercatTaskEditor.yaml",
+        "displayName": "EtherCAT YAML Editor",
+        "selector": [
+          {
+            "filenamePattern": "*.yaml"
+          }
+        ]
+      }
+    ]
+  },
+  "scripts": {
+    "build": "tsup",
+    "watch": "tsup --watch"
+  },
+  "devDependencies": {
+    "@types/node": "^24.5.2",
+    "@types/vscode": "^1.104.0",
+    "tsup": "^8.5.0",
+    "typescript": "~5.9.2"
+  },
+  "dependencies": {
+    "yaml": "^2.7.0"
+  }
+}
