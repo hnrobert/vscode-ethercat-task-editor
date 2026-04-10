@@ -1,11 +1,14 @@
 import * as vscode from 'vscode';
 import * as path from 'path';
-import { parseYamlWithTags, stringifyYamlWithTags } from './YamlParser';
+import { parseYamlDocumentWithTags } from './YamlParser';
 import { parseMsgFolder, MsgField } from './msgParser';
+import * as yaml from 'yaml';
+import { TASK_TYPES } from './constants';
 
 type PathEntry = string | number;
 
 type SoemData = {
+  doc?: yaml.Document;
   data?: unknown;
   isValid: boolean;
   isSoem: boolean;
@@ -212,7 +215,12 @@ export class SoemConfigTreeDataProvider implements vscode.TreeDataProvider<SoemC
     const currentValue = item.rawValue;
     let newValueText: string | undefined;
 
-    if (typeof currentValue === 'boolean') {
+    if (item.label && item.label.toString().includes('sdowrite_task_type')) {
+      const selected = await vscode.window.showQuickPick(TASK_TYPES, {
+        placeHolder: 'Select Task Type',
+      });
+      if (selected) newValueText = selected.value;
+    } else if (typeof currentValue === 'boolean') {
       newValueText = await vscode.window.showQuickPick(['true', 'false'], {
         placeHolder: `Edit ${item.label}`,
       });
@@ -229,21 +237,38 @@ export class SoemConfigTreeDataProvider implements vscode.TreeDataProvider<SoemC
 
     const parsedValue = this.parseInputValue(newValueText, currentValue);
     const yamlDoc = this.parseActiveDocument(activeDoc);
-    if (!yamlDoc || !yamlDoc.data) {
+    if (!yamlDoc || !yamlDoc.doc || !yamlDoc.data) {
       return;
     }
 
+    yamlDoc.doc.setIn(item.path, parsedValue);
+    const targetNode = yamlDoc.doc.getIn(item.path, true);
+    if (
+      yaml.isScalar(targetNode) &&
+      typeof parsedValue === 'number' &&
+      String(newValueText).toLowerCase().startsWith('0x')
+    ) {
+      targetNode.format = 'HEX';
+    }
+
+    // Keep data in sync for calculateOffsets walking
     this.setValueAtPath(yamlDoc.data, item.path, parsedValue);
-    this.calculateOffsets(yamlDoc.data, parseMsgFolder(this.msgFolderPath));
-    await this.writeDocument(activeDoc, yamlDoc.data);
+
+    this.calculateOffsets(
+      yamlDoc.doc,
+      yamlDoc.data,
+      parseMsgFolder(this.msgFolderPath),
+    );
+    await this.writeDocument(activeDoc, yamlDoc.doc);
     this.refresh();
   }
 
   private parseActiveDocument(document: vscode.TextDocument): SoemData {
     try {
-      const data = parseYamlWithTags(document.getText());
+      const doc = parseYamlDocumentWithTags(document.getText());
+      const data = doc.toJSON();
       const isSoem = this.isSoemFormat(data);
-      return { data, isValid: true, isSoem };
+      return { doc, data, isValid: true, isSoem };
     } catch (error) {
       return { isValid: false, isSoem: false, error: String(error) };
     }
@@ -413,16 +438,15 @@ export class SoemConfigTreeDataProvider implements vscode.TreeDataProvider<SoemC
   }
 
   private calculateOffsets(
+    doc: yaml.Document,
     data: unknown,
     _msgs: Record<string, MsgField[]>,
   ): void {
     if (!isObject(data) || !Array.isArray(data.slaves)) {
       return;
     }
-    data.slaves.forEach((slave) => {
-      if (!isObject(slave)) {
-        return;
-      }
+    data.slaves.forEach((slave, index: number) => {
+      if (!isObject(slave)) return;
       const slaveKey = Object.keys(slave)[0];
       const slaveValues = slave[slaveKey];
       if (
@@ -431,28 +455,132 @@ export class SoemConfigTreeDataProvider implements vscode.TreeDataProvider<SoemC
       ) {
         return;
       }
-      let currentOffset = 0;
-      (slaveValues as any).tasks.forEach((task: unknown) => {
-        if (!isObject(task)) {
-          return;
-        }
+
+      let pdoread_offset = 0;
+      let pdowrite_offset = 0;
+
+      (slaveValues as any).tasks.forEach((task: unknown, taskIndex: number) => {
+        if (!isObject(task)) return;
         const taskKey = Object.keys(task)[0];
-        const taskValues = task[taskKey];
-        if (!isObject(taskValues)) {
-          return;
+        const taskValues = task[taskKey] as Record<string, any>;
+        if (!isObject(taskValues)) return;
+
+        const pathBase = [
+          'slaves',
+          index,
+          slaveKey,
+          'tasks',
+          taskIndex,
+          taskKey,
+        ];
+
+        if (taskValues.pdoread_offset !== undefined) {
+          taskValues.pdoread_offset = pdoread_offset;
+          doc.setIn([...pathBase, 'pdoread_offset'], pdoread_offset);
         }
-        taskValues.pdoread_offset = currentOffset;
-        let size = 19;
-        currentOffset += size;
+        if (taskValues.pdowrite_offset !== undefined) {
+          taskValues.pdowrite_offset = pdowrite_offset;
+          doc.setIn([...pathBase, 'pdowrite_offset'], pdowrite_offset);
+        }
+
+        const type = Number(taskValues.sdowrite_task_type);
+
+        switch (type) {
+          case 1:
+            pdoread_offset += 19;
+            break;
+          case 2: {
+            const cType = Number(taskValues.sdowrite_control_type) || 0;
+            pdoread_offset += cType !== 8 ? 8 : 32;
+            switch (cType) {
+              case 1:
+              case 2:
+                pdowrite_offset += 3;
+                break;
+              case 3:
+                pdowrite_offset += 7;
+                break;
+              case 4:
+                pdowrite_offset += 5;
+                break;
+              case 5:
+                pdowrite_offset += 7;
+                break;
+              case 6:
+                pdowrite_offset += 6;
+                break;
+              case 7:
+                pdowrite_offset += 8;
+                break;
+              case 8:
+                pdowrite_offset += 8;
+                break;
+            }
+            break;
+          }
+          case 3:
+            pdoread_offset += 21; // 8 + 8 + 5
+            break;
+          case 4:
+            pdowrite_offset += 8;
+            break;
+          case 5:
+            // Custom check for dji motor task array elements (up to 4 motors)
+            for (let i = 1; i <= 4; i++) {
+              const motorCanId = taskValues[`sdowrite_motor${i}_can_id`];
+              if (motorCanId !== undefined && Number(motorCanId) !== 0) {
+                pdoread_offset += 9;
+                pdowrite_offset += 3;
+              }
+            }
+            break;
+          case 6:
+            pdowrite_offset += 8;
+            break;
+          case 7:
+            // External PWM
+            const channelStr: any = taskValues.sdowrite_channel_num;
+            if (channelStr !== undefined) {
+              pdowrite_offset += Number(channelStr) * 2;
+            }
+            break;
+          case 8:
+          case 9:
+            pdoread_offset += 8;
+            break;
+          case 10:
+            pdoread_offset += 6;
+            break;
+          case 11:
+            pdoread_offset += 24;
+            break;
+          case 12: {
+            pdoread_offset += 9;
+            const dmCtrlType = Number(taskValues.sdowrite_control_type) || 0;
+            if (dmCtrlType === 1 || dmCtrlType === 2) {
+              pdowrite_offset += 9;
+            } else if (dmCtrlType === 3) {
+              pdowrite_offset += 5;
+            }
+            break;
+          }
+          case 13:
+            pdoread_offset += 7;
+            pdowrite_offset += 4;
+            break;
+          case 14:
+            pdoread_offset += 17;
+            break;
+        }
       });
     });
   }
 
   private async writeDocument(
     document: vscode.TextDocument,
-    data: unknown,
+    doc: yaml.Document,
   ): Promise<void> {
-    const yamlText = stringifyYamlWithTags(data);
+    const yamlText = String(doc);
     const fullRange = new vscode.Range(
       document.positionAt(0),
       document.positionAt(document.getText().length),

@@ -1,0 +1,16 @@
+export const TASK_TYPES = [
+  { label: '0x01', description: 'dji rc', value: '1' },
+  { label: '0x02', description: 'lk motor', value: '2' },
+  { label: '0x03', description: 'hipnuc imu can', value: '3' },
+  { label: '0x04', description: 'dshot600', value: '4' },
+  { label: '0x05', description: 'dji motor', value: '5' },
+  { label: '0x06', description: 'onboard pwm', value: '6' },
+  { label: '0x07', description: 'external pwm', value: '7' },
+  { label: '0x08', description: 'ms5876 30ba', value: '8' },
+  { label: '0x09', description: 'adc', value: '9' },
+  { label: '0x0a', description: 'can pmu', value: '10' },
+  { label: '0x0b', description: 'sbus', value: '11' },
+  { label: '0x0c', description: 'dm motor', value: '12' },
+  { label: '0x0d', description: 'super cap', value: '13' },
+  { label: '0x0e', description: 'vt13', value: '14' },
+];

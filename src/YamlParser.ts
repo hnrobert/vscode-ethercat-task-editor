@@ -54,6 +54,10 @@ export function parseYamlWithTags(text: string): unknown {
   return yaml.parse(text, yamlParseOptions);
 }
 
+export function parseYamlDocumentWithTags(text: string): yaml.Document {
+  return yaml.parseDocument(text, yamlParseOptions);
+}
+
 export function stringifyYamlWithTags(data: unknown): string {
   return yaml.stringify(data, { customTags: CustomTags });
 }

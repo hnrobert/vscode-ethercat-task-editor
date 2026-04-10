@@ -16,10 +16,11 @@
   "main": "./out/extension.js",
   "contributes": {
     "views": {
-      "explorer": [
+      "ethercatTaskEditor.container": [
         {
           "id": "ethercatTaskEditor.sidebar",
-          "name": "EtherCAT SOEM Editor"
+          "name": "SOEM Tasks Editor",
+          "icon": "$(group-by-ref-type)"
         }
       ]
     },
