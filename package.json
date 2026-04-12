@@ -11,7 +11,8 @@
     "Other"
   ],
   "activationEvents": [
-    "onCommand:ethercatTaskEditor.editValue"
+    "onView:ethercatTaskEditor.sidebar",
+    "onCommand:ethercatTaskEditor.refresh"
   ],
   "main": "./out/extension.js",
   "contributes": {
@@ -20,6 +21,7 @@
         {
           "id": "ethercatTaskEditor.sidebar",
           "name": "SOEM Tasks Editor",
+          "type": "webview",
           "icon": "$(group-by-ref-type)"
         }
       ]

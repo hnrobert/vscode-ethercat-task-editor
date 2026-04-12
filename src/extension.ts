@@ -1,22 +1,17 @@
 import * as vscode from 'vscode';
-import { SoemConfigTreeDataProvider } from './SoemConfigTreeDataProvider';
+import { SoemConfigWebviewProvider } from './SoemConfigWebviewProvider';
 
 export function activate(context: vscode.ExtensionContext) {
-  const provider = new SoemConfigTreeDataProvider(context);
+  const provider = new SoemConfigWebviewProvider(context);
   context.subscriptions.push(
-    vscode.window.registerTreeDataProvider(
-      'ethercatTaskEditor.sidebar',
+    vscode.window.registerWebviewViewProvider(
+      SoemConfigWebviewProvider.viewType,
       provider,
     ),
   );
   context.subscriptions.push(
     vscode.commands.registerCommand('ethercatTaskEditor.refresh', () =>
       provider.refresh(),
-    ),
-  );
-  context.subscriptions.push(
-    vscode.commands.registerCommand('ethercatTaskEditor.editValue', (item) =>
-      provider.editItem(item),
     ),
   );
 }

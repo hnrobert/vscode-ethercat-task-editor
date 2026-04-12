@@ -1,6 +1,8 @@
 {
     "cSpell.words": [
         "ethercat",
+        "pdoread",
+        "pdowrite",
         "SOEM"
     ],
     "cmake.ignoreCMakeListsMissing": true
