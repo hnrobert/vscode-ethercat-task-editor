@@ -354,7 +354,7 @@ export class SoemConfigTreeDataProvider implements vscode.TreeDataProvider<SoemC
       return [];
     }
     return Object.entries(taskNode)
-      .filter(([key]) => key !== 'pdoread_offset')
+      .filter(([key]) => key !== 'pdoread_offset' && key !== 'pdowrite_offset')
       .map(([key, value]) => {
         const label = `${key}: ${formatValue(value)}`;
         const valuePath = [...path, key];
