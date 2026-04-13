@@ -3,7 +3,9 @@
         "ethercat",
         "pdoread",
         "pdowrite",
-        "SOEM"
+        "sdowrite",
+        "SOEM",
+        "stringifier"
     ],
     "cmake.ignoreCMakeListsMissing": true
 }

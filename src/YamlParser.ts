@@ -6,45 +6,52 @@ type YamlParseOptions = yaml.ParseOptions &
   yaml.ToJSOptions;
 
 const CustomTags: yaml.Tags = [
-  {
-    tag: '!uint8_t',
+  ...[
+    '!uint8_t',
+    '!int8_t',
+    '!uint16_t',
+    '!int16_t',
+    '!uint32_t',
+    '!int32_t',
+    '!float',
+  ].map((tag) => ({
+    tag,
     identify: (value: unknown) => typeof value === 'number',
-    resolve: (value: string) => Number(value),
-  },
-  {
-    tag: '!int8_t',
-    identify: (value: unknown) => typeof value === 'number',
-    resolve: (value: string) => Number(value),
-  },
-  {
-    tag: '!uint16_t',
-    identify: (value: unknown) => typeof value === 'number',
-    resolve: (value: string) => Number(value),
-  },
-  {
-    tag: '!int16_t',
-    identify: (value: unknown) => typeof value === 'number',
-    resolve: (value: string) => Number(value),
-  },
-  {
-    tag: '!uint32_t',
-    identify: (value: unknown) => typeof value === 'number',
-    resolve: (value: string) => Number(value),
-  },
-  {
-    tag: '!int32_t',
-    identify: (value: unknown) => typeof value === 'number',
-    resolve: (value: string) => Number(value),
-  },
-  {
-    tag: '!float',
-    identify: (value: unknown) => typeof value === 'number',
-    resolve: (value: string) => Number(value),
-  },
+    resolve: (str: string) => {
+      const num = Number(str);
+      const node = new yaml.Scalar(num);
+      if (str.toLowerCase().startsWith('0x')) {
+        node.format = 'HEX';
+        (node as any)._originalSource = str;
+        node.toJSON = function () {
+          if (
+            (this as any)._originalSource &&
+            Number((this as any)._originalSource) === this.value
+          ) {
+            return (this as any)._originalSource;
+          }
+          return '0x' + this.value.toString(16);
+        };
+      }
+      return node;
+    },
+    stringify: (item: yaml.Scalar) => {
+      if (item.format === 'HEX' && typeof item.value === 'number') {
+        if (
+          (item as any)._originalSource &&
+          Number((item as any)._originalSource) === item.value
+        ) {
+          return (item as any)._originalSource;
+        }
+        return '0x' + item.value.toString(16);
+      }
+      return String(item.value);
+    },
+  })),
   {
     tag: '!std::string',
     identify: (value: unknown) => typeof value === 'string',
-    resolve: (value: string) => String(value),
+    resolve: (str: string) => String(str),
   },
 ];
 
@@ -56,6 +63,10 @@ export function parseYamlWithTags(text: string): unknown {
 
 export function parseYamlDocumentWithTags(text: string): yaml.Document {
   return yaml.parseDocument(text, yamlParseOptions);
+}
+
+export function stringifyYamlDocumentWithTags(doc: yaml.Document): string {
+  return doc.toString({ indent: 2, indentSeq: true });
 }
 
 export function stringifyYamlWithTags(data: unknown): string {

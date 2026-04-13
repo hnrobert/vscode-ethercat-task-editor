@@ -1,7 +1,10 @@
 import * as vscode from 'vscode';
 import * as path from 'path';
 import * as yaml from 'yaml';
-import { parseYamlDocumentWithTags } from './YamlParser';
+import {
+  parseYamlDocumentWithTags,
+  stringifyYamlDocumentWithTags,
+} from './YamlParser';
 import { parseMsgFolder, MsgField } from './msgParser';
 import { TASK_TYPES } from './constants';
 
@@ -35,6 +38,24 @@ export class SoemConfigWebviewProvider implements vscode.WebviewViewProvider {
           break;
         case 'updateValue':
           await this.updateYamlValue(data.path, data.value);
+          break;
+        case 'addSlave':
+          await this.addSlave(data.name);
+          break;
+        case 'removeSlave':
+          await this.removeSlave(data.sIndex);
+          break;
+        case 'renameSlave':
+          await this.renameSlave(data.sIndex, data.newName);
+          break;
+        case 'addTask':
+          await this.addTask(data.sIndex, data.taskName);
+          break;
+        case 'removeTask':
+          await this.removeTask(data.sIndex, data.tIndex);
+          break;
+        case 'renameTask':
+          await this.renameTask(data.sIndex, data.tIndex, data.newName);
           break;
       }
     });
@@ -97,20 +118,204 @@ export class SoemConfigWebviewProvider implements vscode.WebviewViewProvider {
 
     const doc = this.lastParsedDoc.doc;
 
+    let finalValue = value;
+    let isHex = false;
+
+    // Check if the frontend sent a string that looks like a hex number
+    if (typeof value === 'string' && value.toLowerCase().startsWith('0x')) {
+      const parsedHex = parseInt(value, 16);
+      if (!isNaN(parsedHex)) {
+        finalValue = parsedHex;
+        isHex = true;
+      }
+    }
+
     // Apply new value
-    doc.setIn(propertyPath, value);
+    doc.setIn(propertyPath, finalValue);
 
     // Attempt automatic formatting for HEX values starting with 0x
     const targetNode = doc.getIn(propertyPath, true);
-    if (
-      yaml.isScalar(targetNode) &&
-      typeof value === 'number' &&
-      String(value).toLowerCase().startsWith('0x')
-    ) {
-      targetNode.format = 'HEX';
+    if (yaml.isScalar(targetNode)) {
+      if (isHex) {
+        targetNode.format = 'HEX';
+        (targetNode as any)._originalSource =
+          typeof value === 'string' ? value : undefined;
+        targetNode.toJSON = function () {
+          if (
+            (this as any)._originalSource &&
+            Number((this as any)._originalSource) === this.value
+          ) {
+            return (this as any)._originalSource;
+          }
+          return '0x' + (this as any).value.toString(16);
+        };
+      } else if (typeof finalValue === 'number') {
+        targetNode.format = 'PLAIN';
+        (targetNode as any).toJSON = undefined;
+        (targetNode as any)._originalSource = undefined;
+      }
     }
 
-    // Re-calculate offsets
+    await this.applyAndSaveYaml(editor, doc);
+  }
+
+  private async addSlave(snName: string) {
+    const editor = vscode.window.activeTextEditor;
+    if (!editor || !this.lastParsedDoc?.doc) return;
+    const doc = this.lastParsedDoc.doc;
+
+    let slavesList = doc.getIn(['slaves']);
+    if (!slavesList) {
+      doc.setIn(['slaves'], []);
+      slavesList = doc.getIn(['slaves']);
+    }
+
+    if (yaml.isSeq(slavesList)) {
+      const newSlaveStr = `${snName}:
+  sdo_len: !uint16_t 0
+  task_count: !uint8_t 0
+  latency_pub_topic: !std::string '/ecat/${snName.replace('+', '')}/latency'
+  tasks: []
+`;
+      const newSlaveNode = parseYamlDocumentWithTags(newSlaveStr).contents;
+      if (newSlaveNode) slavesList.items.push(newSlaveNode as any);
+      await this.applyAndSaveYaml(editor, doc);
+    }
+  }
+
+  private async removeSlave(sIndex: number) {
+    const editor = vscode.window.activeTextEditor;
+    if (!editor || !this.lastParsedDoc?.doc) return;
+    const doc = this.lastParsedDoc.doc;
+    const slavesList = doc.getIn(['slaves']);
+    if (yaml.isSeq(slavesList)) {
+      slavesList.items.splice(sIndex, 1);
+      await this.applyAndSaveYaml(editor, doc);
+    }
+  }
+
+  private async renameSlave(sIndex: number, newName: string) {
+    const editor = vscode.window.activeTextEditor;
+    if (!editor || !this.lastParsedDoc?.doc) return;
+    const doc = this.lastParsedDoc.doc;
+    const slaveItem = doc.getIn(['slaves', sIndex]);
+    if (yaml.isMap(slaveItem) && slaveItem.items.length > 0) {
+      const keyNode = slaveItem.items[0].key;
+      if (yaml.isScalar(keyNode)) {
+        keyNode.value = newName;
+        // update pub/sub topic references automatically?
+        const latencyTopic = doc.getIn([
+          'slaves',
+          sIndex,
+          String(keyNode.value),
+          'latency_pub_topic',
+        ]);
+        if (
+          typeof latencyTopic === 'string' &&
+          latencyTopic.includes('/ecat/')
+        ) {
+          doc.setIn(
+            ['slaves', sIndex, newName, 'latency_pub_topic'],
+            `/ecat/${newName}/latency`,
+          );
+        }
+        await this.applyAndSaveYaml(editor, doc);
+      }
+    }
+  }
+
+  private async addTask(sIndex: number, taskName: string) {
+    const editor = vscode.window.activeTextEditor;
+    if (!editor || !this.lastParsedDoc?.doc) return;
+    const doc = this.lastParsedDoc.doc;
+    const slaveItem = doc.getIn(['slaves', sIndex]);
+    if (!yaml.isMap(slaveItem) || slaveItem.items.length === 0) return;
+    const snKey = String(
+      yaml.isScalar(slaveItem.items[0].key) ? slaveItem.items[0].key.value : '',
+    );
+
+    let tasksList = doc.getIn(['slaves', sIndex, snKey, 'tasks']);
+    if (!tasksList) {
+      doc.setIn(['slaves', sIndex, snKey, 'tasks'], []);
+      tasksList = doc.getIn(['slaves', sIndex, snKey, 'tasks']);
+    }
+
+    if (yaml.isSeq(tasksList)) {
+      const newTaskStr = `${taskName}:
+  sdowrite_task_type: !uint8_t 1
+  conf_connection_lost_read_action: !uint8_t 1
+  sdowrite_connection_lost_write_action: !uint8_t 2
+  pub_topic: !std::string '/ecat/${snKey}/${taskName}/read'
+  pdoread_offset: !uint16_t 0
+  sub_topic: !std::string '/ecat/${snKey}/${taskName}/write'
+  pdowrite_offset: !uint16_t 0
+`;
+      const newTaskNode = parseYamlDocumentWithTags(newTaskStr).contents;
+      if (newTaskNode) {
+        tasksList.items.push(newTaskNode as any);
+        doc.setIn(
+          ['slaves', sIndex, snKey, 'task_count'],
+          tasksList.items.length,
+        );
+        await this.applyAndSaveYaml(editor, doc);
+      }
+    }
+  }
+
+  private async removeTask(sIndex: number, tIndex: number) {
+    const editor = vscode.window.activeTextEditor;
+    if (!editor || !this.lastParsedDoc?.doc) return;
+    const doc = this.lastParsedDoc.doc;
+    const slaveItem = doc.getIn(['slaves', sIndex]);
+    if (!yaml.isMap(slaveItem) || slaveItem.items.length === 0) return;
+    const snKey = String(
+      yaml.isScalar(slaveItem.items[0].key) ? slaveItem.items[0].key.value : '',
+    );
+    const tasksList = doc.getIn(['slaves', sIndex, snKey, 'tasks']);
+
+    if (yaml.isSeq(tasksList)) {
+      tasksList.items.splice(tIndex, 1);
+      doc.setIn(
+        ['slaves', sIndex, snKey, 'task_count'],
+        tasksList.items.length,
+      );
+      await this.applyAndSaveYaml(editor, doc);
+    }
+  }
+
+  private async renameTask(sIndex: number, tIndex: number, newName: string) {
+    const editor = vscode.window.activeTextEditor;
+    if (!editor || !this.lastParsedDoc?.doc) return;
+    const doc = this.lastParsedDoc.doc;
+    const slaveItem = doc.getIn(['slaves', sIndex]);
+    if (!yaml.isMap(slaveItem) || slaveItem.items.length === 0) return;
+    const snKey = String(
+      yaml.isScalar(slaveItem.items[0].key) ? slaveItem.items[0].key.value : '',
+    );
+
+    const taskItem = doc.getIn(['slaves', sIndex, snKey, 'tasks', tIndex]);
+    if (yaml.isMap(taskItem) && taskItem.items.length > 0) {
+      const keyNode = taskItem.items[0].key;
+      if (yaml.isScalar(keyNode)) {
+        keyNode.value = newName;
+        // try to automatically update topics if they're standard
+        doc.setIn(
+          ['slaves', sIndex, snKey, 'tasks', tIndex, newName, 'pub_topic'],
+          `/ecat/${snKey}/${newName}/read`,
+        );
+        doc.setIn(
+          ['slaves', sIndex, snKey, 'tasks', tIndex, newName, 'sub_topic'],
+          `/ecat/${snKey}/${newName}/write`,
+        );
+        await this.applyAndSaveYaml(editor, doc);
+      }
+    }
+  }
+
+  private async applyAndSaveYaml(
+    editor: vscode.TextEditor,
+    doc: yaml.Document,
+  ) {
     this.calculateOffsets(
       doc,
       doc.toJSON(),
@@ -123,7 +328,11 @@ export class SoemConfigWebviewProvider implements vscode.WebviewViewProvider {
     );
 
     const edit = new vscode.WorkspaceEdit();
-    edit.replace(editor.document.uri, fullRange, String(doc));
+    edit.replace(
+      editor.document.uri,
+      fullRange,
+      stringifyYamlDocumentWithTags(doc),
+    );
     await vscode.workspace.applyEdit(edit);
     await editor.document.save();
 
@@ -275,10 +484,17 @@ export class SoemConfigWebviewProvider implements vscode.WebviewViewProvider {
     .prop-label { font-size: 12px; margin-bottom: 2px; opacity: 0.8; }
     .prop-input, select { background: var(--vscode-input-background); color: var(--vscode-input-foreground); border: 1px solid var(--vscode-input-border); padding: 4px; box-sizing: border-box; width: 100%; border-radius: 2px; }
     .task-container { border-left: 2px solid var(--vscode-focusBorder); padding-left: 8px; margin-bottom: 12px; }
-    .task-title { font-weight: bold; margin: 8px 0; }
+    .task-title { font-weight: bold; margin: 8px 0; display:flex; justify-content:space-between; }
+    .header-row { display:flex; justify-content:space-between; align-items:center; }
+    button { background: var(--vscode-button-background); color: var(--vscode-button-foreground); border:none; padding:4px 8px; cursor:pointer; border-radius:2px; font-size:12px; }
+    button:hover { background: var(--vscode-button-hoverBackground); }
+    .btn-sm { padding: 2px 4px; font-size: 10px; margin-left: 4px; }
+    .btn-danger { background: var(--vscode-errorForeground); color: white; }
+    .btn-group { display: flex; gap: 4px; }
   </style>
 </head>
 <body>
+  <div style="margin-bottom:10px;"><button onclick="addSlave()">+ Add Slave (SN)</button></div>
   <div id="content">Loading...</div>
   <script>
     const vscode = acquireVsCodeApi();
@@ -301,9 +517,31 @@ export class SoemConfigWebviewProvider implements vscode.WebviewViewProvider {
       }
     });
 
-    function debounceUpdate(path, value) {
-      // In a real app we'd debounce, but for simple AST writes just send immediately
-      vscode.postMessage({ type: 'updateValue', path, value });
+    function addSlave() {
+        const name = prompt("Enter new slave name (e.g., sn1234567):", "sn0000000");
+        if (name) vscode.postMessage({ type: 'addSlave', name });
+    }
+    function renameSlave(sIndex, oldName) {
+        const name = prompt("Rename slave:", oldName);
+        if (name && name !== oldName) vscode.postMessage({ type: 'renameSlave', sIndex, newName: name });
+    }
+    function removeSlave(sIndex) {
+        if (confirm("Remove this entire slave?")) {
+            vscode.postMessage({ type: 'removeSlave', sIndex });
+        }
+    }
+    function addTask(sIndex) {
+        const name = prompt("Enter new task name (e.g., app_1):", "app_x");
+        if (name) vscode.postMessage({ type: 'addTask', sIndex, taskName: name });
+    }
+    function renameTask(sIndex, tIndex, oldName) {
+        const name = prompt("Rename task:", oldName);
+        if (name && name !== oldName) vscode.postMessage({ type: 'renameTask', sIndex, tIndex, newName: name });
+    }
+    function removeTask(sIndex, tIndex) {
+        if (confirm("Remove this task?")) {
+            vscode.postMessage({ type: 'removeTask', sIndex, tIndex });
+        }
     }
 
     function render() {
@@ -312,8 +550,13 @@ export class SoemConfigWebviewProvider implements vscode.WebviewViewProvider {
       
       currentData.slaves.forEach((slave, sIndex) => {
         const sKey = Object.keys(slave)[0];
-        html += '<h3>' + sKey + '</h3>';
+        html += '<div class="header-row"><h3>' + sKey + '</h3>';
+        html += '<div class="btn-group"><button class="btn-sm" onclick="renameSlave(' + sIndex + ', \\'' + sKey + '\\')">Rename</button>';
+        html += '<button class="btn-sm btn-danger" onclick="removeSlave(' + sIndex + ')">Delete</button>';
+        html += '</div></div>';
         
+        html += '<div style="margin-bottom:8px;"><button class="btn-sm" onclick="addTask(' + sIndex + ')">+ Add Task</button></div>';
+
         const sInfo = slave[sKey];
         if (sInfo && Array.isArray(sInfo.tasks)) {
           sInfo.tasks.forEach((task, tIndex) => {
@@ -321,7 +564,9 @@ export class SoemConfigWebviewProvider implements vscode.WebviewViewProvider {
             const tInfo = task[tKey];
             
             html += '<div class="task-container">';
-            html += '<div class="task-title">' + tKey + '</div>';
+            html += '<div class="task-title"><span>' + tKey + '</span>';
+            html += '<div class="btn-group"><button class="btn-sm" onclick="renameTask(' + sIndex + ', ' + tIndex + ', \\'' + tKey + '\\')">Ren</button>';
+            html += '<button class="btn-sm btn-danger" onclick="removeTask(' + sIndex + ', ' + tIndex + ')">Del</button></div></div>';
             
             Object.keys(tInfo).forEach(prop => {
               if (prop === 'pdoread_offset' || prop === 'pdowrite_offset') return;
@@ -345,7 +590,7 @@ export class SoemConfigWebviewProvider implements vscode.WebviewViewProvider {
                 html += '<option value="false" ' + (!val ? 'selected' : '') + '>false</option>';
                 html += '</select>';
               } else {
-                 html += '<input type="text" class="prop-input" value="' + val + '" onchange="vscode.postMessage({type: \\'updateValue\\', path: ' + pathArg.replace(/"/g, "&quot;") + ', value: isNaN(Number(this.value)) ? this.value : (this.value.includes(\\'0x\\') ? parseInt(this.value, 16) : Number(this.value)) })" />';
+                 html += '<input type="text" class="prop-input" value="' + val + '" onchange="vscode.postMessage({type: \\'updateValue\\', path: ' + pathArg.replace(/"/g, "&quot;") + ', value: isNaN(Number(this.value)) ? this.value : (this.value.toLowerCase().startsWith(\\'0x\\') ? this.value : Number(this.value)) })" />';
               }
               html += '</div>';
             });

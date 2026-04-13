@@ -10,10 +10,6 @@
   "categories": [
     "Other"
   ],
-  "activationEvents": [
-    "onView:ethercatTaskEditor.sidebar",
-    "onCommand:ethercatTaskEditor.refresh"
-  ],
   "main": "./out/extension.js",
   "contributes": {
     "views": {

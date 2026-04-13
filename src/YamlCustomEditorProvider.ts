@@ -172,7 +172,7 @@ export class YamlCustomEditorProvider
 
   private calculateOffsets(
     data: unknown,
-    msgs: Record<string, import('./msgParser').MsgField[]>,
+    _msgs: Record<string, import('./msgParser').MsgField[]>,
   ): unknown {
     type UnknownRecord = Record<string, unknown>;
     const isObject = (value: unknown): value is UnknownRecord =>
@@ -192,7 +192,7 @@ export class YamlCustomEditorProvider
       if (!Array.isArray(tasks)) return;
 
       let currentOffset = 0;
-      tasks.forEach((taskObj, index) => {
+      tasks.forEach((taskObj, _index) => {
         if (!isObject(taskObj)) return;
 
         const taskValues = Object.values(taskObj)[0];
@@ -214,7 +214,7 @@ export class YamlCustomEditorProvider
     return data;
   }
 
-  private getHtmlForWebview(webview: vscode.Webview): string {
+  private getHtmlForWebview(_webview: vscode.Webview): string {
     return `
             <!DOCTYPE html>
             <html lang="en">
