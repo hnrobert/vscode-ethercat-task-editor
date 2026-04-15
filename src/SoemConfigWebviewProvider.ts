@@ -5,6 +5,7 @@ import {
   parseYamlDocumentWithTags,
   stringifyYamlDocumentWithTags,
 } from './YamlParser';
+import { getTaskTemplateYaml } from './taskTemplates';
 import { parseMsgFolder, MsgField } from './msgParser';
 import { TASK_TYPES } from './constants';
 
@@ -20,7 +21,7 @@ export class SoemConfigWebviewProvider implements vscode.WebviewViewProvider {
 
   public resolveWebviewView(
     webviewView: vscode.WebviewView,
-    context: vscode.WebviewViewResolveContext,
+    _context: vscode.WebviewViewResolveContext,
     _token: vscode.CancellationToken,
   ) {
     this._view = webviewView;
@@ -153,6 +154,53 @@ export class SoemConfigWebviewProvider implements vscode.WebviewViewProvider {
         targetNode.format = 'PLAIN';
         (targetNode as any).toJSON = undefined;
         (targetNode as any)._originalSource = undefined;
+      }
+    }
+
+    // Special behavior if task type was updated: regenerate default fields for the new task type
+    if (
+      propertyPath.length > 0 &&
+      propertyPath[propertyPath.length - 1] === 'sdowrite_task_type'
+    ) {
+      const taskPath = propertyPath.slice(0, propertyPath.length - 1);
+      const targetTaskNode = doc.getIn(taskPath, true);
+      if (yaml.isMap(targetTaskNode)) {
+        const templateYaml = getTaskTemplateYaml(Number(finalValue));
+        const parsedTemplateDoc = parseYamlDocumentWithTags(
+          'temp:\n' +
+            templateYaml
+              .split('\n')
+              .filter((l) => l.trim())
+              .map((l) => '  ' + l)
+              .join('\n'),
+        );
+        const newParams = parsedTemplateDoc.getIn(['temp'], true);
+
+        const keysToRemove: any[] = [];
+        for (let i = 0; i < targetTaskNode.items.length; i++) {
+          const item = targetTaskNode.items[i];
+          if (!yaml.isScalar(item.key)) continue;
+          const keyStr = String(item.key.value);
+
+          if (
+            (keyStr.startsWith('sdowrite_') || keyStr.startsWith('conf_')) &&
+            keyStr !== 'sdowrite_task_type' &&
+            keyStr !== 'conf_connection_lost_read_action' &&
+            keyStr !== 'sdowrite_connection_lost_write_action' &&
+            !keyStr.includes('_topic') &&
+            !keyStr.includes('offset')
+          ) {
+            keysToRemove.push(item.key);
+          }
+        }
+
+        keysToRemove.forEach((k) => targetTaskNode.delete(k));
+
+        if (yaml.isMap(newParams)) {
+          for (const item of newParams.items) {
+            targetTaskNode.items.push(item);
+          }
+        }
       }
     }
 
