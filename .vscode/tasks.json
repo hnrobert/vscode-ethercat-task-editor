@@ -32,6 +32,35 @@
         "kind": "build",
         "isDefault": true
       }
+    },
+    {
+      "type": "shell",
+      "label": "pnpm: watch webview",
+      "command": "pnpm run watch:webview",
+      "problemMatcher": [
+        {
+          "owner": "vite",
+          "source": "vite",
+          "fileLocation": "autoDetect",
+          "background": {
+            "activeOnStart": true,
+            "beginsPattern": "^.*vite.*$",
+            "endsPattern": "^.*built in.*$"
+          },
+          "pattern": {
+            "regexp": "^(.*):(\\d+):(\\d+): error: (.*)$",
+            "file": 1,
+            "line": 2,
+            "column": 3,
+            "message": 4
+          }
+        }
+      ],
+      "isBackground": true,
+      "presentation": {
+        "reveal": "never"
+      },
+      "group": "build"
     }
   ]
 }

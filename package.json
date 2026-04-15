@@ -30,15 +30,21 @@
     ]
   },
   "scripts": {
-    "build": "tsup",
-    "watch": "tsup --watch"
+    "build": "tsup && vite build --config webview/vite.config.ts",
+    "build:ext": "tsup",
+    "build:webview": "vite build --config webview/vite.config.ts",
+    "watch": "tsup --watch",
+    "watch:webview": "vite build --config webview/vite.config.ts --watch"
   },
   "devDependencies": {
     "@types/node": "^24.5.2",
     "@types/vscode": "^1.104.0",
+    "@vitejs/plugin-vue": "^6.0.6",
     "ts-node": "^10.9.2",
     "tsup": "^8.5.0",
-    "typescript": "~5.9.2"
+    "typescript": "~5.9.2",
+    "vite": "^8.0.8",
+    "vue": "^3.5.32"
   },
   "dependencies": {
     "yaml": "^2.7.0"

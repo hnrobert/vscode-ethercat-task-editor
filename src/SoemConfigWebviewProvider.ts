@@ -520,136 +520,39 @@ export class SoemConfigWebviewProvider implements vscode.WebviewViewProvider {
   }
 
   private getHtmlForWebview() {
+    const webview = this._view!.webview;
+    const extensionUri = this.context.extensionUri;
+
+    const scriptUri = webview.asWebviewUri(
+      vscode.Uri.joinPath(extensionUri, 'dist', 'assets', 'index.js'),
+    );
+    const styleUri = webview.asWebviewUri(
+      vscode.Uri.joinPath(extensionUri, 'dist', 'assets', 'index.css'),
+    );
+    const nonce = getNonce();
+
     return `<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src ${webview.cspSource} 'nonce-${nonce}'; script-src 'nonce-${nonce}';">
+  <link rel="stylesheet" href="${styleUri}">
   <title>SOEM Editor</title>
-  <style>
-    body { font-family: var(--vscode-font-family); color: var(--vscode-foreground); background: transparent; padding: 10px; }
-    .prop-row { display: flex; flex-direction: column; margin-bottom: 8px; }
-    .prop-label { font-size: 12px; margin-bottom: 2px; opacity: 0.8; }
-    .prop-input, select { background: var(--vscode-input-background); color: var(--vscode-input-foreground); border: 1px solid var(--vscode-input-border); padding: 4px; box-sizing: border-box; width: 100%; border-radius: 2px; }
-    .task-container { border-left: 2px solid var(--vscode-focusBorder); padding-left: 8px; margin-bottom: 12px; }
-    .task-title { font-weight: bold; margin: 8px 0; display:flex; justify-content:space-between; }
-    .header-row { display:flex; justify-content:space-between; align-items:center; }
-    button { background: var(--vscode-button-background); color: var(--vscode-button-foreground); border:none; padding:4px 8px; cursor:pointer; border-radius:2px; font-size:12px; }
-    button:hover { background: var(--vscode-button-hoverBackground); }
-    .btn-sm { padding: 2px 4px; font-size: 10px; margin-left: 4px; }
-    .btn-danger { background: var(--vscode-errorForeground); color: white; }
-    .btn-group { display: flex; gap: 4px; }
-  </style>
 </head>
 <body>
-  <div style="margin-bottom:10px;"><button onclick="addSlave()">+ Add Slave (SN)</button></div>
-  <div id="content">Loading...</div>
-  <script>
-    const vscode = acquireVsCodeApi();
-    const contentDiv = document.getElementById('content');
-    
-    let currentData = null;
-    let taskTypes = [];
-
-    window.addEventListener('message', event => {
-      const message = event.data;
-      switch (message.type) {
-        case 'setError':
-          contentDiv.innerHTML = '<div style="color:var(--vscode-errorForeground)">' + message.message + '</div>';
-          break;
-        case 'updateData':
-          currentData = message.data;
-          taskTypes = message.taskTypes || [];
-          render();
-          break;
-      }
-    });
-
-    function addSlave() {
-        const name = prompt("Enter new slave name (e.g., sn1234567):", "sn0000000");
-        if (name) vscode.postMessage({ type: 'addSlave', name });
-    }
-    function renameSlave(sIndex, oldName) {
-        const name = prompt("Rename slave:", oldName);
-        if (name && name !== oldName) vscode.postMessage({ type: 'renameSlave', sIndex, newName: name });
-    }
-    function removeSlave(sIndex) {
-        if (confirm("Remove this entire slave?")) {
-            vscode.postMessage({ type: 'removeSlave', sIndex });
-        }
-    }
-    function addTask(sIndex) {
-        const name = prompt("Enter new task name (e.g., app_1):", "app_x");
-        if (name) vscode.postMessage({ type: 'addTask', sIndex, taskName: name });
-    }
-    function renameTask(sIndex, tIndex, oldName) {
-        const name = prompt("Rename task:", oldName);
-        if (name && name !== oldName) vscode.postMessage({ type: 'renameTask', sIndex, tIndex, newName: name });
-    }
-    function removeTask(sIndex, tIndex) {
-        if (confirm("Remove this task?")) {
-            vscode.postMessage({ type: 'removeTask', sIndex, tIndex });
-        }
-    }
-
-    function render() {
-      if (!currentData || !currentData.slaves) return;
-      let html = '';
-      
-      currentData.slaves.forEach((slave, sIndex) => {
-        const sKey = Object.keys(slave)[0];
-        html += '<div class="header-row"><h3>' + sKey + '</h3>';
-        html += '<div class="btn-group"><button class="btn-sm" onclick="renameSlave(' + sIndex + ', \\'' + sKey + '\\')">Rename</button>';
-        html += '<button class="btn-sm btn-danger" onclick="removeSlave(' + sIndex + ')">Delete</button>';
-        html += '</div></div>';
-        
-        html += '<div style="margin-bottom:8px;"><button class="btn-sm" onclick="addTask(' + sIndex + ')">+ Add Task</button></div>';
-
-        const sInfo = slave[sKey];
-        if (sInfo && Array.isArray(sInfo.tasks)) {
-          sInfo.tasks.forEach((task, tIndex) => {
-            const tKey = Object.keys(task)[0];
-            const tInfo = task[tKey];
-            
-            html += '<div class="task-container">';
-            html += '<div class="task-title"><span>' + tKey + '</span>';
-            html += '<div class="btn-group"><button class="btn-sm" onclick="renameTask(' + sIndex + ', ' + tIndex + ', \\'' + tKey + '\\')">Ren</button>';
-            html += '<button class="btn-sm btn-danger" onclick="removeTask(' + sIndex + ', ' + tIndex + ')">Del</button></div></div>';
-            
-            Object.keys(tInfo).forEach(prop => {
-              if (prop === 'pdoread_offset' || prop === 'pdowrite_offset') return;
-              
-              const val = tInfo[prop];
-              html += '<div class="prop-row">';
-              html += '<div class="prop-label">' + prop + '</div>';
-              
-              const pathArg = JSON.stringify(['slaves', sIndex, sKey, 'tasks', tIndex, tKey, prop]);
-              
-              if (prop === 'sdowrite_task_type') {
-                html += '<select onchange="vscode.postMessage({type: \\'updateValue\\', path: ' + pathArg.replace(/"/g, "&quot;") + ', value: Number(this.value)})">';
-                taskTypes.forEach(ty => {
-                  const sel = (Number(ty.value) === Number(val)) ? 'selected' : '';
-                  html += '<option value="' + ty.value + '" ' + sel + '>' + ty.label + ' - ' + ty.description + '</option>';
-                });
-                html += '</select>';
-              } else if (typeof val === 'boolean') {
-                html += '<select onchange="vscode.postMessage({type: \\'updateValue\\', path: ' + pathArg.replace(/"/g, "&quot;") + ', value: this.value === \\'true\\'})">';
-                html += '<option value="true" ' + (val ? 'selected' : '') + '>true</option>';
-                html += '<option value="false" ' + (!val ? 'selected' : '') + '>false</option>';
-                html += '</select>';
-              } else {
-                 html += '<input type="text" class="prop-input" value="' + val + '" onchange="vscode.postMessage({type: \\'updateValue\\', path: ' + pathArg.replace(/"/g, "&quot;") + ', value: isNaN(Number(this.value)) ? this.value : (this.value.toLowerCase().startsWith(\\'0x\\') ? this.value : Number(this.value)) })" />';
-              }
-              html += '</div>';
-            });
-            html += '</div>';
-          });
-        }
-      });
-      contentDiv.innerHTML = html;
-    }
-  </script>
+  <div id="app"></div>
+  <script type="module" nonce="${nonce}" src="${scriptUri}"></script>
 </body>
 </html>`;
   }
+}
+
+function getNonce(): string {
+  let text = '';
+  const possible = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+  for (let i = 0; i < 32; i++) {
+    text += possible.charAt(Math.floor(Math.random() * possible.length));
+  }
+  return text;
 }
