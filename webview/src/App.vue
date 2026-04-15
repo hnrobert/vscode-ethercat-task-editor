@@ -2,7 +2,7 @@
   <div>
     <div v-if="errorMessage" class="error-message">{{ errorMessage }}</div>
     <template v-else-if="data?.slaves">
-      <div style="margin-bottom: 10px">
+      <div class="add-bar">
         <button @click="onAddSlave">+ Add Slave (SN)</button>
       </div>
       <SlaveCard

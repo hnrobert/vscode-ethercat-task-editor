@@ -1,33 +1,59 @@
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
 body {
-  font-family: var(--vscode-font-family);
+  font-family: var(--vscode-font-family, sans-serif);
+  font-size: var(--vscode-font-size, 13px);
   color: var(--vscode-foreground);
   background: transparent;
   padding: 10px;
+  margin: 0;
 }
 
+/* ---------- Property field ---------- */
 .prop-row {
   display: flex;
   flex-direction: column;
-  margin-bottom: 8px;
+  margin-bottom: 6px;
 }
 
 .prop-label {
-  font-size: 12px;
+  font-size: 11px;
   margin-bottom: 2px;
-  opacity: 0.8;
+  opacity: 0.85;
+  text-transform: none;
+  letter-spacing: 0;
 }
 
 .prop-input,
-select {
+.prop-select {
   background: var(--vscode-input-background);
   color: var(--vscode-input-foreground);
-  border: 1px solid var(--vscode-input-border);
-  padding: 4px;
+  border: 1px solid var(--vscode-input-border, transparent);
+  padding: 3px 6px;
   box-sizing: border-box;
   width: 100%;
+  height: 26px;
   border-radius: 2px;
+  font-family: inherit;
+  font-size: inherit;
+  line-height: 1;
+  outline: none;
 }
 
+.prop-input:focus,
+.prop-select:focus {
+  border-color: var(--vscode-focusBorder);
+}
+
+.prop-input::placeholder {
+  color: var(--vscode-input-placeholderForeground);
+}
+
+/* ---------- Task container ---------- */
 .task-container {
   border-left: 2px solid var(--vscode-focusBorder);
   padding-left: 8px;
@@ -35,36 +61,64 @@ select {
 }
 
 .task-title {
-  font-weight: bold;
-  margin: 8px 0;
+  font-weight: 600;
+  margin: 8px 0 6px;
   display: flex;
   justify-content: space-between;
+  align-items: center;
 }
 
+/* ---------- Slave header ---------- */
 .header-row {
   display: flex;
   justify-content: space-between;
   align-items: center;
 }
 
+.header-row h3 {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+/* ---------- Buttons ---------- */
 button {
   background: var(--vscode-button-background);
   color: var(--vscode-button-foreground);
   border: none;
-  padding: 4px 8px;
+  padding: 0 10px;
+  height: 26px;
   cursor: pointer;
   border-radius: 2px;
+  font-family: inherit;
   font-size: 12px;
+  line-height: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  white-space: nowrap;
 }
 
 button:hover {
   background: var(--vscode-button-hoverBackground);
 }
 
-.btn-sm {
-  padding: 2px 4px;
-  font-size: 10px;
-  margin-left: 4px;
+button:active {
+  opacity: 0.9;
+}
+
+button:focus {
+  outline: 1px solid var(--vscode-focusBorder);
+  outline-offset: 1px;
+}
+
+.btn-secondary {
+  background: var(--vscode-button-secondaryBackground);
+  color: var(--vscode-button-secondaryForeground);
+}
+
+.btn-secondary:hover {
+  background: var(--vscode-button-secondaryHoverBackground);
 }
 
 .btn-danger {
@@ -72,11 +126,31 @@ button:hover {
   color: white;
 }
 
+.btn-danger:hover {
+  opacity: 0.9;
+}
+
+.btn-sm {
+  height: 22px;
+  padding: 0 6px;
+  font-size: 11px;
+}
+
 .btn-group {
   display: flex;
   gap: 4px;
 }
 
+.add-bar {
+  margin-bottom: 10px;
+}
+
+.add-task-bar {
+  margin-bottom: 8px;
+}
+
+/* ---------- Error ---------- */
 .error-message {
   color: var(--vscode-errorForeground);
+  padding: 6px 0;
 }

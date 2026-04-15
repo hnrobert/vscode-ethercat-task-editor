@@ -3,7 +3,7 @@
     <div class="task-title">
       <span>{{ tKey }}</span>
       <div class="btn-group">
-        <button class="btn-sm" @click="onRename">Rename</button>
+        <button class="btn-sm btn-secondary" @click="onRename">Rename</button>
         <button class="btn-sm btn-danger" @click="onRemove">Delete</button>
       </div>
     </div>
@@ -31,7 +31,9 @@ const props = defineProps<{
 }>();
 
 const visibleProps = computed(() =>
-  Object.keys(props.tInfo).filter((p) => p !== 'pdoread_offset' && p !== 'pdowrite_offset'),
+  Object.keys(props.tInfo).filter(
+    (p) => p !== 'pdoread_offset' && p !== 'pdowrite_offset',
+  ),
 );
 
 function onRename() {

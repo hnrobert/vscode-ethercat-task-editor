@@ -3,6 +3,7 @@
     <div class="prop-label">{{ prop }}</div>
     <select
       v-if="prop === 'sdowrite_task_type'"
+      class="prop-select"
       :value="String(val)"
       @change="onTaskTypeChange"
     >
@@ -16,6 +17,7 @@
     </select>
     <select
       v-else-if="typeof val === 'boolean'"
+      class="prop-select"
       :value="String(val)"
       @change="onBooleanChange"
     >
