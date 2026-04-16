@@ -53,20 +53,111 @@ body {
   color: var(--vscode-input-placeholderForeground);
 }
 
-/* ---------- Task container ---------- */
+/* ---------- Collapsible panels ---------- */
+
+/* Remove native marker */
+.slave-panel > summary,
+.task-container > summary {
+  list-style: none;
+}
+.slave-panel > summary::-webkit-details-marker,
+.task-container > summary::-webkit-details-marker {
+  display: none;
+}
+
+/* Chevron arrow — CSS border triangle, inherits text color */
+.chevron {
+  display: inline-block;
+  width: 0;
+  height: 0;
+  border-top: 4.5px solid transparent;
+  border-bottom: 4.5px solid transparent;
+  border-left: 7px solid currentColor;
+  flex-shrink: 0;
+  transition: transform 0.1s ease;
+  opacity: 0.7;
+  margin-right: 2px;
+}
+.slave-panel[open] > summary .chevron,
+.task-container[open] > summary .chevron {
+  transform: rotate(90deg);
+}
+
+/* ---- Toolbar ---- */
+.toolbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 10px;
+}
+
+.btn-ghost {
+  background: transparent;
+  color: var(--vscode-foreground);
+  border: none;
+  padding: 2px 4px;
+  height: 22px;
+  opacity: 0.6;
+}
+.btn-ghost:hover {
+  opacity: 1;
+  background: var(--vscode-toolbar-hoverBackground, rgba(255,255,255,0.08));
+}
+
+/* ---- Slave level ---- */
+.slave-panel {
+  border: 1px solid var(--vscode-widget-border, var(--vscode-input-border, transparent));
+  border-radius: 4px;
+  margin-bottom: 8px;
+  overflow: hidden;
+}
+
+.header-row {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  cursor: pointer;
+  user-select: none;
+  padding: 4px 8px;
+  background: var(--vscode-list-hoverBackground, rgba(255,255,255,0.03));
+  border-bottom: 1px solid var(--vscode-widget-border, var(--vscode-input-border, transparent));
+}
+
+.header-row:hover {
+  background: var(--vscode-list-hoverBackground);
+}
+
+.header-row h3 {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 600;
+  flex: 1;
+  min-width: 0;
+}
+
+.slave-content {
+  padding: 6px 8px 8px;
+}
+
+/* ---- Task level ---- */
 .task-container {
-  border-left: 2px solid var(--vscode-focusBorder);
-  padding-left: 8px;
-  margin-bottom: 12px;
+  margin: 4px 0;
 }
 
 .task-title {
   font-weight: 600;
-  margin: 8px 0 6px;
+  margin: 0;
+  padding: 3px 4px;
+  border-radius: 3px;
   display: flex;
-  justify-content: space-between;
   align-items: center;
-  gap: 6px;
+  gap: 4px;
+  cursor: pointer;
+  user-select: none;
+}
+
+.task-title:hover {
+  background: var(--vscode-list-hoverBackground);
 }
 
 .task-label {
@@ -76,21 +167,15 @@ body {
 .task-key-badge {
   font-size: 10px;
   font-weight: 400;
-  opacity: 0.5;
+  opacity: 0.45;
   flex-shrink: 0;
+  margin-right: 4px;
 }
 
-/* ---------- Slave header ---------- */
-.header-row {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-
-.header-row h3 {
-  margin: 0;
-  font-size: 13px;
-  font-weight: 600;
+.task-content {
+  padding-left: 20px;
+  border-left: 1px solid var(--vscode-widget-border, var(--vscode-input-border, transparent));
+  margin-left: 8px;
 }
 
 /* ---------- Buttons ---------- */
@@ -127,7 +212,8 @@ button:focus {
 .btn-secondary {
   background: transparent;
   color: var(--vscode-button-secondaryForeground);
-  border: 1px solid var(--vscode-button-border, var(--vscode-button-secondaryForeground));
+  border: 1px solid
+    var(--vscode-button-border, var(--vscode-button-secondaryForeground));
 }
 
 .btn-secondary:hover {
@@ -176,7 +262,7 @@ button:focus {
 }
 
 .add-task-bar {
-  margin-bottom: 8px;
+  margin-bottom: 6px;
 }
 
 /* ---------- Error ---------- */

@@ -18,6 +18,16 @@ window.addEventListener('message', (event) => {
       errorMessage.value = message.message;
       data.value = null;
       break;
+    case 'collapseAll':
+      document.querySelectorAll('.slave-panel, .task-container').forEach((el) => {
+        (el as HTMLDetailsElement).open = false;
+      });
+      break;
+    case 'expandAll':
+      document.querySelectorAll('.slave-panel, .task-container').forEach((el) => {
+        (el as HTMLDetailsElement).open = true;
+      });
+      break;
   }
 });
 

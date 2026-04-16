@@ -26,8 +26,32 @@
       {
         "command": "ethercatTaskEditor.refresh",
         "title": "Refresh SOEM Editor"
+      },
+      {
+        "command": "ethercatTaskEditor.collapseAll",
+        "title": "Collapse All",
+        "icon": "$(collapse-all)"
+      },
+      {
+        "command": "ethercatTaskEditor.expandAll",
+        "title": "Expand All",
+        "icon": "$(expand-all)"
       }
-    ]
+    ],
+    "menus": {
+      "view/title": [
+        {
+          "command": "ethercatTaskEditor.collapseAll",
+          "when": "view == ethercatTaskEditor.sidebar",
+          "group": "navigation"
+        },
+        {
+          "command": "ethercatTaskEditor.expandAll",
+          "when": "view == ethercatTaskEditor.sidebar",
+          "group": "navigation"
+        }
+      ]
+    }
   },
   "scripts": {
     "build": "tsup && vite build --config webview/vite.config.ts",

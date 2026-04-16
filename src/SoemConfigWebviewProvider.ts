@@ -99,6 +99,14 @@ export class SoemConfigWebviewProvider implements vscode.WebviewViewProvider {
     this.updateWebview();
   }
 
+  public collapseAll() {
+    this._view?.webview.postMessage({ type: 'collapseAll' });
+  }
+
+  public expandAll() {
+    this._view?.webview.postMessage({ type: 'expandAll' });
+  }
+
   private updateWebview() {
     if (!this._view || !this._view.visible) {
       return;

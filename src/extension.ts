@@ -14,4 +14,14 @@ export function activate(context: vscode.ExtensionContext) {
       provider.refresh(),
     ),
   );
+  context.subscriptions.push(
+    vscode.commands.registerCommand('ethercatTaskEditor.collapseAll', () =>
+      provider.collapseAll(),
+    ),
+  );
+  context.subscriptions.push(
+    vscode.commands.registerCommand('ethercatTaskEditor.expandAll', () =>
+      provider.expandAll(),
+    ),
+  );
 }

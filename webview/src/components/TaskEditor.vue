@@ -1,11 +1,13 @@
 <template>
-  <div class="task-container">
-    <div class="task-title">
+  <details class="task-container" open>
+    <summary class="task-title">
+      <span class="chevron"></span>
       <template v-if="isEditing">
         <input
           ref="inputRef"
           v-model="editingSegment"
           class="inline-edit-input"
+          @click.stop
           @keydown.enter="commitRename"
           @keydown.escape="cancelRename"
           @blur="commitRename"
@@ -15,19 +17,22 @@
         <span class="task-label" :title="'YAML key: ' + tKey">{{ segment }}</span>
         <span class="task-key-badge">{{ tKey }}</span>
       </template>
-      <div class="btn-group">
+      <div class="btn-group" @click.stop>
         <button class="btn-sm btn-secondary" @click="startRename">Rename</button>
         <button class="btn-sm btn-danger" @click="onRemove">Delete</button>
       </div>
+    </summary>
+
+    <div class="task-content">
+      <PropertyField
+        v-for="prop in visibleProps"
+        :key="prop"
+        :path="['slaves', sIndex, sKey, 'tasks', tIndex, tKey, prop]"
+        :prop="prop"
+        :val="tInfo[prop]"
+      />
     </div>
-    <PropertyField
-      v-for="prop in visibleProps"
-      :key="prop"
-      :path="['slaves', sIndex, sKey, 'tasks', tIndex, tKey, prop]"
-      :prop="prop"
-      :val="tInfo[prop]"
-    />
-  </div>
+  </details>
 </template>
 
 <script setup lang="ts">

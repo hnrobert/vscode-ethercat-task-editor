@@ -1,36 +1,40 @@
 <template>
-  <div>
-    <div class="header-row">
+  <details class="slave-panel" open>
+    <summary class="header-row">
+      <span class="chevron"></span>
       <input
         v-if="isEditing"
         ref="inputRef"
         v-model="editingName"
         class="inline-edit-input"
+        @click.stop
         @keydown.enter="commitRename"
         @keydown.escape="cancelRename"
         @blur="commitRename"
       />
       <h3 v-else>{{ sKey }}</h3>
-      <div class="btn-group">
+      <div class="btn-group" @click.stop>
         <button class="btn-sm btn-secondary" @click="startRename">Rename</button>
         <button class="btn-sm btn-danger" @click="onRemoveSlave">Delete</button>
       </div>
-    </div>
+    </summary>
 
-    <div class="add-task-bar">
-      <button class="btn-sm btn-secondary" @click="onAddTask">+ Add Task</button>
-    </div>
+    <div class="slave-content">
+      <div class="add-task-bar">
+        <button class="btn-sm btn-secondary" @click="onAddTask">+ Add Task</button>
+      </div>
 
-    <TaskEditor
-      v-for="(task, tIdx) in tasks"
-      :key="tIdx"
-      :s-index="sIndex"
-      :s-key="sKey"
-      :t-index="tIdx"
-      :t-key="taskKey(tIdx)"
-      :t-info="taskInfo(tIdx)"
-    />
-  </div>
+      <TaskEditor
+        v-for="(task, tIdx) in tasks"
+        :key="tIdx"
+        :s-index="sIndex"
+        :s-key="sKey"
+        :t-index="tIdx"
+        :t-key="taskKey(tIdx)"
+        :t-info="taskInfo(tIdx)"
+      />
+    </div>
+  </details>
 </template>
 
 <script setup lang="ts">
