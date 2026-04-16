@@ -85,7 +85,7 @@ body {
 button {
   background: var(--vscode-button-background);
   color: var(--vscode-button-foreground);
-  border: none;
+  border: 1px solid transparent;
   padding: 0 10px;
   height: 26px;
   cursor: pointer;
@@ -113,8 +113,9 @@ button:focus {
 }
 
 .btn-secondary {
-  background: var(--vscode-button-secondaryBackground);
+  background: transparent;
   color: var(--vscode-button-secondaryForeground);
+  border: 1px solid var(--vscode-button-border, var(--vscode-button-secondaryForeground));
 }
 
 .btn-secondary:hover {
@@ -122,12 +123,14 @@ button:focus {
 }
 
 .btn-danger {
-  background: var(--vscode-errorForeground);
-  color: white;
+  background: transparent;
+  color: var(--vscode-errorForeground);
+  border: 1px solid var(--vscode-errorForeground);
 }
 
 .btn-danger:hover {
-  opacity: 0.9;
+  background: var(--vscode-errorForeground);
+  color: white;
 }
 
 .btn-sm {

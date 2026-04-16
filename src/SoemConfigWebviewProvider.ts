@@ -23,6 +23,24 @@ export class SoemConfigWebviewProvider implements vscode.WebviewViewProvider {
 
   constructor(private readonly context: vscode.ExtensionContext) {
     this.msgFolderPath = path.join(context.extensionPath, 'assets', 'msg');
+
+    // Persistent event listeners — survive across webview resolve/dispose cycles
+    context.subscriptions.push(
+      vscode.window.onDidChangeActiveTextEditor(() => this.updateWebview()),
+    );
+    context.subscriptions.push(
+      vscode.window.onDidChangeVisibleTextEditors(() => this.updateWebview()),
+    );
+    context.subscriptions.push(
+      vscode.workspace.onDidChangeTextDocument((e) => {
+        if (e.document === vscode.window.activeTextEditor?.document) {
+          this.updateWebview();
+        }
+      }),
+    );
+    context.subscriptions.push(
+      vscode.workspace.onDidOpenTextDocument(() => this.updateWebview()),
+    );
   }
 
   public resolveWebviewView(
@@ -67,9 +85,9 @@ export class SoemConfigWebviewProvider implements vscode.WebviewViewProvider {
       }
     });
 
-    vscode.window.onDidChangeActiveTextEditor(() => this.updateWebview());
-    vscode.workspace.onDidChangeTextDocument((e) => {
-      if (e.document === vscode.window.activeTextEditor?.document) {
+    // Update when panel visibility changes (open/close sidebar)
+    webviewView.onDidChangeVisibility(() => {
+      if (webviewView.visible) {
         this.updateWebview();
       }
     });
@@ -82,7 +100,7 @@ export class SoemConfigWebviewProvider implements vscode.WebviewViewProvider {
   }
 
   private updateWebview() {
-    if (!this._view) {
+    if (!this._view || !this._view.visible) {
       return;
     }
     const editor = vscode.window.activeTextEditor;
