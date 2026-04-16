@@ -1,16 +1,20 @@
 <template>
   <div class="task-container">
     <div class="task-title">
-      <input
-        v-if="isEditing"
-        ref="inputRef"
-        v-model="editingName"
-        class="inline-edit-input"
-        @keydown.enter="commitRename"
-        @keydown.escape="cancelRename"
-        @blur="commitRename"
-      />
-      <span v-else>{{ tKey }}</span>
+      <template v-if="isEditing">
+        <input
+          ref="inputRef"
+          v-model="editingSegment"
+          class="inline-edit-input"
+          @keydown.enter="commitRename"
+          @keydown.escape="cancelRename"
+          @blur="commitRename"
+        />
+      </template>
+      <template v-else>
+        <span class="task-label" :title="'YAML key: ' + tKey">{{ segment }}</span>
+        <span class="task-key-badge">{{ tKey }}</span>
+      </template>
       <div class="btn-group">
         <button class="btn-sm btn-secondary" @click="startRename">Rename</button>
         <button class="btn-sm btn-danger" @click="onRemove">Delete</button>
@@ -45,13 +49,22 @@ const visibleProps = computed(() =>
   ),
 );
 
-// Inline rename
+/** Extract the topic segment from pub_topic, e.g. /ecat/sn1/app1/read → app1 */
+const segment = computed(() => {
+  const topic = props.tInfo.pub_topic || props.tInfo.sub_topic || '';
+  const match = topic.match(/^\/ecat\/[^/]+\/([^/]+)\//);
+  if (match) return match[1];
+  // Fallback: derive from key (app_1 → app1)
+  return props.tKey.replace('_', '');
+});
+
+// Inline rename (edits topic segment, not YAML key)
 const isEditing = ref(false);
-const editingName = ref('');
+const editingSegment = ref('');
 const inputRef = ref<HTMLInputElement | null>(null);
 
 function startRename() {
-  editingName.value = props.tKey;
+  editingSegment.value = segment.value;
   isEditing.value = true;
   nextTick(() => inputRef.value?.select());
 }
@@ -59,9 +72,9 @@ function startRename() {
 function commitRename() {
   if (!isEditing.value) return;
   isEditing.value = false;
-  const newName = editingName.value.trim();
-  if (newName && newName !== props.tKey) {
-    renameTask(props.sIndex, props.tIndex, newName);
+  const newSeg = editingSegment.value.trim();
+  if (newSeg && newSeg !== segment.value) {
+    renameTask(props.sIndex, props.tIndex, newSeg);
   }
 }
 

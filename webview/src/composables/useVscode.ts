@@ -43,8 +43,8 @@ export function addTask(sIndex: number) {
   postMessage({ type: 'addTask', sIndex });
 }
 
-export function renameTask(sIndex: number, tIndex: number, newName: string) {
-  postMessage({ type: 'renameTask', sIndex, tIndex, newName });
+export function renameTask(sIndex: number, tIndex: number, newSegment: string) {
+  postMessage({ type: 'renameTask', sIndex, tIndex, newSegment });
 }
 
 export function removeTask(sIndex: number, tIndex: number) {

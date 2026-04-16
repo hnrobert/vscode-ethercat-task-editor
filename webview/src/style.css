@@ -66,6 +66,18 @@ body {
   display: flex;
   justify-content: space-between;
   align-items: center;
+  gap: 6px;
+}
+
+.task-label {
+  min-width: 0;
+}
+
+.task-key-badge {
+  font-size: 10px;
+  font-weight: 400;
+  opacity: 0.5;
+  flex-shrink: 0;
 }
 
 /* ---------- Slave header ---------- */

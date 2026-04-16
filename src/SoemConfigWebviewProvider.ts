@@ -80,7 +80,7 @@ export class SoemConfigWebviewProvider implements vscode.WebviewViewProvider {
           await this.removeTask(data.sIndex, data.tIndex);
           break;
         case 'renameTask':
-          await this.renameTask(data.sIndex, data.tIndex, data.newName);
+          await this.renameTask(data.sIndex, data.tIndex, data.newSegment);
           break;
       }
     });
@@ -429,12 +429,6 @@ export class SoemConfigWebviewProvider implements vscode.WebviewViewProvider {
         : '',
     );
 
-    const taskName = await vscode.window.showInputBox({
-      prompt: 'Enter new task name (e.g., app_1)',
-      value: 'app_x',
-    });
-    if (!taskName) return;
-
     let tasksList = doc.getIn(['slaves', sIndex, snKey, 'tasks']);
     if (!tasksList) {
       doc.setIn(['slaves', sIndex, snKey, 'tasks'], []);
@@ -442,13 +436,17 @@ export class SoemConfigWebviewProvider implements vscode.WebviewViewProvider {
     }
 
     if (yaml.isSeq(tasksList)) {
-      const newTaskStr = `${taskName}:
+      const appIdx = tasksList.items.length + 1;
+      const taskKey = `app_${appIdx}`;
+      const segment = `app${appIdx}`;
+
+      const newTaskStr = `${taskKey}:
   sdowrite_task_type: !uint8_t 1
   conf_connection_lost_read_action: !uint8_t 1
   sdowrite_connection_lost_write_action: !uint8_t 2
-  pub_topic: !std::string '/ecat/${snKey}/${taskName}/read'
+  pub_topic: !std::string '/ecat/${snKey}/${segment}/read'
   pdoread_offset: !uint16_t 0
-  sub_topic: !std::string '/ecat/${snKey}/${taskName}/write'
+  sub_topic: !std::string '/ecat/${snKey}/${segment}/write'
   pdowrite_offset: !uint16_t 0
 `;
       const newTaskNode = parseYamlDocumentWithTags(newTaskStr).contents;
@@ -494,7 +492,11 @@ export class SoemConfigWebviewProvider implements vscode.WebviewViewProvider {
     }
   }
 
-  private async renameTask(sIndex: number, tIndex: number, newName: string) {
+  private async renameTask(
+    sIndex: number,
+    tIndex: number,
+    newSegment: string,
+  ) {
     const editor = vscode.window.activeTextEditor;
     if (!editor || !this.lastParsedDoc?.doc) return;
     const doc = this.lastParsedDoc.doc;
@@ -510,29 +512,112 @@ export class SoemConfigWebviewProvider implements vscode.WebviewViewProvider {
     if (!yaml.isMap(taskItem) || taskItem.items.length === 0) return;
     const taskKeyNode = taskItem.items[0].key;
     if (!yaml.isScalar(taskKeyNode)) return;
-    const currentName = String(taskKeyNode.value);
-    if (newName === currentName) return;
+    const currentKey = String(taskKeyNode.value);
 
-    this.migrateTaskMemory(snKey, currentName, newName);
+    // Only update topic segments — key stays fixed
+    const pubTopic = doc.getIn([
+      'slaves',
+      sIndex,
+      snKey,
+      'tasks',
+      tIndex,
+      currentKey,
+      'pub_topic',
+    ]);
+    const subTopic = doc.getIn([
+      'slaves',
+      sIndex,
+      snKey,
+      'tasks',
+      tIndex,
+      currentKey,
+      'sub_topic',
+    ]);
 
-    taskKeyNode.value = newName;
-    doc.setIn(
-      ['slaves', sIndex, snKey, 'tasks', tIndex, newName, 'pub_topic'],
-      `/ecat/${snKey}/${newName}/read`,
-    );
-    doc.setIn(
-      ['slaves', sIndex, snKey, 'tasks', tIndex, newName, 'sub_topic'],
-      `/ecat/${snKey}/${newName}/write`,
-    );
+    if (typeof pubTopic === 'string') {
+      const oldSeg = this.parseTopicSegment(pubTopic);
+      if (oldSeg && oldSeg !== newSegment) {
+        doc.setIn(
+          [
+            'slaves',
+            sIndex,
+            snKey,
+            'tasks',
+            tIndex,
+            currentKey,
+            'pub_topic',
+          ],
+          pubTopic.replace(`/${oldSeg}/`, `/${newSegment}/`),
+        );
+      }
+    }
+    if (typeof subTopic === 'string') {
+      const oldSeg = this.parseTopicSegment(subTopic);
+      if (oldSeg && oldSeg !== newSegment) {
+        doc.setIn(
+          [
+            'slaves',
+            sIndex,
+            snKey,
+            'tasks',
+            tIndex,
+            currentKey,
+            'sub_topic',
+          ],
+          subTopic.replace(`/${oldSeg}/`, `/${newSegment}/`),
+        );
+      }
+    }
+
     await this.applyAndSaveYaml(editor, doc);
   }
 
   // --- YAML save helpers ---
 
+  /** Extract the app segment from a topic like /ecat/sn4653115/app1/read → app1 */
+  private parseTopicSegment(topic: string): string | null {
+    const match = topic.match(/^\/ecat\/[^/]+\/([^/]+)\//);
+    return match ? match[1] : null;
+  }
+
+  /** Force every task key to app_1 … app_n based on array position */
+  private normalizeTaskKeys(doc: yaml.Document) {
+    const data = doc.toJSON();
+    if (!data?.slaves || !Array.isArray(data.slaves)) return;
+    for (let sIndex = 0; sIndex < data.slaves.length; sIndex++) {
+      const slave = data.slaves[sIndex];
+      if (!slave || typeof slave !== 'object') continue;
+      const slaveKey = Object.keys(slave)[0];
+      const tasks = slave[slaveKey]?.tasks;
+      if (!Array.isArray(tasks)) continue;
+
+      for (let tIndex = 0; tIndex < tasks.length; tIndex++) {
+        const task = tasks[tIndex];
+        if (!task || typeof task !== 'object') continue;
+        const currentKey = Object.keys(task)[0];
+        const expectedKey = `app_${tIndex + 1}`;
+        if (currentKey === expectedKey) continue;
+
+        const taskNode = doc.getIn(
+          ['slaves', sIndex, slaveKey, 'tasks', tIndex],
+          true,
+        );
+        if (yaml.isMap(taskNode) && taskNode.items.length > 0) {
+          const keyNode = taskNode.items[0].key;
+          if (yaml.isScalar(keyNode)) {
+            keyNode.value = expectedKey;
+          }
+        }
+      }
+    }
+  }
+
   private async applyAndSaveYaml(
     editor: vscode.TextEditor,
     doc: yaml.Document,
   ) {
+    this.normalizeTaskKeys(doc);
+
     this.calculateOffsets(
       doc,
       doc.toJSON(),
