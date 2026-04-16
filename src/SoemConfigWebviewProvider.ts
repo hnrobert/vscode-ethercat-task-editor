@@ -21,6 +21,12 @@ export class SoemConfigWebviewProvider implements vscode.WebviewViewProvider {
     Map<string, Map<number, Record<string, any>>>
   >();
 
+  public show() {
+    if (this._view) {
+      this._view.show();
+    }
+  }
+
   constructor(private readonly context: vscode.ExtensionContext) {
     this.msgFolderPath = path.join(context.extensionPath, 'assets', 'msg');
 

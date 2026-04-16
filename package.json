@@ -11,6 +11,9 @@
     "Other"
   ],
   "main": "./out/extension.js",
+  "activationEvents": [
+    "onLanguage:yaml"
+  ],
   "contributes": {
     "views": {
       "ethercatTaskEditor.container": [
@@ -36,6 +39,11 @@
         "command": "ethercatTaskEditor.expandAll",
         "title": "Expand All",
         "icon": "$(expand-all)"
+      },
+      {
+        "command": "ethercatTaskEditor.showPanel",
+        "title": "Open EtherCAT Config",
+        "icon": "$(group-by-ref-type)"
       }
     ],
     "menus": {
@@ -48,6 +56,13 @@
         {
           "command": "ethercatTaskEditor.expandAll",
           "when": "view == ethercatTaskEditor.sidebar",
+          "group": "navigation"
+        }
+      ],
+      "editor/title": [
+        {
+          "command": "ethercatTaskEditor.showPanel",
+          "when": "ethercatTaskEditor.isEthercatYaml",
           "group": "navigation"
         }
       ]
