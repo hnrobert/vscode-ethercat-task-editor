@@ -144,6 +144,21 @@ button:focus {
   gap: 4px;
 }
 
+/* ---------- Inline rename edit ---------- */
+.inline-edit-input {
+  background: var(--vscode-input-background);
+  color: var(--vscode-input-foreground);
+  border: 1px solid var(--vscode-focusBorder);
+  padding: 1px 4px;
+  font-size: inherit;
+  font-weight: inherit;
+  font-family: inherit;
+  outline: none;
+  border-radius: 2px;
+  min-width: 0;
+  flex: 1;
+}
+
 .add-bar {
   margin-bottom: 10px;
 }

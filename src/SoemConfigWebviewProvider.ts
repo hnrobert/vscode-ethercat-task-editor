@@ -71,7 +71,7 @@ export class SoemConfigWebviewProvider implements vscode.WebviewViewProvider {
           await this.removeSlave(data.sIndex);
           break;
         case 'renameSlave':
-          await this.renameSlave(data.sIndex);
+          await this.renameSlave(data.sIndex, data.newName);
           break;
         case 'addTask':
           await this.addTask(data.sIndex);
@@ -80,7 +80,7 @@ export class SoemConfigWebviewProvider implements vscode.WebviewViewProvider {
           await this.removeTask(data.sIndex, data.tIndex);
           break;
         case 'renameTask':
-          await this.renameTask(data.sIndex, data.tIndex);
+          await this.renameTask(data.sIndex, data.tIndex, data.newName);
           break;
       }
     });
@@ -385,7 +385,7 @@ export class SoemConfigWebviewProvider implements vscode.WebviewViewProvider {
     }
   }
 
-  private async renameSlave(sIndex: number) {
+  private async renameSlave(sIndex: number, newName: string) {
     const editor = vscode.window.activeTextEditor;
     if (!editor || !this.lastParsedDoc?.doc) return;
     const doc = this.lastParsedDoc.doc;
@@ -394,14 +394,8 @@ export class SoemConfigWebviewProvider implements vscode.WebviewViewProvider {
     const keyNode = slaveItem.items[0].key;
     if (!yaml.isScalar(keyNode)) return;
     const currentName = String(keyNode.value);
+    if (newName === currentName) return;
 
-    const newName = await vscode.window.showInputBox({
-      prompt: 'Rename slave',
-      value: currentName,
-    });
-    if (!newName || newName === currentName) return;
-
-    // Migrate task type memory
     this.migrateSlaveMemory(currentName, newName);
 
     keyNode.value = newName;
@@ -500,7 +494,7 @@ export class SoemConfigWebviewProvider implements vscode.WebviewViewProvider {
     }
   }
 
-  private async renameTask(sIndex: number, tIndex: number) {
+  private async renameTask(sIndex: number, tIndex: number, newName: string) {
     const editor = vscode.window.activeTextEditor;
     if (!editor || !this.lastParsedDoc?.doc) return;
     const doc = this.lastParsedDoc.doc;
@@ -517,14 +511,8 @@ export class SoemConfigWebviewProvider implements vscode.WebviewViewProvider {
     const taskKeyNode = taskItem.items[0].key;
     if (!yaml.isScalar(taskKeyNode)) return;
     const currentName = String(taskKeyNode.value);
+    if (newName === currentName) return;
 
-    const newName = await vscode.window.showInputBox({
-      prompt: 'Rename task',
-      value: currentName,
-    });
-    if (!newName || newName === currentName) return;
-
-    // Migrate task type memory
     this.migrateTaskMemory(snKey, currentName, newName);
 
     taskKeyNode.value = newName;

@@ -1,9 +1,18 @@
 <template>
   <div>
     <div class="header-row">
-      <h3>{{ sKey }}</h3>
+      <input
+        v-if="isEditing"
+        ref="inputRef"
+        v-model="editingName"
+        class="inline-edit-input"
+        @keydown.enter="commitRename"
+        @keydown.escape="cancelRename"
+        @blur="commitRename"
+      />
+      <h3 v-else>{{ sKey }}</h3>
       <div class="btn-group">
-        <button class="btn-sm btn-secondary" @click="onRenameSlave">Rename</button>
+        <button class="btn-sm btn-secondary" @click="startRename">Rename</button>
         <button class="btn-sm btn-danger" @click="onRemoveSlave">Delete</button>
       </div>
     </div>
@@ -25,7 +34,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue';
+import { computed, nextTick, ref } from 'vue';
 import TaskEditor from './TaskEditor.vue';
 import { addTask, renameSlave, removeSlave } from '../composables/useVscode';
 
@@ -48,12 +57,32 @@ function taskInfo(idx: number): Record<string, any> {
   return tasks.value[idx][taskKey(idx)];
 }
 
-function onAddTask() {
-  addTask(props.sIndex);
+// Inline rename
+const isEditing = ref(false);
+const editingName = ref('');
+const inputRef = ref<HTMLInputElement | null>(null);
+
+function startRename() {
+  editingName.value = sKey.value;
+  isEditing.value = true;
+  nextTick(() => inputRef.value?.select());
 }
 
-function onRenameSlave() {
-  renameSlave(props.sIndex);
+function commitRename() {
+  if (!isEditing.value) return;
+  isEditing.value = false;
+  const newName = editingName.value.trim();
+  if (newName && newName !== sKey.value) {
+    renameSlave(props.sIndex, newName);
+  }
+}
+
+function cancelRename() {
+  isEditing.value = false;
+}
+
+function onAddTask() {
+  addTask(props.sIndex);
 }
 
 function onRemoveSlave() {
