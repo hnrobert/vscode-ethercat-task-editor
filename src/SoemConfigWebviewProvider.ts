@@ -38,7 +38,7 @@ export class SoemConfigWebviewProvider implements vscode.WebviewViewProvider {
           this.updateWebview();
           break;
         case 'updateValue':
-          await this.updateYamlValue(data.path, data.value);
+          await this.updateYamlValue(data.path, data.value, data.savedTaskTypeValues);
           break;
         case 'addSlave':
           await this.addSlave(data.name);
@@ -113,7 +113,7 @@ export class SoemConfigWebviewProvider implements vscode.WebviewViewProvider {
     }
   }
 
-  private async updateYamlValue(propertyPath: (string | number)[], value: any) {
+  private async updateYamlValue(propertyPath: (string | number)[], value: any, savedTaskTypeValues?: Record<string, any> | null) {
     const editor = vscode.window.activeTextEditor;
     if (!editor || !this.lastParsedDoc?.doc) return;
 
@@ -198,6 +198,13 @@ export class SoemConfigWebviewProvider implements vscode.WebviewViewProvider {
 
         if (yaml.isMap(newParams)) {
           for (const item of newParams.items) {
+            // Override template default with saved value if available
+            if (savedTaskTypeValues && yaml.isScalar(item.key)) {
+              const keyStr = String(item.key.value);
+              if (keyStr in savedTaskTypeValues && yaml.isScalar(item.value)) {
+                item.value.value = savedTaskTypeValues[keyStr];
+              }
+            }
             targetTaskNode.items.push(item);
           }
         }
