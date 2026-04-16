@@ -37,7 +37,7 @@ const visibleProps = computed(() =>
 );
 
 function onRename() {
-  renameTask(props.sIndex, props.tIndex, props.tKey);
+  renameTask(props.sIndex, props.tIndex);
 }
 
 function onRemove() {

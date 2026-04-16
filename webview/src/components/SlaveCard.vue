@@ -53,7 +53,7 @@ function onAddTask() {
 }
 
 function onRenameSlave() {
-  renameSlave(props.sIndex, sKey.value);
+  renameSlave(props.sIndex);
 }
 
 function onRemoveSlave() {

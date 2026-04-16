@@ -35,7 +35,7 @@
 </template>
 
 <script setup lang="ts">
-import { taskTypes, updateValue, changeTaskType } from '../composables/useVscode';
+import { taskTypes, updateValue } from '../composables/useVscode';
 
 const props = defineProps<{
   path: (string | number)[];
@@ -45,7 +45,7 @@ const props = defineProps<{
 
 function onTaskTypeChange(e: Event) {
   const value = Number((e.target as HTMLSelectElement).value);
-  changeTaskType(props.path, value);
+  updateValue(props.path, value);
 }
 
 function onBooleanChange(e: Event) {

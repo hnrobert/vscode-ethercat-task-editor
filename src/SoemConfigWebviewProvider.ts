@@ -15,6 +15,12 @@ export class SoemConfigWebviewProvider implements vscode.WebviewViewProvider {
   private readonly msgFolderPath: string;
   private lastParsedDoc?: { doc: yaml.Document; data: any; isValid: boolean };
 
+  // Runtime memory: slaveName -> taskName -> taskTypeValue -> { prop: value }
+  private taskTypeMemory = new Map<
+    string,
+    Map<string, Map<number, Record<string, any>>>
+  >();
+
   constructor(private readonly context: vscode.ExtensionContext) {
     this.msgFolderPath = path.join(context.extensionPath, 'assets', 'msg');
   }
@@ -38,25 +44,25 @@ export class SoemConfigWebviewProvider implements vscode.WebviewViewProvider {
           this.updateWebview();
           break;
         case 'updateValue':
-          await this.updateYamlValue(data.path, data.value, data.savedTaskTypeValues);
+          await this.updateYamlValue(data.path, data.value);
           break;
         case 'addSlave':
-          await this.addSlave(data.name);
+          await this.addSlave();
           break;
         case 'removeSlave':
           await this.removeSlave(data.sIndex);
           break;
         case 'renameSlave':
-          await this.renameSlave(data.sIndex, data.newName);
+          await this.renameSlave(data.sIndex);
           break;
         case 'addTask':
-          await this.addTask(data.sIndex, data.taskName);
+          await this.addTask(data.sIndex);
           break;
         case 'removeTask':
           await this.removeTask(data.sIndex, data.tIndex);
           break;
         case 'renameTask':
-          await this.renameTask(data.sIndex, data.tIndex, data.newName);
+          await this.renameTask(data.sIndex, data.tIndex);
           break;
       }
     });
@@ -113,7 +119,64 @@ export class SoemConfigWebviewProvider implements vscode.WebviewViewProvider {
     }
   }
 
-  private async updateYamlValue(propertyPath: (string | number)[], value: any, savedTaskTypeValues?: Record<string, any> | null) {
+  // --- Task type memory helpers ---
+
+  private saveTaskTypeState(
+    slaveName: string,
+    taskName: string,
+    taskType: number,
+    values: Record<string, any>,
+  ) {
+    let slaveMap = this.taskTypeMemory.get(slaveName);
+    if (!slaveMap) {
+      slaveMap = new Map();
+      this.taskTypeMemory.set(slaveName, slaveMap);
+    }
+    let taskMap = slaveMap.get(taskName);
+    if (!taskMap) {
+      taskMap = new Map();
+      slaveMap.set(taskName, taskMap);
+    }
+    taskMap.set(taskType, { ...values });
+  }
+
+  private getSavedTaskTypeState(
+    slaveName: string,
+    taskName: string,
+    taskType: number,
+  ): Record<string, any> | null {
+    return (
+      this.taskTypeMemory.get(slaveName)?.get(taskName)?.get(taskType) ?? null
+    );
+  }
+
+  private migrateSlaveMemory(oldName: string, newName: string) {
+    const mem = this.taskTypeMemory.get(oldName);
+    if (mem) {
+      this.taskTypeMemory.delete(oldName);
+      this.taskTypeMemory.set(newName, mem);
+    }
+  }
+
+  private migrateTaskMemory(
+    slaveName: string,
+    oldTaskName: string,
+    newTaskName: string,
+  ) {
+    const slaveMem = this.taskTypeMemory.get(slaveName);
+    if (slaveMem?.has(oldTaskName)) {
+      const taskMem = slaveMem.get(oldTaskName)!;
+      slaveMem.delete(oldTaskName);
+      slaveMem.set(newTaskName, taskMem);
+    }
+  }
+
+  // --- YAML value update ---
+
+  private async updateYamlValue(
+    propertyPath: (string | number)[],
+    value: any,
+  ) {
     const editor = vscode.window.activeTextEditor;
     if (!editor || !this.lastParsedDoc?.doc) return;
 
@@ -128,6 +191,44 @@ export class SoemConfigWebviewProvider implements vscode.WebviewViewProvider {
       if (!isNaN(parsedHex)) {
         finalValue = parsedHex;
         isHex = true;
+      }
+    }
+
+    // --- Task type memory: snapshot current state BEFORE applying change ---
+    const isTaskTypeChange =
+      propertyPath.length > 0 &&
+      propertyPath[propertyPath.length - 1] === 'sdowrite_task_type';
+
+    let savedTaskTypeValues: Record<string, any> | null = null;
+
+    if (isTaskTypeChange) {
+      const sKey = propertyPath[2] as string;
+      const tKey = propertyPath[5] as string;
+      const sIndex = propertyPath[1] as number;
+      const tIndex = propertyPath[4] as number;
+
+      const taskData =
+        this.lastParsedDoc.data?.slaves?.[sIndex]?.[sKey]?.tasks?.[tIndex]?.[
+          tKey
+        ];
+      if (taskData) {
+        const oldType = Number(taskData.sdowrite_task_type);
+
+        // Save current values for old type (exclude computed offsets)
+        const valuesToSave: Record<string, any> = {};
+        for (const [key, val] of Object.entries(taskData)) {
+          if (key !== 'pdoread_offset' && key !== 'pdowrite_offset') {
+            valuesToSave[key] = val;
+          }
+        }
+        this.saveTaskTypeState(sKey, tKey, oldType, valuesToSave);
+
+        // Get saved values for new type
+        savedTaskTypeValues = this.getSavedTaskTypeState(
+          sKey,
+          tKey,
+          Number(finalValue),
+        );
       }
     }
 
@@ -158,10 +259,7 @@ export class SoemConfigWebviewProvider implements vscode.WebviewViewProvider {
     }
 
     // Special behavior if task type was updated: regenerate default fields for the new task type
-    if (
-      propertyPath.length > 0 &&
-      propertyPath[propertyPath.length - 1] === 'sdowrite_task_type'
-    ) {
+    if (isTaskTypeChange) {
       const taskPath = propertyPath.slice(0, propertyPath.length - 1);
       const targetTaskNode = doc.getIn(taskPath, true);
       if (yaml.isMap(targetTaskNode)) {
@@ -201,7 +299,10 @@ export class SoemConfigWebviewProvider implements vscode.WebviewViewProvider {
             // Override template default with saved value if available
             if (savedTaskTypeValues && yaml.isScalar(item.key)) {
               const keyStr = String(item.key.value);
-              if (keyStr in savedTaskTypeValues && yaml.isScalar(item.value)) {
+              if (
+                keyStr in savedTaskTypeValues &&
+                yaml.isScalar(item.value)
+              ) {
                 item.value.value = savedTaskTypeValues[keyStr];
               }
             }
@@ -214,9 +315,18 @@ export class SoemConfigWebviewProvider implements vscode.WebviewViewProvider {
     await this.applyAndSaveYaml(editor, doc);
   }
 
-  private async addSlave(snName: string) {
+  // --- Slave / Task CRUD (with VSCode native dialogs) ---
+
+  private async addSlave() {
     const editor = vscode.window.activeTextEditor;
     if (!editor || !this.lastParsedDoc?.doc) return;
+
+    const snName = await vscode.window.showInputBox({
+      prompt: 'Enter new slave name (e.g., sn1234567)',
+      value: 'sn0000000',
+    });
+    if (!snName) return;
+
     const doc = this.lastParsedDoc.doc;
 
     let slavesList = doc.getIn(['slaves']);
@@ -241,6 +351,14 @@ export class SoemConfigWebviewProvider implements vscode.WebviewViewProvider {
   private async removeSlave(sIndex: number) {
     const editor = vscode.window.activeTextEditor;
     if (!editor || !this.lastParsedDoc?.doc) return;
+
+    const result = await vscode.window.showWarningMessage(
+      'Remove this entire slave?',
+      { modal: true },
+      'Remove',
+    );
+    if (result !== 'Remove') return;
+
     const doc = this.lastParsedDoc.doc;
     const slavesList = doc.getIn(['slaves']);
     if (yaml.isSeq(slavesList)) {
@@ -249,45 +367,61 @@ export class SoemConfigWebviewProvider implements vscode.WebviewViewProvider {
     }
   }
 
-  private async renameSlave(sIndex: number, newName: string) {
+  private async renameSlave(sIndex: number) {
     const editor = vscode.window.activeTextEditor;
     if (!editor || !this.lastParsedDoc?.doc) return;
     const doc = this.lastParsedDoc.doc;
     const slaveItem = doc.getIn(['slaves', sIndex]);
-    if (yaml.isMap(slaveItem) && slaveItem.items.length > 0) {
-      const keyNode = slaveItem.items[0].key;
-      if (yaml.isScalar(keyNode)) {
-        keyNode.value = newName;
-        // update pub/sub topic references automatically?
-        const latencyTopic = doc.getIn([
-          'slaves',
-          sIndex,
-          String(keyNode.value),
-          'latency_pub_topic',
-        ]);
-        if (
-          typeof latencyTopic === 'string' &&
-          latencyTopic.includes('/ecat/')
-        ) {
-          doc.setIn(
-            ['slaves', sIndex, newName, 'latency_pub_topic'],
-            `/ecat/${newName}/latency`,
-          );
-        }
-        await this.applyAndSaveYaml(editor, doc);
-      }
+    if (!yaml.isMap(slaveItem) || slaveItem.items.length === 0) return;
+    const keyNode = slaveItem.items[0].key;
+    if (!yaml.isScalar(keyNode)) return;
+    const currentName = String(keyNode.value);
+
+    const newName = await vscode.window.showInputBox({
+      prompt: 'Rename slave',
+      value: currentName,
+    });
+    if (!newName || newName === currentName) return;
+
+    // Migrate task type memory
+    this.migrateSlaveMemory(currentName, newName);
+
+    keyNode.value = newName;
+    const latencyTopic = doc.getIn([
+      'slaves',
+      sIndex,
+      newName,
+      'latency_pub_topic',
+    ]);
+    if (
+      typeof latencyTopic === 'string' &&
+      latencyTopic.includes('/ecat/')
+    ) {
+      doc.setIn(
+        ['slaves', sIndex, newName, 'latency_pub_topic'],
+        `/ecat/${newName}/latency`,
+      );
     }
+    await this.applyAndSaveYaml(editor, doc);
   }
 
-  private async addTask(sIndex: number, taskName: string) {
+  private async addTask(sIndex: number) {
     const editor = vscode.window.activeTextEditor;
     if (!editor || !this.lastParsedDoc?.doc) return;
     const doc = this.lastParsedDoc.doc;
     const slaveItem = doc.getIn(['slaves', sIndex]);
     if (!yaml.isMap(slaveItem) || slaveItem.items.length === 0) return;
     const snKey = String(
-      yaml.isScalar(slaveItem.items[0].key) ? slaveItem.items[0].key.value : '',
+      yaml.isScalar(slaveItem.items[0].key)
+        ? slaveItem.items[0].key.value
+        : '',
     );
+
+    const taskName = await vscode.window.showInputBox({
+      prompt: 'Enter new task name (e.g., app_1)',
+      value: 'app_x',
+    });
+    if (!taskName) return;
 
     let tasksList = doc.getIn(['slaves', sIndex, snKey, 'tasks']);
     if (!tasksList) {
@@ -320,11 +454,21 @@ export class SoemConfigWebviewProvider implements vscode.WebviewViewProvider {
   private async removeTask(sIndex: number, tIndex: number) {
     const editor = vscode.window.activeTextEditor;
     if (!editor || !this.lastParsedDoc?.doc) return;
+
+    const result = await vscode.window.showWarningMessage(
+      'Remove this task?',
+      { modal: true },
+      'Remove',
+    );
+    if (result !== 'Remove') return;
+
     const doc = this.lastParsedDoc.doc;
     const slaveItem = doc.getIn(['slaves', sIndex]);
     if (!yaml.isMap(slaveItem) || slaveItem.items.length === 0) return;
     const snKey = String(
-      yaml.isScalar(slaveItem.items[0].key) ? slaveItem.items[0].key.value : '',
+      yaml.isScalar(slaveItem.items[0].key)
+        ? slaveItem.items[0].key.value
+        : '',
     );
     const tasksList = doc.getIn(['slaves', sIndex, snKey, 'tasks']);
 
@@ -338,34 +482,46 @@ export class SoemConfigWebviewProvider implements vscode.WebviewViewProvider {
     }
   }
 
-  private async renameTask(sIndex: number, tIndex: number, newName: string) {
+  private async renameTask(sIndex: number, tIndex: number) {
     const editor = vscode.window.activeTextEditor;
     if (!editor || !this.lastParsedDoc?.doc) return;
     const doc = this.lastParsedDoc.doc;
     const slaveItem = doc.getIn(['slaves', sIndex]);
     if (!yaml.isMap(slaveItem) || slaveItem.items.length === 0) return;
     const snKey = String(
-      yaml.isScalar(slaveItem.items[0].key) ? slaveItem.items[0].key.value : '',
+      yaml.isScalar(slaveItem.items[0].key)
+        ? slaveItem.items[0].key.value
+        : '',
     );
 
     const taskItem = doc.getIn(['slaves', sIndex, snKey, 'tasks', tIndex]);
-    if (yaml.isMap(taskItem) && taskItem.items.length > 0) {
-      const keyNode = taskItem.items[0].key;
-      if (yaml.isScalar(keyNode)) {
-        keyNode.value = newName;
-        // try to automatically update topics if they're standard
-        doc.setIn(
-          ['slaves', sIndex, snKey, 'tasks', tIndex, newName, 'pub_topic'],
-          `/ecat/${snKey}/${newName}/read`,
-        );
-        doc.setIn(
-          ['slaves', sIndex, snKey, 'tasks', tIndex, newName, 'sub_topic'],
-          `/ecat/${snKey}/${newName}/write`,
-        );
-        await this.applyAndSaveYaml(editor, doc);
-      }
-    }
+    if (!yaml.isMap(taskItem) || taskItem.items.length === 0) return;
+    const taskKeyNode = taskItem.items[0].key;
+    if (!yaml.isScalar(taskKeyNode)) return;
+    const currentName = String(taskKeyNode.value);
+
+    const newName = await vscode.window.showInputBox({
+      prompt: 'Rename task',
+      value: currentName,
+    });
+    if (!newName || newName === currentName) return;
+
+    // Migrate task type memory
+    this.migrateTaskMemory(snKey, currentName, newName);
+
+    taskKeyNode.value = newName;
+    doc.setIn(
+      ['slaves', sIndex, snKey, 'tasks', tIndex, newName, 'pub_topic'],
+      `/ecat/${snKey}/${newName}/read`,
+    );
+    doc.setIn(
+      ['slaves', sIndex, snKey, 'tasks', tIndex, newName, 'sub_topic'],
+      `/ecat/${snKey}/${newName}/write`,
+    );
+    await this.applyAndSaveYaml(editor, doc);
   }
+
+  // --- YAML save helpers ---
 
   private async applyAndSaveYaml(
     editor: vscode.TextEditor,
@@ -557,7 +713,8 @@ export class SoemConfigWebviewProvider implements vscode.WebviewViewProvider {
 
 function getNonce(): string {
   let text = '';
-  const possible = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+  const possible =
+    'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
   for (let i = 0; i < 32; i++) {
     text += possible.charAt(Math.floor(Math.random() * possible.length));
   }
