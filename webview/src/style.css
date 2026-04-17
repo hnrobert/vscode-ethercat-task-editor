@@ -283,8 +283,9 @@ button:focus {
 
 /* ---------- Insert divider ---------- */
 .insert-zone {
-  height: 16px;
+  height: 20px;
   display: flex;
+  margin: 4px;
   align-items: center;
   justify-content: center;
   position: relative;
@@ -300,7 +301,7 @@ button:focus {
   align-items: center;
   width: 100%;
   gap: 6px;
-  opacity: 0;
+  opacity: 1;
   pointer-events: none;
   transition: opacity 0.15s ease;
   position: absolute;
@@ -425,4 +426,23 @@ body.dragging-slave .slave-insert-zone .insert-btn {
 .task-title[draggable="true"]:active,
 .header-row[draggable="true"]:active {
   cursor: grabbing;
+}
+
+/* Fix drag handle - disable pointer events on children, re-enable on interactive elements */
+.header-row[draggable="true"] > * {
+  pointer-events: none;
+}
+
+.header-row[draggable="true"] .btn-group,
+.header-row[draggable="true"] .inline-edit-input {
+  pointer-events: auto;
+}
+
+.task-title[draggable="true"] > * {
+  pointer-events: none;
+}
+
+.task-title[draggable="true"] .btn-group,
+.task-title[draggable="true"] .inline-edit-input {
+  pointer-events: auto;
 }

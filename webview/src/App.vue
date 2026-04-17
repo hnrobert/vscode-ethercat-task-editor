@@ -11,9 +11,9 @@
           @dragleave="onDragLeave($event, 0)"
           @drop="onSlaveDrop(0)"
         >
-          <div class="insert-divider" @click="onInsertSlave(0)">
+          <div class="insert-divider">
             <span class="insert-line"></span>
-            <button class="insert-btn">+</button>
+            <button class="insert-btn" @click="onInsertSlave(0)">+</button>
             <span class="insert-line"></span>
           </div>
         </div>
@@ -32,9 +32,9 @@
             @dragleave="onDragLeave($event, Number(sIdx) + 1)"
             @drop="onSlaveDrop(Number(sIdx) + 1)"
           >
-            <div class="insert-divider" @click="onInsertSlave(Number(sIdx) + 1)">
+            <div class="insert-divider">
               <span class="insert-line"></span>
-              <button class="insert-btn">+</button>
+              <button class="insert-btn" @click="onInsertSlave(Number(sIdx) + 1)">+</button>
               <span class="insert-line"></span>
             </div>
           </div>
