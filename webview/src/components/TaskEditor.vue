@@ -23,7 +23,7 @@
         <span class="task-key-badge">{{ tKey }}</span>
       </template>
       <div class="btn-group" @click.stop>
-        <button class="btn-sm btn-secondary" @click="startRename">Rename</button>
+        <button class="btn-sm btn-secondary" @click="startRename">Alias</button>
         <button class="btn-sm btn-danger" @click="onRemove">Delete</button>
       </div>
     </summary>
@@ -68,7 +68,7 @@ const segment = computed(() => {
   return props.tKey.replace('_', '');
 });
 
-// Inline rename (edits topic segment, not YAML key)
+// Inline alias editing (edits topic segment, not YAML key)
 const isEditing = ref(false);
 const editingSegment = ref('');
 const inputRef = ref<HTMLInputElement | null>(null);

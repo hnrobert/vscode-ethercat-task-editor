@@ -117,3 +117,38 @@ export function getTaskTemplateYaml(type: number): string {
     }
     return res;
 }
+
+export function generateTaskTemplate(
+    taskKey: string,
+    snKey: string,
+    segment: string,
+    taskType: number
+): string {
+    const hasRead = [1, 2, 3, 5, 8, 10, 11, 12, 13, 14, 15].includes(taskType);
+    const hasWrite = [1, 2, 4, 5, 6, 7, 12, 13, 15].includes(taskType);
+
+    let template = `${taskKey}:\n`;
+    template += `  sdowrite_task_type: !uint8_t ${taskType}\n`;
+    template += `  conf_connection_lost_read_action: !uint8_t 1\n`;
+
+    if (hasWrite) {
+        template += `  sdowrite_connection_lost_write_action: !uint8_t 2\n`;
+    }
+
+    if (hasRead) {
+        template += `  pub_topic: !std::string '/ecat/${snKey}/${segment}/read'\n`;
+        template += `  pdoread_offset: !uint16_t 0\n`;
+    }
+
+    if (hasWrite) {
+        template += `  sub_topic: !std::string '/ecat/${snKey}/${segment}/write'\n`;
+        template += `  pdowrite_offset: !uint16_t 0\n`;
+    }
+
+    const typeSpecific = getTaskTemplateYaml(taskType);
+    if (typeSpecific) {
+        template += typeSpecific.split('\n').map(line => line ? `  ${line}` : '').join('\n');
+    }
+
+    return template;
+}

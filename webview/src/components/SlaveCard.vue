@@ -23,7 +23,7 @@
       </h3>
       <div class="btn-group" @click.stop>
         <button class="btn-sm btn-secondary" @click="startEditKey">Change SN</button>
-        <button class="btn-sm btn-secondary" @click="startEditAlias">Rename</button>
+        <button class="btn-sm btn-secondary" @click="startEditAlias">Alias</button>
         <button class="btn-sm btn-danger" @click="onRemoveSlave">Delete</button>
       </div>
     </summary>

@@ -2,7 +2,7 @@ import * as vscode from 'vscode';
 import * as path from 'path';
 import * as yaml from 'yaml';
 import { parseYamlDocumentWithTags } from './utils/YamlParser';
-import { getTaskTemplateYaml } from './taskTemplates';
+import { getTaskTemplateYaml, generateTaskTemplate } from './taskTemplates';
 import { parseMsgFolder } from './utils/msgParser';
 import { TASK_TYPES } from './constants';
 import { TaskTypeMemory } from './utils/taskTypeMemory';
@@ -83,6 +83,9 @@ export class SoemConfigWebviewProvider implements vscode.WebviewViewProvider {
           break;
         case 'addTaskAt':
           await this.addTaskAt(data.sIndex, data.tIndex);
+          break;
+        case 'confirmTaskType':
+          await this.createTaskWithType(data.sIndex, data.tIndex, data.taskType);
           break;
         case 'removeTask':
           await this.removeTask(data.sIndex, data.tIndex);
@@ -447,50 +450,31 @@ export class SoemConfigWebviewProvider implements vscode.WebviewViewProvider {
   }
 
   private async addTask(sIndex: number) {
-    const editor = vscode.window.activeTextEditor;
-    if (!editor || !this.lastParsedDoc?.doc) return;
-    const doc = this.lastParsedDoc.doc;
-    const slaveItem = doc.getIn(['slaves', sIndex]);
-    if (!yaml.isMap(slaveItem) || slaveItem.items.length === 0) return;
-    const snKey = String(
-      yaml.isScalar(slaveItem.items[0].key) ? slaveItem.items[0].key.value : '',
-    );
+    if (!this._view) return;
 
-    let tasksList = doc.getIn(['slaves', sIndex, snKey, 'tasks']);
-    if (!tasksList) {
-      doc.setIn(['slaves', sIndex, snKey, 'tasks'], []);
-      tasksList = doc.getIn(['slaves', sIndex, snKey, 'tasks']);
-    }
-
-    if (yaml.isSeq(tasksList)) {
-      const segment = this.nextAppNewSegment(doc);
-      const appIdx = tasksList.items.length + 1;
-      const taskKey = `app_${appIdx}`;
-
-      const newTaskStr = `${taskKey}:
-  sdowrite_task_type: !uint8_t 1
-  conf_connection_lost_read_action: !uint8_t 1
-  sdowrite_connection_lost_write_action: !uint8_t 2
-  pub_topic: !std::string '/ecat/${snKey}/${segment}/read'
-  pdoread_offset: !uint16_t 0
-  sub_topic: !std::string '/ecat/${snKey}/${segment}/write'
-  pdowrite_offset: !uint16_t 0
-`;
-      const newTaskNode = parseYamlDocumentWithTags(newTaskStr).contents;
-      if (newTaskNode) {
-        tasksList.items.push(newTaskNode as any);
-        doc.setIn(
-          ['slaves', sIndex, snKey, 'task_count'],
-          tasksList.items.length,
-        );
-        await this.saveDoc(editor, doc);
-      }
-    }
+    // Request task type selection from webview
+    this._view.webview.postMessage({
+      type: 'requestTaskType',
+      sIndex,
+      tIndex: -1, // -1 means append
+    });
   }
 
   private async addTaskAt(sIndex: number, tIndex: number) {
+    if (!this._view) return;
+
+    // Request task type selection from webview
+    this._view.webview.postMessage({
+      type: 'requestTaskType',
+      sIndex,
+      tIndex,
+    });
+  }
+
+  private async createTaskWithType(sIndex: number, tIndex: number, taskType: number) {
     const editor = vscode.window.activeTextEditor;
     if (!editor || !this.lastParsedDoc?.doc) return;
+
     const doc = this.lastParsedDoc.doc;
     const slaveItem = doc.getIn(['slaves', sIndex]);
     if (!yaml.isMap(slaveItem) || slaveItem.items.length === 0) return;
@@ -506,24 +490,28 @@ export class SoemConfigWebviewProvider implements vscode.WebviewViewProvider {
 
     if (yaml.isSeq(tasksList)) {
       const segment = this.nextAppNewSegment(doc);
-      const taskKey = `app_${tIndex + 1}`;
-      const newTaskStr = `${taskKey}:
-  sdowrite_task_type: !uint8_t 1
-  conf_connection_lost_read_action: !uint8_t 1
-  sdowrite_connection_lost_write_action: !uint8_t 2
-  pub_topic: !std::string '/ecat/${snKey}/${segment}/read'
-  pdoread_offset: !uint16_t 0
-  sub_topic: !std::string '/ecat/${snKey}/${segment}/write'
-  pdowrite_offset: !uint16_t 0
-`;
-      const newTaskNode = parseYamlDocumentWithTags(newTaskStr).contents;
-      if (newTaskNode) {
-        tasksList.items.splice(tIndex, 0, newTaskNode as any);
-        doc.setIn(
-          ['slaves', sIndex, snKey, 'task_count'],
-          tasksList.items.length,
-        );
-        await this.saveDoc(editor, doc);
+
+      if (tIndex === -1) {
+        // Append to end
+        const appIdx = tasksList.items.length + 1;
+        const taskKey = `app_${appIdx}`;
+        const newTaskStr = generateTaskTemplate(taskKey, snKey, segment, taskType);
+        const newTaskNode = parseYamlDocumentWithTags(newTaskStr).contents;
+        if (newTaskNode) {
+          tasksList.items.push(newTaskNode as any);
+          doc.setIn(['slaves', sIndex, snKey, 'task_count'], tasksList.items.length);
+          await this.saveDoc(editor, doc);
+        }
+      } else {
+        // Insert at position
+        const taskKey = `app_${tIndex + 1}`;
+        const newTaskStr = generateTaskTemplate(taskKey, snKey, segment, taskType);
+        const newTaskNode = parseYamlDocumentWithTags(newTaskStr).contents;
+        if (newTaskNode) {
+          tasksList.items.splice(tIndex, 0, newTaskNode as any);
+          doc.setIn(['slaves', sIndex, snKey, 'task_count'], tasksList.items.length);
+          await this.saveDoc(editor, doc);
+        }
       }
     }
   }

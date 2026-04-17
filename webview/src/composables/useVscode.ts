@@ -6,6 +6,9 @@ export const data = ref<any>(null);
 export const errorMessage = ref<string | null>(null);
 export const taskTypes = ref<{ label: string; description: string; value: string }[]>([]);
 
+// Expose event emitter for task type picker
+export const taskTypePickerEvent = ref<{ sIndex: number; tIndex: number } | null>(null);
+
 window.addEventListener('message', (event) => {
   const message = event.data;
   switch (message.type) {
@@ -28,12 +31,17 @@ window.addEventListener('message', (event) => {
         (el as HTMLDetailsElement).open = true;
       });
       break;
+    case 'requestTaskType':
+      taskTypePickerEvent.value = { sIndex: message.sIndex, tIndex: message.tIndex };
+      break;
   }
 });
 
 function postMessage(msg: any) {
   vscode.postMessage(msg);
 }
+
+export { vscode };
 
 // --- Actions: delegate dialogs to backend ---
 

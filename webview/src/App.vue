@@ -20,19 +20,19 @@
 
         <template v-for="(_, sIdx) in data.slaves" :key="sIdx">
           <SlaveCard
-            :s-index="sIdx"
+            :s-index="Number(sIdx)"
             :slave="data.slaves[sIdx]"
           />
           <!-- Insert zone between slaves (not after last) -->
           <div
-            v-if="sIdx < data.slaves.length - 1"
+            v-if="Number(sIdx) < data.slaves.length - 1"
             class="insert-zone slave-insert-zone"
-            :class="{ 'drag-over': dragOverIndex === sIdx + 1 }"
-            @dragover="onSlaveDragOver($event, sIdx + 1)"
-            @dragleave="onDragLeave($event, sIdx + 1)"
-            @drop="onSlaveDrop(sIdx + 1)"
+            :class="{ 'drag-over': dragOverIndex === Number(sIdx) + 1 }"
+            @dragover="onSlaveDragOver($event, Number(sIdx) + 1)"
+            @dragleave="onDragLeave($event, Number(sIdx) + 1)"
+            @drop="onSlaveDrop(Number(sIdx) + 1)"
           >
-            <div class="insert-divider" @click="onInsertSlave(sIdx + 1)">
+            <div class="insert-divider" @click="onInsertSlave(Number(sIdx) + 1)">
               <span class="insert-line"></span>
               <button class="insert-btn">+</button>
               <span class="insert-line"></span>
@@ -52,13 +52,37 @@
         </div>
       </div>
     </template>
+
+    <TaskTypePicker
+      :show="showTaskTypePicker"
+      :s-index="pendingTaskSIndex"
+      :t-index="pendingTaskTIndex"
+      @confirm="onTaskTypeConfirm"
+      @cancel="onTaskTypeCancel"
+    />
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue';
+import { ref, watch } from 'vue';
 import SlaveCard from './components/SlaveCard.vue';
-import { data, errorMessage, addSlave, addSlaveAt, moveSlave, dragState, setDragState } from './composables/useVscode';
+import TaskTypePicker from './components/TaskTypePicker.vue';
+import { data, errorMessage, addSlave, addSlaveAt, moveSlave, dragState, setDragState, vscode, taskTypePickerEvent } from './composables/useVscode';
+
+// Task type picker state
+const showTaskTypePicker = ref(false);
+const pendingTaskSIndex = ref(0);
+const pendingTaskTIndex = ref(0);
+
+// Watch for task type picker requests
+watch(taskTypePickerEvent, (event) => {
+  if (event) {
+    pendingTaskSIndex.value = event.sIndex;
+    pendingTaskTIndex.value = event.tIndex;
+    showTaskTypePicker.value = true;
+    taskTypePickerEvent.value = null;
+  }
+});
 
 function onAddSlave() {
   addSlave();
@@ -66,6 +90,20 @@ function onAddSlave() {
 
 function onInsertSlave(sIndex: number) {
   addSlaveAt(sIndex);
+}
+
+function onTaskTypeConfirm(taskType: number) {
+  vscode.postMessage({
+    type: 'confirmTaskType',
+    sIndex: pendingTaskSIndex.value,
+    tIndex: pendingTaskTIndex.value,
+    taskType,
+  });
+  showTaskTypePicker.value = false;
+}
+
+function onTaskTypeCancel() {
+  showTaskTypePicker.value = false;
 }
 
 // --- Slave drop targets ---
