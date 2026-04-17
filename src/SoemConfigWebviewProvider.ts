@@ -404,9 +404,9 @@ export class SoemConfigWebviewProvider implements vscode.WebviewViewProvider {
     }
 
     if (yaml.isSeq(tasksList)) {
+      const segment = this.nextAppNewSegment(doc);
       const appIdx = tasksList.items.length + 1;
       const taskKey = `app_${appIdx}`;
-      const segment = `app${appIdx}`;
 
       const newTaskStr = `${taskKey}:
   sdowrite_task_type: !uint8_t 1
@@ -446,15 +446,7 @@ export class SoemConfigWebviewProvider implements vscode.WebviewViewProvider {
     }
 
     if (yaml.isSeq(tasksList)) {
-      const isAppend = tIndex >= tasksList.items.length;
-      let segment: string;
-
-      if (isAppend) {
-        segment = this.nextAppNewSegment(doc);
-      } else {
-        segment = `app${tIndex + 1}`;
-      }
-
+      const segment = this.nextAppNewSegment(doc);
       const taskKey = `app_${tIndex + 1}`;
       const newTaskStr = `${taskKey}:
   sdowrite_task_type: !uint8_t 1
