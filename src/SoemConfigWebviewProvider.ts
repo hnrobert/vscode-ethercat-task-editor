@@ -87,6 +87,12 @@ export class SoemConfigWebviewProvider implements vscode.WebviewViewProvider {
         case 'renameTask':
           await this.renameTask(data.sIndex, data.tIndex, data.newSegment);
           break;
+        case 'moveTask':
+          await this.moveTask(data.fromSIndex, data.fromTIndex, data.toSIndex, data.toTIndex);
+          break;
+        case 'moveSlave':
+          await this.moveSlave(data.fromIndex, data.toIndex);
+          break;
       }
     });
 
@@ -580,6 +586,103 @@ export class SoemConfigWebviewProvider implements vscode.WebviewViewProvider {
     }
 
     await this.saveDoc(editor, doc);
+  }
+
+  private async moveTask(
+    fromSIndex: number,
+    fromTIndex: number,
+    toSIndex: number,
+    toTIndex: number,
+  ) {
+    const editor = vscode.window.activeTextEditor;
+    if (!editor || !this.lastParsedDoc?.doc) return;
+    const doc = this.lastParsedDoc.doc;
+
+    // Get source
+    const fromSlaveItem = doc.getIn(['slaves', fromSIndex]);
+    if (!yaml.isMap(fromSlaveItem) || fromSlaveItem.items.length === 0) return;
+    const fromSnKey = String(
+      yaml.isScalar(fromSlaveItem.items[0].key) ? fromSlaveItem.items[0].key.value : '',
+    );
+    const fromTasksList = doc.getIn(['slaves', fromSIndex, fromSnKey, 'tasks']);
+    if (!yaml.isSeq(fromTasksList) || fromTIndex >= fromTasksList.items.length) return;
+
+    // Remove from source
+    const taskNode = fromTasksList.items.splice(fromTIndex, 1)[0];
+    doc.setIn(
+      ['slaves', fromSIndex, fromSnKey, 'task_count'],
+      fromTasksList.items.length,
+    );
+
+    // Adjust destination index if same slave
+    let adjustedTIndex = toTIndex;
+    if (fromSIndex === toSIndex && fromTIndex < toTIndex) {
+      adjustedTIndex = toTIndex - 1;
+    }
+
+    // Get destination
+    const toSlaveItem = doc.getIn(['slaves', toSIndex]);
+    if (!yaml.isMap(toSlaveItem) || toSlaveItem.items.length === 0) return;
+    const toSnKey = String(
+      yaml.isScalar(toSlaveItem.items[0].key) ? toSlaveItem.items[0].key.value : '',
+    );
+
+    let toTasksList = doc.getIn(['slaves', toSIndex, toSnKey, 'tasks']);
+    if (!toTasksList) {
+      doc.setIn(['slaves', toSIndex, toSnKey, 'tasks'], []);
+      toTasksList = doc.getIn(['slaves', toSIndex, toSnKey, 'tasks']);
+    }
+
+    if (yaml.isSeq(toTasksList)) {
+      // Cross-slave: update topic namespace
+      if (fromSIndex !== toSIndex) {
+        this.remapTaskTopics(taskNode, fromSnKey, toSnKey);
+      }
+
+      toTasksList.items.splice(adjustedTIndex, 0, taskNode);
+      doc.setIn(
+        ['slaves', toSIndex, toSnKey, 'task_count'],
+        toTasksList.items.length,
+      );
+      await this.saveDoc(editor, doc);
+    }
+  }
+
+  private async moveSlave(fromIndex: number, toIndex: number) {
+    const editor = vscode.window.activeTextEditor;
+    if (!editor || !this.lastParsedDoc?.doc) return;
+    const doc = this.lastParsedDoc.doc;
+
+    const slavesList = doc.getIn(['slaves']);
+    if (!yaml.isSeq(slavesList)) return;
+
+    const slaveNode = slavesList.items.splice(fromIndex, 1)[0];
+
+    let adjustedIndex = toIndex;
+    if (fromIndex < toIndex) {
+      adjustedIndex = toIndex - 1;
+    }
+
+    slavesList.items.splice(adjustedIndex, 0, slaveNode);
+    await this.saveDoc(editor, doc);
+  }
+
+  /** Update /ecat/{oldSlave}/... → /ecat/{newSlave}/... in task topics */
+  private remapTaskTopics(taskNode: any, oldSnKey: string, newSnKey: string) {
+    if (!yaml.isMap(taskNode)) return;
+    const innerMap = taskNode.items[0]?.value;
+    if (!yaml.isMap(innerMap)) return;
+
+    for (const item of innerMap.items) {
+      if (!yaml.isScalar(item.key)) continue;
+      const key = String(item.key.value);
+      if ((key === 'pub_topic' || key === 'sub_topic') && yaml.isScalar(item.value)) {
+        const topic = String(item.value.value);
+        if (topic.includes(`/ecat/${oldSnKey}/`)) {
+          item.value.value = topic.replace(`/ecat/${oldSnKey}/`, `/ecat/${newSnKey}/`);
+        }
+      }
+    }
   }
 
   private async saveDoc(editor: vscode.TextEditor, doc: yaml.Document) {

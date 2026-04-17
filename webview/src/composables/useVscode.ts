@@ -72,3 +72,26 @@ export function removeTask(sIndex: number, tIndex: number) {
 export function updateValue(path: (string | number)[], value: any) {
   postMessage({ type: 'updateValue', path, value });
 }
+
+// --- Drag-and-drop state ---
+
+export type DragState =
+  | { type: 'task'; fromSIndex: number; fromTIndex: number }
+  | { type: 'slave'; fromSIndex: number }
+  | null;
+
+export let dragState: DragState = null;
+
+export function setDragState(state: DragState) {
+  dragState = state;
+  document.body.classList.toggle('dragging-task', state?.type === 'task');
+  document.body.classList.toggle('dragging-slave', state?.type === 'slave');
+}
+
+export function moveTask(fromSIndex: number, fromTIndex: number, toSIndex: number, toTIndex: number) {
+  postMessage({ type: 'moveTask', fromSIndex, fromTIndex, toSIndex, toTIndex });
+}
+
+export function moveSlave(fromIndex: number, toIndex: number) {
+  postMessage({ type: 'moveSlave', fromIndex, toIndex });
+}

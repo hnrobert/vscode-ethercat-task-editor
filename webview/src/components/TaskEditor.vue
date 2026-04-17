@@ -1,6 +1,11 @@
 <template>
-  <details class="task-container" open>
-    <summary class="task-title">
+  <details class="task-container" :class="{ dragging: isDragging }" open>
+    <summary
+      class="task-title"
+      draggable="true"
+      @dragstart="onDragStart"
+      @dragend="onDragEnd"
+    >
       <span class="chevron"></span>
       <template v-if="isEditing">
         <input
@@ -38,7 +43,7 @@
 <script setup lang="ts">
 import { computed, nextTick, ref } from 'vue';
 import PropertyField from './PropertyField.vue';
-import { renameTask, removeTask } from '../composables/useVscode';
+import { renameTask, removeTask, setDragState } from '../composables/useVscode';
 
 const props = defineProps<{
   sIndex: number;
@@ -89,5 +94,20 @@ function cancelRename() {
 
 function onRemove() {
   removeTask(props.sIndex, props.tIndex);
+}
+
+// Drag
+const isDragging = ref(false);
+
+function onDragStart(e: DragEvent) {
+  isDragging.value = true;
+  setDragState({ type: 'task', fromSIndex: props.sIndex, fromTIndex: props.tIndex });
+  e.dataTransfer!.effectAllowed = 'move';
+  e.dataTransfer!.setData('text/plain', '');
+}
+
+function onDragEnd() {
+  isDragging.value = false;
+  setDragState(null);
 }
 </script>

@@ -1,6 +1,11 @@
 <template>
-  <details class="slave-panel" open>
-    <summary class="header-row">
+  <details class="slave-panel" :class="{ dragging: isSlaveDragging }" open>
+    <summary
+      class="header-row"
+      draggable="true"
+      @dragstart="onSlaveDragStart"
+      @dragend="onSlaveDragEnd"
+    >
       <span class="chevron"></span>
       <input
         v-if="isEditing"
@@ -21,7 +26,13 @@
 
     <div class="slave-content">
       <!-- Insert zone before first task -->
-      <div class="insert-zone">
+      <div
+        class="insert-zone task-insert-zone"
+        :class="{ 'drag-over': dragOverIndex === 0 }"
+        @dragover="onTaskDragOver($event, 0)"
+        @dragleave="onDragLeave(0)"
+        @drop="onTaskDrop(0)"
+      >
         <div class="insert-divider" @click="onInsertTask(0)">
           <span class="insert-line"></span>
           <button class="insert-btn">+</button>
@@ -38,7 +49,14 @@
           :t-info="taskInfo(tIdx)"
         />
         <!-- Insert zone between tasks (not after last) -->
-        <div v-if="tIdx < tasks.length - 1" class="insert-zone">
+        <div
+          v-if="tIdx < tasks.length - 1"
+          class="insert-zone task-insert-zone"
+          :class="{ 'drag-over': dragOverIndex === tIdx + 1 }"
+          @dragover="onTaskDragOver($event, tIdx + 1)"
+          @dragleave="onDragLeave(tIdx + 1)"
+          @drop="onTaskDrop(tIdx + 1)"
+        >
           <div class="insert-divider" @click="onInsertTask(tIdx + 1)">
             <span class="insert-line"></span>
             <button class="insert-btn">+</button>
@@ -47,7 +65,14 @@
         </div>
       </template>
 
-      <div class="add-bottom-bar">
+      <!-- Bottom bar: click to append, drop to append -->
+      <div
+        class="add-bottom-bar"
+        :class="{ 'drag-over': dragOverBottom }"
+        @dragover="onBottomDragOver"
+        @dragleave="dragOverBottom = false"
+        @drop="onTaskDrop(tasks.length)"
+      >
         <button @click="onAddTask">+ Add Task</button>
       </div>
     </div>
@@ -57,7 +82,10 @@
 <script setup lang="ts">
 import { computed, nextTick, ref } from 'vue';
 import TaskEditor from './TaskEditor.vue';
-import { addTask, addTaskAt, renameSlave, removeSlave } from '../composables/useVscode';
+import {
+  addTask, addTaskAt, renameSlave, removeSlave,
+  moveTask, setDragState, dragState,
+} from '../composables/useVscode';
 
 const props = defineProps<{
   sIndex: number;
@@ -112,5 +140,54 @@ function onInsertTask(tIndex: number) {
 
 function onRemoveSlave() {
   removeSlave(props.sIndex);
+}
+
+// --- Slave drag ---
+const isSlaveDragging = ref(false);
+
+function onSlaveDragStart(e: DragEvent) {
+  isSlaveDragging.value = true;
+  setDragState({ type: 'slave', fromSIndex: props.sIndex });
+  e.dataTransfer!.effectAllowed = 'move';
+  e.dataTransfer!.setData('text/plain', '');
+}
+
+function onSlaveDragEnd() {
+  isSlaveDragging.value = false;
+  setDragState(null);
+}
+
+// --- Task drop targets ---
+const dragOverIndex = ref<number | null>(null);
+const dragOverBottom = ref(false);
+
+function onTaskDragOver(e: DragEvent, idx: number) {
+  if (dragState?.type !== 'task') return;
+  e.preventDefault();
+  e.dataTransfer!.dropEffect = 'move';
+  dragOverIndex.value = idx;
+}
+
+function onDragLeave(idx: number) {
+  if (dragOverIndex.value === idx) {
+    dragOverIndex.value = null;
+  }
+}
+
+function onBottomDragOver(e: DragEvent) {
+  if (dragState?.type !== 'task') return;
+  e.preventDefault();
+  e.dataTransfer!.dropEffect = 'move';
+  dragOverBottom.value = true;
+}
+
+function onTaskDrop(toTIndex: number) {
+  dragOverIndex.value = null;
+  dragOverBottom.value = false;
+  if (dragState?.type !== 'task') return;
+  const { fromSIndex, fromTIndex } = dragState;
+  if (fromSIndex === props.sIndex && (fromTIndex === toTIndex || fromTIndex + 1 === toTIndex)) return;
+  moveTask(fromSIndex, fromTIndex, props.sIndex, toTIndex);
+  setDragState(null);
 }
 </script>

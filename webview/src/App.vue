@@ -4,7 +4,13 @@
     <template v-else-if="data?.slaves">
       <div class="slave-list">
         <!-- Insert zone before first slave -->
-        <div class="insert-zone">
+        <div
+          class="insert-zone slave-insert-zone"
+          :class="{ 'drag-over': dragOverIndex === 0 }"
+          @dragover="onSlaveDragOver($event, 0)"
+          @dragleave="onDragLeave(0)"
+          @drop="onSlaveDrop(0)"
+        >
           <div class="insert-divider" @click="onInsertSlave(0)">
             <span class="insert-line"></span>
             <button class="insert-btn">+</button>
@@ -18,7 +24,14 @@
             :slave="data.slaves[sIdx]"
           />
           <!-- Insert zone between slaves (not after last) -->
-          <div v-if="sIdx < data.slaves.length - 1" class="insert-zone">
+          <div
+            v-if="sIdx < data.slaves.length - 1"
+            class="insert-zone slave-insert-zone"
+            :class="{ 'drag-over': dragOverIndex === sIdx + 1 }"
+            @dragover="onSlaveDragOver($event, sIdx + 1)"
+            @dragleave="onDragLeave(sIdx + 1)"
+            @drop="onSlaveDrop(sIdx + 1)"
+          >
             <div class="insert-divider" @click="onInsertSlave(sIdx + 1)">
               <span class="insert-line"></span>
               <button class="insert-btn">+</button>
@@ -27,7 +40,14 @@
           </div>
         </template>
 
-        <div class="add-bottom-bar">
+        <!-- Bottom bar: click to append, drop to append -->
+        <div
+          class="add-bottom-bar"
+          :class="{ 'drag-over': dragOverBottom }"
+          @dragover="onBottomDragOver"
+          @dragleave="dragOverBottom = false"
+          @drop="onSlaveDrop(data.slaves.length)"
+        >
           <button @click="onAddSlave">+ Add Slave (SN)</button>
         </div>
       </div>
@@ -36,8 +56,9 @@
 </template>
 
 <script setup lang="ts">
+import { ref } from 'vue';
 import SlaveCard from './components/SlaveCard.vue';
-import { data, errorMessage, addSlave, addSlaveAt } from './composables/useVscode';
+import { data, errorMessage, addSlave, addSlaveAt, moveSlave, dragState, setDragState } from './composables/useVscode';
 
 function onAddSlave() {
   addSlave();
@@ -45,5 +66,39 @@ function onAddSlave() {
 
 function onInsertSlave(sIndex: number) {
   addSlaveAt(sIndex);
+}
+
+// --- Slave drop targets ---
+const dragOverIndex = ref<number | null>(null);
+const dragOverBottom = ref(false);
+
+function onSlaveDragOver(e: DragEvent, idx: number) {
+  if (dragState?.type !== 'slave') return;
+  e.preventDefault();
+  e.dataTransfer!.dropEffect = 'move';
+  dragOverIndex.value = idx;
+}
+
+function onDragLeave(idx: number) {
+  if (dragOverIndex.value === idx) {
+    dragOverIndex.value = null;
+  }
+}
+
+function onBottomDragOver(e: DragEvent) {
+  if (dragState?.type !== 'slave') return;
+  e.preventDefault();
+  e.dataTransfer!.dropEffect = 'move';
+  dragOverBottom.value = true;
+}
+
+function onSlaveDrop(toIndex: number) {
+  dragOverIndex.value = null;
+  dragOverBottom.value = false;
+  if (dragState?.type !== 'slave') return;
+  const { fromSIndex } = dragState;
+  if (fromSIndex === toIndex || fromSIndex + 1 === toIndex) return;
+  moveSlave(fromSIndex, toIndex);
+  setDragState(null);
 }
 </script>
