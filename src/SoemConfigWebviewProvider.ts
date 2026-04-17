@@ -257,24 +257,8 @@ export class SoemConfigWebviewProvider implements vscode.WebviewViewProvider {
             valueScalar
           );
 
-          // Find the position after task_count
-          let insertIndex = -1;
-          for (let i = 0; i < slaveNode.items.length; i++) {
-            const item = slaveNode.items[i];
-            if (yaml.isPair(item) && yaml.isScalar(item.key)) {
-              if (item.key.value === 'task_count') {
-                insertIndex = i + 1;
-                break;
-              }
-            }
-          }
-
-          // Insert at the correct position
-          if (insertIndex >= 0) {
-            slaveNode.items.splice(insertIndex, 0, newPair);
-          } else {
-            slaveNode.items.push(newPair);
-          }
+          // Insert at position 0 (right after the slave key, which is the map itself)
+          slaveNode.items.splice(0, 0, newPair);
 
           await this.saveDoc(editor, doc);
           return;
