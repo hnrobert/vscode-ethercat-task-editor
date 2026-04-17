@@ -66,7 +66,21 @@ export function parseYamlDocumentWithTags(text: string): yaml.Document {
 }
 
 export function stringifyYamlDocumentWithTags(doc: yaml.Document): string {
-  return doc.toString({ indent: 2, indentSeq: true });
+  let output = doc.toString({ indent: 2, indentSeq: true });
+
+  // Remove any existing blank lines after "tasks:" before first task
+  output = output.replace(/(\n {6}tasks:)\n+(\n {8}- app_\d+:)/g, '$1$2');
+
+  // Ensure blank line before "tasks:" (after any field at same indentation level)
+  output = output.replace(/(\n {6}[a-z_]+: !(?:uint8_t|uint16_t|uint32_t|int8_t|int16_t|int32_t|float|std::string) [^\n]+)(\n {6}tasks:)/g, '$1\n$2');
+
+  // Ensure blank lines between tasks
+  output = output.replace(/(\n {12}[a-z_0-9]+: !(?:uint8_t|uint16_t|uint32_t|int8_t|int16_t|int32_t|float|std::string) [^\n]+)(\n {8}- app_\d+:)/g, '$1\n$2');
+
+  // Ensure blank lines between slaves
+  output = output.replace(/(\n {12}[a-z_0-9]+: !(?:uint8_t|uint16_t|uint32_t|int8_t|int16_t|int32_t|float|std::string) [^\n]+)(\n {2}- sn\d+:)/g, '$1\n$2');
+
+  return output;
 }
 
 export function stringifyYamlWithTags(data: unknown): string {
