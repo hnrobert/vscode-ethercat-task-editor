@@ -41,6 +41,7 @@ export function calculateOffsets(
 
       const type = Number(taskValues.sdowrite_task_type);
 
+
       switch (type) {
         case 1:
           pdoread_offset += 19;
@@ -125,5 +126,7 @@ export function calculateOffsets(
           break;
       }
     });
+
+    doc.setIn(['slaves', index, slaveKey, 'sdo_len'], pdoread_offset + pdowrite_offset);
   });
 }
