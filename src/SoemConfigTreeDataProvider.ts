@@ -39,7 +39,7 @@ export class SoemConfigTreeItem extends vscode.TreeItem {
     path?: PathEntry[],
     rawValue?: unknown,
     contextValue?: string,
-    icon?: vscode.ThemeIcon,
+    icon?: vscode.ThemeIcon | vscode.Uri,
   ) {
     super(label, collapsibleState);
     if (command) this.command = command;
@@ -182,7 +182,14 @@ export class SoemConfigTreeDataProvider implements vscode.TreeDataProvider<SoemC
             undefined,
             undefined,
             'slavesGroup',
-            new vscode.ThemeIcon('group-by-ref-type'),
+            vscode.Uri.file(
+              path.join(
+                this.context.extensionPath,
+                'assets',
+                'images',
+                'icon-stroke.svg',
+              ),
+            ),
           ),
         );
       }

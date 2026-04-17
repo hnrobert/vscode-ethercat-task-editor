@@ -11,17 +11,27 @@
     "Other"
   ],
   "main": "./out/extension.js",
+  "icon": "assets/images/icon.png",
   "activationEvents": [
     "onLanguage:yaml"
   ],
   "contributes": {
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "ethercatTaskEditor-container",
+          "title": "EtherCAT Config",
+          "icon": "assets/images/icon-stroke.svg"
+        }
+      ]
+    },
     "views": {
-      "ethercatTaskEditor.container": [
+      "ethercatTaskEditor-container": [
         {
           "id": "ethercatTaskEditor.sidebar",
           "name": "SOEM Tasks Editor",
           "type": "webview",
-          "icon": "$(group-by-ref-type)"
+          "icon": "assets/images/icon-stroke.svg"
         }
       ]
     },
@@ -43,7 +53,7 @@
       {
         "command": "ethercatTaskEditor.showPanel",
         "title": "Open EtherCAT Config",
-        "icon": "$(group-by-ref-type)"
+        "icon": "assets/images/icon-stroke.svg"
       }
     ],
     "menus": {
