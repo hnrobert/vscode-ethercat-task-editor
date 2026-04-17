@@ -28,6 +28,8 @@
       </div>
     </summary>
 
+    <SlavePdoStatus :s-index="sIndex" :slave="slave" />
+
     <div class="slave-content">
       <!-- Insert zone before first task -->
       <div
@@ -86,6 +88,7 @@
 <script setup lang="ts">
 import { computed, nextTick, ref } from 'vue';
 import TaskEditor from './TaskEditor.vue';
+import SlavePdoStatus from './SlavePdoStatus.vue';
 import {
   addTask, addTaskAt, renameSlave, renameSlaveAlias, removeSlave,
   moveTask, setDragState, dragState,

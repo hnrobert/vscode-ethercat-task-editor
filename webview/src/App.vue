@@ -2,6 +2,7 @@
   <div>
     <div v-if="errorMessage" class="error-message">{{ errorMessage }}</div>
     <template v-else-if="data?.slaves">
+      <PdoStatusPanel />
       <div class="slave-list">
         <!-- Insert zone before first slave -->
         <div
@@ -67,6 +68,7 @@
 import { ref, watch } from 'vue';
 import SlaveCard from './components/SlaveCard.vue';
 import TaskTypePicker from './components/TaskTypePicker.vue';
+import PdoStatusPanel from './components/PdoStatusPanel.vue';
 import { data, errorMessage, addSlave, addSlaveAt, moveSlave, dragState, setDragState, vscode, taskTypePickerEvent } from './composables/useVscode';
 
 // Task type picker state

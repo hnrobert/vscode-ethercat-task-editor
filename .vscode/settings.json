@@ -5,9 +5,11 @@
         "ethercat",
         "pdoread",
         "pdowrite",
+        "RXPDO",
         "sdowrite",
         "SOEM",
-        "stringifier"
+        "stringifier",
+        "TXPDO"
     ],
     "cmake.ignoreCMakeListsMissing": true
 }
