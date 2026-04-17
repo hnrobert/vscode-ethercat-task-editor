@@ -7,6 +7,7 @@ import { parseMsgFolder } from './utils/msgParser';
 import { TASK_TYPES } from './constants';
 import { TaskTypeMemory } from './utils/taskTypeMemory';
 import { applyAndSaveYaml, parseTopicSegment } from './utils/yamlUtils';
+import { validateTopics } from './utils/topicValidator';
 
 export class SoemConfigWebviewProvider implements vscode.WebviewViewProvider {
   public static readonly viewType = 'ethercatTaskEditor.sidebar';
@@ -14,6 +15,7 @@ export class SoemConfigWebviewProvider implements vscode.WebviewViewProvider {
   private readonly msgFolderPath: string;
   private lastParsedDoc?: { doc: yaml.Document; data: any; isValid: boolean };
   private readonly taskTypeMemory = new TaskTypeMemory();
+  private diagnosticCollection: vscode.DiagnosticCollection;
 
   public show() {
     if (this._view) {
@@ -23,7 +25,9 @@ export class SoemConfigWebviewProvider implements vscode.WebviewViewProvider {
 
   constructor(private readonly context: vscode.ExtensionContext) {
     this.msgFolderPath = path.join(context.extensionPath, 'assets', 'msg');
+    this.diagnosticCollection = vscode.languages.createDiagnosticCollection('ethercat-config');
 
+    context.subscriptions.push(this.diagnosticCollection);
     context.subscriptions.push(
       vscode.window.onDidChangeActiveTextEditor(() => this.updateWebview()),
     );
@@ -155,6 +159,7 @@ export class SoemConfigWebviewProvider implements vscode.WebviewViewProvider {
         type: 'setError',
         message: 'No active YAML document.',
       });
+      this.diagnosticCollection.clear();
       return;
     }
 
@@ -163,6 +168,10 @@ export class SoemConfigWebviewProvider implements vscode.WebviewViewProvider {
       const doc = parseYamlDocumentWithTags(text);
       const data = doc.toJSON();
       this.lastParsedDoc = { doc, data, isValid: true };
+
+      // Validate topics and set diagnostics
+      const diagnostics = validateTopics(editor.document, doc, data);
+      this.diagnosticCollection.set(editor.document.uri, diagnostics);
 
       this._view.webview.postMessage({
         type: 'updateData',
@@ -174,6 +183,7 @@ export class SoemConfigWebviewProvider implements vscode.WebviewViewProvider {
         type: 'setError',
         message: 'Invalid YAML format: ' + e,
       });
+      this.diagnosticCollection.clear();
     }
   }
 

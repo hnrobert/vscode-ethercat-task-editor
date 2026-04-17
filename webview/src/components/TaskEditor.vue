@@ -55,7 +55,7 @@ const props = defineProps<{
 
 const visibleProps = computed(() =>
   Object.keys(props.tInfo).filter(
-    (p) => p !== 'pdoread_offset' && p !== 'pdowrite_offset',
+    (p) => p !== 'pdoread_offset' && p !== 'pdowrite_offset' && p !== 'pub_topic' && p !== 'sub_topic',
   ),
 );
 
