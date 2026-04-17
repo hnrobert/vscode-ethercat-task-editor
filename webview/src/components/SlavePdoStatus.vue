@@ -1,5 +1,16 @@
 <template>
   <div class="slave-pdo-status">
+    <div class="board-type-row" v-if="hasBoardType || showSelector">
+      <label>Board Type:</label>
+      <select :value="boardType" @change="onBoardTypeChange">
+        <option :value="3">0x03 - H750 Universal Module</option>
+        <option :value="4">0x04 - H750 Universal Module (Large PDO V.)</option>
+      </select>
+    </div>
+    <button v-else class="add-board-type-btn" @click="onAddBoardType">
+      + Set Board Type
+    </button>
+
     <div class="pdo-info-row">
       <div class="pdo-metrics">
         <div class="pdo-item">
@@ -14,20 +25,10 @@
             {{ rxLen }} / {{ maxRx }}
           </span>
         </div>
-        <div class="status-badge" :class="statusClass">
-          {{ statusText }}
-        </div>
       </div>
-      <div class="board-type-selector" v-if="hasBoardType || showSelector">
-        <label>Board Type:</label>
-        <select :value="boardType" @change="onBoardTypeChange">
-          <option :value="0x03">0x03 - H750 Universal Module</option>
-          <option :value="0x04">0x04 - H750 Universal Module (Large PDO V.)</option>
-        </select>
+      <div class="status-badge" :class="statusClass">
+        {{ statusText }}
       </div>
-      <button v-else class="add-board-type-btn" @click="showSelector = true">
-        + Set Board Type
-      </button>
     </div>
   </div>
 </template>
@@ -58,13 +59,23 @@ const hasBoardType = computed(() => {
 });
 
 const boardType = computed(() => {
-  return slaveData.value?.board_type ?? 0x03;
+  const rawValue = slaveData.value?.board_type;
+  if (rawValue === undefined) return 3;
+
+  // Handle both numeric and hex string formats
+  if (typeof rawValue === 'string') {
+    return parseInt(rawValue, 16);
+  }
+  return Number(rawValue);
 });
 
 const maxTx = computed(() => {
-  switch (boardType.value) {
+  const bt = boardType.value;
+  switch (bt) {
+    case 3:
     case 0x03:
       return 80;
+    case 4:
     case 0x04:
       return 112;
     default:
@@ -226,6 +237,16 @@ function onBoardTypeChange(event: Event) {
     value: newBoardType,
   });
 }
+
+function onAddBoardType() {
+  showSelector.value = true;
+  // Immediately set default board_type to 3 (0x03)
+  vscode.postMessage({
+    type: 'updateValue',
+    path: ['slaves', props.sIndex, slaveKey.value, 'board_type'],
+    value: 3,
+  });
+}
 </script>
 
 <style scoped>
@@ -237,12 +258,57 @@ function onBoardTypeChange(event: Event) {
   border: 1px solid var(--vscode-panel-border);
 }
 
+.board-type-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+  font-size: 12px;
+}
+
+.board-type-row label {
+  color: var(--vscode-descriptionForeground);
+  font-weight: 500;
+  flex-shrink: 0;
+}
+
+.board-type-row select {
+  flex: 1;
+  padding: 4px 8px;
+  border: 1px solid var(--vscode-input-border);
+  background-color: var(--vscode-input-background);
+  color: var(--vscode-input-foreground);
+  border-radius: 3px;
+  font-size: 11px;
+  cursor: pointer;
+}
+
+.board-type-row select:focus {
+  outline: 1px solid var(--vscode-focusBorder);
+}
+
+.add-board-type-btn {
+  width: 100%;
+  padding: 6px 10px;
+  margin-bottom: 8px;
+  font-size: 11px;
+  background-color: var(--vscode-button-secondaryBackground);
+  color: var(--vscode-button-secondaryForeground);
+  border: none;
+  border-radius: 3px;
+  cursor: pointer;
+  font-weight: 500;
+}
+
+.add-board-type-btn:hover {
+  background-color: var(--vscode-button-secondaryHoverBackground);
+}
+
 .pdo-info-row {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 12px;
-  flex-wrap: wrap;
 }
 
 .pdo-metrics {
@@ -254,7 +320,7 @@ function onBoardTypeChange(event: Event) {
 
 .pdo-item {
   display: flex;
-  gap: 4px;
+  gap: 6px;
   align-items: center;
 }
 
@@ -275,10 +341,11 @@ function onBoardTypeChange(event: Event) {
 }
 
 .status-badge {
-  padding: 2px 8px;
-  border-radius: 4px;
+  padding: 3px 10px;
+  border-radius: 3px;
   font-size: 11px;
   font-weight: 600;
+  margin-left: auto;
 }
 
 .status-badge.status-ok {
@@ -289,50 +356,5 @@ function onBoardTypeChange(event: Event) {
 .status-badge.status-error {
   background-color: var(--vscode-errorForeground);
   color: var(--vscode-button-foreground);
-}
-
-.board-type-selector {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  font-size: 12px;
-}
-
-.board-type-selector label {
-  font-weight: 500;
-  color: var(--vscode-descriptionForeground);
-}
-
-.board-type-selector select {
-  padding: 4px 8px;
-  border: 1px solid var(--vscode-input-border);
-  border-radius: 4px;
-  font-size: 11px;
-  background-color: var(--vscode-input-background);
-  color: var(--vscode-input-foreground);
-  cursor: pointer;
-}
-
-.board-type-selector select:hover {
-  border-color: var(--vscode-focusBorder);
-}
-
-.board-type-selector select:focus {
-  outline: 1px solid var(--vscode-focusBorder);
-}
-
-.add-board-type-btn {
-  padding: 4px 10px;
-  font-size: 11px;
-  background-color: var(--vscode-button-secondaryBackground);
-  color: var(--vscode-button-secondaryForeground);
-  border: none;
-  border-radius: 4px;
-  cursor: pointer;
-  font-weight: 500;
-}
-
-.add-board-type-btn:hover {
-  background-color: var(--vscode-button-secondaryHoverBackground);
 }
 </style>

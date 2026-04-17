@@ -198,6 +198,10 @@ export class SoemConfigWebviewProvider implements vscode.WebviewViewProvider {
       propertyPath.length > 0 &&
       propertyPath[propertyPath.length - 1] === 'sdowrite_task_type';
 
+    const isBoardTypeChange =
+      propertyPath.length > 0 &&
+      propertyPath[propertyPath.length - 1] === 'board_type';
+
     let savedTaskTypeValues: Record<string, any> | null = null;
 
     if (isTaskTypeChange) {
@@ -226,6 +230,68 @@ export class SoemConfigWebviewProvider implements vscode.WebviewViewProvider {
           tKey,
           Number(finalValue),
         );
+      }
+    }
+
+    // Handle board_type insertion at correct position
+    if (isBoardTypeChange) {
+      const slavePath = propertyPath.slice(0, -1);
+      const slaveNode = doc.getIn(slavePath, true);
+
+      if (yaml.isMap(slaveNode)) {
+        // Check if board_type already exists
+        const existingBoardType = slaveNode.get('board_type', true);
+
+        if (!existingBoardType) {
+          // Create new board_type node with hex format
+          const valueScalar = new yaml.Scalar(finalValue);
+          valueScalar.tag = '!uint8_t';
+          valueScalar.format = 'HEX';
+          (valueScalar as any)._originalSource = '0x' + finalValue.toString(16);
+          valueScalar.toJSON = function () {
+            return '0x' + (this as any).value.toString(16);
+          };
+
+          const newPair = new yaml.Pair(
+            new yaml.Scalar('board_type'),
+            valueScalar
+          );
+
+          // Find the position after task_count
+          let insertIndex = -1;
+          for (let i = 0; i < slaveNode.items.length; i++) {
+            const item = slaveNode.items[i];
+            if (yaml.isPair(item) && yaml.isScalar(item.key)) {
+              if (item.key.value === 'task_count') {
+                insertIndex = i + 1;
+                break;
+              }
+            }
+          }
+
+          // Insert at the correct position
+          if (insertIndex >= 0) {
+            slaveNode.items.splice(insertIndex, 0, newPair);
+          } else {
+            slaveNode.items.push(newPair);
+          }
+
+          await this.saveDoc(editor, doc);
+          return;
+        } else {
+          // Update existing board_type with hex format
+          doc.setIn(propertyPath, finalValue);
+          const targetNode = doc.getIn(propertyPath, true);
+          if (yaml.isScalar(targetNode)) {
+            targetNode.format = 'HEX';
+            (targetNode as any)._originalSource = '0x' + finalValue.toString(16);
+            targetNode.toJSON = function () {
+              return '0x' + (this as any).value.toString(16);
+            };
+          }
+          await this.saveDoc(editor, doc);
+          return;
+        }
       }
     }
 
