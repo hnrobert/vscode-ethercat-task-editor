@@ -21,6 +21,7 @@ export function calculateOffsets(
 
     let pdoread_offset = 0;
     let pdowrite_offset = 0;
+    let sdoLen = 1; // +1 for task_count byte
 
     slaveValues.tasks.forEach((task: any, taskIndex: number) => {
       if (!task || typeof task !== 'object') return;
@@ -39,8 +40,18 @@ export function calculateOffsets(
         doc.setIn([...pathBase, 'pdowrite_offset'], pdowrite_offset);
       }
 
-      const type = Number(taskValues.sdowrite_task_type);
+      // Accumulate sdo_len: sum sdowrite_* field sizes by YAML type tag
+      for (const fieldName of Object.keys(taskValues)) {
+        if (!fieldName.startsWith('sdowrite_')) continue;
+        const fieldNode = doc.getIn([...pathBase, fieldName], true);
+        if (!yaml.isScalar(fieldNode)) continue;
+        const tag = (fieldNode as yaml.Scalar).tag;
+        if (tag === '!uint8_t' || tag === '!int8_t') sdoLen += 1;
+        else if (tag === '!uint16_t' || tag === '!int16_t') sdoLen += 2;
+        else if (tag === '!uint32_t' || tag === '!int32_t' || tag === '!float') sdoLen += 4;
+      }
 
+      const type = Number(taskValues.sdowrite_task_type);
 
       switch (type) {
         case 1:
@@ -82,6 +93,7 @@ export function calculateOffsets(
           pdowrite_offset += 8;
           break;
         case 5:
+        case 15:
           for (let i = 1; i <= 4; i++) {
             const motorCanId = taskValues[`sdowrite_motor${i}_can_id`];
             if (motorCanId !== undefined && Number(motorCanId) !== 0) {
@@ -101,11 +113,10 @@ export function calculateOffsets(
           break;
         }
         case 8:
-        case 9:
-          pdoread_offset += 8;
+          pdoread_offset += 9;
           break;
         case 10:
-          pdoread_offset += 6;
+          pdoread_offset += 7;
           break;
         case 11:
           pdoread_offset += 24;
@@ -122,11 +133,11 @@ export function calculateOffsets(
           pdowrite_offset += 4;
           break;
         case 14:
-          pdoread_offset += 17;
+          pdoread_offset += 18;
           break;
       }
     });
 
-    doc.setIn(['slaves', index, slaveKey, 'sdo_len'], pdoread_offset + pdowrite_offset);
+    doc.setIn(['slaves', index, slaveKey, 'sdo_len'], sdoLen);
   });
 }

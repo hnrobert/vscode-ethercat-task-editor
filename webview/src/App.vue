@@ -8,7 +8,7 @@
           class="insert-zone slave-insert-zone"
           :class="{ 'drag-over': dragOverIndex === 0 }"
           @dragover="onSlaveDragOver($event, 0)"
-          @dragleave="onDragLeave(0)"
+          @dragleave="onDragLeave($event, 0)"
           @drop="onSlaveDrop(0)"
         >
           <div class="insert-divider" @click="onInsertSlave(0)">
@@ -29,7 +29,7 @@
             class="insert-zone slave-insert-zone"
             :class="{ 'drag-over': dragOverIndex === sIdx + 1 }"
             @dragover="onSlaveDragOver($event, sIdx + 1)"
-            @dragleave="onDragLeave(sIdx + 1)"
+            @dragleave="onDragLeave($event, sIdx + 1)"
             @drop="onSlaveDrop(sIdx + 1)"
           >
             <div class="insert-divider" @click="onInsertSlave(sIdx + 1)">
@@ -45,7 +45,7 @@
           class="add-bottom-bar"
           :class="{ 'drag-over': dragOverBottom }"
           @dragover="onBottomDragOver"
-          @dragleave="dragOverBottom = false"
+          @dragleave="onBottomDragLeave"
           @drop="onSlaveDrop(data.slaves.length)"
         >
           <button @click="onAddSlave">+ Add Slave (SN)</button>
@@ -79,10 +79,14 @@ function onSlaveDragOver(e: DragEvent, idx: number) {
   dragOverIndex.value = idx;
 }
 
-function onDragLeave(idx: number) {
-  if (dragOverIndex.value === idx) {
-    dragOverIndex.value = null;
-  }
+function onDragLeave(e: DragEvent, idx: number) {
+  if (e.relatedTarget && (e.currentTarget as Element).contains(e.relatedTarget as Node)) return;
+  if (dragOverIndex.value === idx) dragOverIndex.value = null;
+}
+
+function onBottomDragLeave(e: DragEvent) {
+  if (e.relatedTarget && (e.currentTarget as Element).contains(e.relatedTarget as Node)) return;
+  dragOverBottom.value = false;
 }
 
 function onBottomDragOver(e: DragEvent) {

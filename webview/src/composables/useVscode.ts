@@ -49,6 +49,10 @@ export function renameSlave(sIndex: number, newName: string) {
   postMessage({ type: 'renameSlave', sIndex, newName });
 }
 
+export function renameSlaveAlias(sIndex: number, newAlias: string) {
+  postMessage({ type: 'renameSlaveAlias', sIndex, newAlias });
+}
+
 export function removeSlave(sIndex: number) {
   postMessage({ type: 'removeSlave', sIndex });
 }

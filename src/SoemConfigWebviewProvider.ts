@@ -75,6 +75,9 @@ export class SoemConfigWebviewProvider implements vscode.WebviewViewProvider {
         case 'renameSlave':
           await this.renameSlave(data.sIndex, data.newName);
           break;
+        case 'renameSlaveAlias':
+          await this.renameSlaveAlias(data.sIndex, data.newAlias);
+          break;
         case 'addTask':
           await this.addTask(data.sIndex);
           break;
@@ -105,8 +108,26 @@ export class SoemConfigWebviewProvider implements vscode.WebviewViewProvider {
     this.updateWebview();
   }
 
-  public refresh() {
-    this.updateWebview();
+  public async refresh() {
+    const editor = vscode.window.activeTextEditor;
+    if (
+      !editor ||
+      (!editor.document.fileName.endsWith('.yaml') &&
+        !editor.document.fileName.endsWith('.yml'))
+    ) {
+      this.updateWebview();
+      vscode.window.showWarningMessage('No active YAML document to recalculate.');
+      return;
+    }
+    try {
+      const doc = parseYamlDocumentWithTags(editor.document.getText());
+      this.lastParsedDoc = { doc, data: doc.toJSON(), isValid: true };
+      await this.saveDoc(editor, doc);
+      vscode.window.showInformationMessage('Offsets and lengths recalculated successfully.');
+    } catch (e) {
+      this.updateWebview();
+      vscode.window.showErrorMessage(`Recalculation failed: ${e}`);
+    }
   }
 
   public collapseAll() {
@@ -376,20 +397,52 @@ export class SoemConfigWebviewProvider implements vscode.WebviewViewProvider {
     if (newName === currentName) return;
 
     this.taskTypeMemory.migrateSlave(currentName, newName);
-
     keyNode.value = newName;
-    const latencyTopic = doc.getIn([
-      'slaves',
-      sIndex,
-      newName,
-      'latency_pub_topic',
-    ]);
-    if (typeof latencyTopic === 'string' && latencyTopic.includes('/ecat/')) {
+    await this.saveDoc(editor, doc);
+  }
+
+  private async renameSlaveAlias(sIndex: number, newAlias: string) {
+    const editor = vscode.window.activeTextEditor;
+    if (!editor || !this.lastParsedDoc?.doc) return;
+    const doc = this.lastParsedDoc.doc;
+    const slaveItem = doc.getIn(['slaves', sIndex]);
+    if (!yaml.isMap(slaveItem) || slaveItem.items.length === 0) return;
+    const snKey = String(
+      yaml.isScalar(slaveItem.items[0].key) ? slaveItem.items[0].key.value : '',
+    );
+
+    const latencyTopic = doc.getIn(['slaves', sIndex, snKey, 'latency_pub_topic']);
+    let currentAlias = snKey;
+    if (typeof latencyTopic === 'string') {
+      const m = latencyTopic.match(/^\/ecat\/([^/]+)\/latency/);
+      if (m) currentAlias = m[1];
+    }
+    if (currentAlias === newAlias) return;
+
+    if (typeof latencyTopic === 'string') {
       doc.setIn(
-        ['slaves', sIndex, newName, 'latency_pub_topic'],
-        `/ecat/${newName}/latency`,
+        ['slaves', sIndex, snKey, 'latency_pub_topic'],
+        latencyTopic.replace(`/ecat/${currentAlias}/`, `/ecat/${newAlias}/`),
       );
     }
+
+    const tasksList = doc.getIn(['slaves', sIndex, snKey, 'tasks']);
+    if (yaml.isSeq(tasksList)) {
+      tasksList.items.forEach((taskNode: any, tIndex: number) => {
+        if (!yaml.isMap(taskNode) || taskNode.items.length === 0) return;
+        const taskKey = String(
+          yaml.isScalar(taskNode.items[0].key) ? taskNode.items[0].key.value : '',
+        );
+        const base = ['slaves', sIndex, snKey, 'tasks', tIndex, taskKey];
+        for (const field of ['pub_topic', 'sub_topic'] as const) {
+          const topic = doc.getIn([...base, field]);
+          if (typeof topic === 'string' && topic.includes(`/ecat/${currentAlias}/`)) {
+            doc.setIn([...base, field], topic.replace(`/ecat/${currentAlias}/`, `/ecat/${newAlias}/`));
+          }
+        }
+      });
+    }
+
     await this.saveDoc(editor, doc);
   }
 

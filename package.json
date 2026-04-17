@@ -38,7 +38,8 @@
     "commands": [
       {
         "command": "ethercatTaskEditor.refresh",
-        "title": "Refresh SOEM Editor"
+        "title": "Recalculate Offsets & Lengths",
+        "icon": "$(refresh)"
       },
       {
         "command": "ethercatTaskEditor.collapseAll",
@@ -61,12 +62,17 @@
         {
           "command": "ethercatTaskEditor.collapseAll",
           "when": "view == ethercatTaskEditor.sidebar",
-          "group": "navigation"
+          "group": "navigation@2"
         },
         {
           "command": "ethercatTaskEditor.expandAll",
           "when": "view == ethercatTaskEditor.sidebar",
-          "group": "navigation"
+          "group": "navigation@3"
+        },
+        {
+          "command": "ethercatTaskEditor.refresh",
+          "when": "view == ethercatTaskEditor.sidebar",
+          "group": "navigation@1"
         }
       ],
       "editor/title": [
