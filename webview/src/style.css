@@ -162,6 +162,7 @@ body {
 
 .task-label {
   min-width: 0;
+  flex: 1;
 }
 
 .task-key-badge {
@@ -263,6 +264,83 @@ button:focus {
 
 .add-task-bar {
   margin-bottom: 6px;
+}
+
+/* ---------- Insert divider ---------- */
+.insert-zone {
+  height: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+}
+
+.insert-zone:hover .insert-divider {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.insert-divider {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  gap: 6px;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.15s ease;
+  position: absolute;
+}
+
+.insert-line {
+  flex: 1;
+  height: 1px;
+  background: var(--vscode-widget-border, rgba(255, 255, 255, 0.1));
+}
+
+.insert-btn {
+  width: 18px;
+  height: 18px;
+  border-radius: 2px;
+  border: 1px solid var(--vscode-widget-border, rgba(255, 255, 255, 0.15));
+  background: var(--vscode-editor-background, var(--vscode-background));
+  color: var(--vscode-foreground);
+  font-size: 14px;
+  line-height: 1;
+  padding: 0;
+  cursor: pointer;
+  flex-shrink: 0;
+  opacity: 0.5;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.insert-btn:hover {
+  opacity: 1;
+  border-color: var(--vscode-focusBorder);
+  background: var(--vscode-button-background);
+  color: var(--vscode-button-foreground);
+}
+
+/* ---------- Add bottom bar ---------- */
+.add-bottom-bar {
+  margin-top: 4px;
+}
+
+.add-bottom-bar button {
+  width: 100%;
+  background: transparent;
+  color: var(--vscode-foreground);
+  border: 1px dashed var(--vscode-widget-border, rgba(255, 255, 255, 0.15));
+  opacity: 0.6;
+  padding: 4px 0;
+  font-size: 12px;
+}
+
+.add-bottom-bar button:hover {
+  opacity: 1;
+  border-color: var(--vscode-focusBorder);
+  background: var(--vscode-button-secondaryHoverBackground, rgba(255, 255, 255, 0.05));
 }
 
 /* ---------- Error ---------- */

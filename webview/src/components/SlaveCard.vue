@@ -20,19 +20,36 @@
     </summary>
 
     <div class="slave-content">
-      <div class="add-task-bar">
-        <button class="btn-sm btn-secondary" @click="onAddTask">+ Add Task</button>
+      <!-- Insert zone before first task -->
+      <div class="insert-zone">
+        <div class="insert-divider" @click="onInsertTask(0)">
+          <span class="insert-line"></span>
+          <button class="insert-btn">+</button>
+          <span class="insert-line"></span>
+        </div>
       </div>
 
-      <TaskEditor
-        v-for="(task, tIdx) in tasks"
-        :key="tIdx"
-        :s-index="sIndex"
-        :s-key="sKey"
-        :t-index="tIdx"
-        :t-key="taskKey(tIdx)"
-        :t-info="taskInfo(tIdx)"
-      />
+      <template v-for="(_, tIdx) in tasks" :key="tIdx">
+        <TaskEditor
+          :s-index="sIndex"
+          :s-key="sKey"
+          :t-index="tIdx"
+          :t-key="taskKey(tIdx)"
+          :t-info="taskInfo(tIdx)"
+        />
+        <!-- Insert zone between tasks (not after last) -->
+        <div v-if="tIdx < tasks.length - 1" class="insert-zone">
+          <div class="insert-divider" @click="onInsertTask(tIdx + 1)">
+            <span class="insert-line"></span>
+            <button class="insert-btn">+</button>
+            <span class="insert-line"></span>
+          </div>
+        </div>
+      </template>
+
+      <div class="add-bottom-bar">
+        <button @click="onAddTask">+ Add Task</button>
+      </div>
     </div>
   </details>
 </template>
@@ -40,7 +57,7 @@
 <script setup lang="ts">
 import { computed, nextTick, ref } from 'vue';
 import TaskEditor from './TaskEditor.vue';
-import { addTask, renameSlave, removeSlave } from '../composables/useVscode';
+import { addTask, addTaskAt, renameSlave, removeSlave } from '../composables/useVscode';
 
 const props = defineProps<{
   sIndex: number;
@@ -87,6 +104,10 @@ function cancelRename() {
 
 function onAddTask() {
   addTask(props.sIndex);
+}
+
+function onInsertTask(tIndex: number) {
+  addTaskAt(props.sIndex, tIndex);
 }
 
 function onRemoveSlave() {

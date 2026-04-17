@@ -41,6 +41,10 @@ export function addSlave() {
   postMessage({ type: 'addSlave' });
 }
 
+export function addSlaveAt(sIndex: number) {
+  postMessage({ type: 'addSlaveAt', sIndex });
+}
+
 export function renameSlave(sIndex: number, newName: string) {
   postMessage({ type: 'renameSlave', sIndex, newName });
 }
@@ -51,6 +55,10 @@ export function removeSlave(sIndex: number) {
 
 export function addTask(sIndex: number) {
   postMessage({ type: 'addTask', sIndex });
+}
+
+export function addTaskAt(sIndex: number, tIndex: number) {
+  postMessage({ type: 'addTaskAt', sIndex, tIndex });
 }
 
 export function renameTask(sIndex: number, tIndex: number, newSegment: string) {

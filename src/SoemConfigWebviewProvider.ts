@@ -66,6 +66,9 @@ export class SoemConfigWebviewProvider implements vscode.WebviewViewProvider {
         case 'addSlave':
           await this.addSlave();
           break;
+        case 'addSlaveAt':
+          await this.addSlaveAt(data.sIndex);
+          break;
         case 'removeSlave':
           await this.removeSlave(data.sIndex);
           break;
@@ -74,6 +77,9 @@ export class SoemConfigWebviewProvider implements vscode.WebviewViewProvider {
           break;
         case 'addTask':
           await this.addTask(data.sIndex);
+          break;
+        case 'addTaskAt':
+          await this.addTaskAt(data.sIndex, data.tIndex);
           break;
         case 'removeTask':
           await this.removeTask(data.sIndex, data.tIndex);
@@ -300,6 +306,39 @@ export class SoemConfigWebviewProvider implements vscode.WebviewViewProvider {
     }
   }
 
+  private async addSlaveAt(sIndex: number) {
+    const editor = vscode.window.activeTextEditor;
+    if (!editor || !this.lastParsedDoc?.doc) return;
+
+    const snName = await vscode.window.showInputBox({
+      prompt: 'Enter new slave name (e.g., sn1234567)',
+      value: 'sn0000000',
+    });
+    if (!snName) return;
+
+    const doc = this.lastParsedDoc.doc;
+
+    let slavesList = doc.getIn(['slaves']);
+    if (!slavesList) {
+      doc.setIn(['slaves'], []);
+      slavesList = doc.getIn(['slaves']);
+    }
+
+    if (yaml.isSeq(slavesList)) {
+      const newSlaveStr = `${snName}:
+  sdo_len: !uint16_t 0
+  task_count: !uint8_t 0
+  latency_pub_topic: !std::string '/ecat/${snName.replace('+', '')}/latency'
+  tasks: []
+`;
+      const newSlaveNode = parseYamlDocumentWithTags(newSlaveStr).contents;
+      if (newSlaveNode) {
+        slavesList.items.splice(sIndex, 0, newSlaveNode as any);
+        await this.saveDoc(editor, doc);
+      }
+    }
+  }
+
   private async removeSlave(sIndex: number) {
     const editor = vscode.window.activeTextEditor;
     if (!editor || !this.lastParsedDoc?.doc) return;
@@ -388,6 +427,81 @@ export class SoemConfigWebviewProvider implements vscode.WebviewViewProvider {
         await this.saveDoc(editor, doc);
       }
     }
+  }
+
+  private async addTaskAt(sIndex: number, tIndex: number) {
+    const editor = vscode.window.activeTextEditor;
+    if (!editor || !this.lastParsedDoc?.doc) return;
+    const doc = this.lastParsedDoc.doc;
+    const slaveItem = doc.getIn(['slaves', sIndex]);
+    if (!yaml.isMap(slaveItem) || slaveItem.items.length === 0) return;
+    const snKey = String(
+      yaml.isScalar(slaveItem.items[0].key) ? slaveItem.items[0].key.value : '',
+    );
+
+    let tasksList = doc.getIn(['slaves', sIndex, snKey, 'tasks']);
+    if (!tasksList) {
+      doc.setIn(['slaves', sIndex, snKey, 'tasks'], []);
+      tasksList = doc.getIn(['slaves', sIndex, snKey, 'tasks']);
+    }
+
+    if (yaml.isSeq(tasksList)) {
+      const isAppend = tIndex >= tasksList.items.length;
+      let segment: string;
+
+      if (isAppend) {
+        segment = this.nextAppNewSegment(doc);
+      } else {
+        segment = `app${tIndex + 1}`;
+      }
+
+      const taskKey = `app_${tIndex + 1}`;
+      const newTaskStr = `${taskKey}:
+  sdowrite_task_type: !uint8_t 1
+  conf_connection_lost_read_action: !uint8_t 1
+  sdowrite_connection_lost_write_action: !uint8_t 2
+  pub_topic: !std::string '/ecat/${snKey}/${segment}/read'
+  pdoread_offset: !uint16_t 0
+  sub_topic: !std::string '/ecat/${snKey}/${segment}/write'
+  pdowrite_offset: !uint16_t 0
+`;
+      const newTaskNode = parseYamlDocumentWithTags(newTaskStr).contents;
+      if (newTaskNode) {
+        tasksList.items.splice(tIndex, 0, newTaskNode as any);
+        doc.setIn(
+          ['slaves', sIndex, snKey, 'task_count'],
+          tasksList.items.length,
+        );
+        await this.saveDoc(editor, doc);
+      }
+    }
+  }
+
+  private nextAppNewSegment(doc: yaml.Document): string {
+    const data = doc.toJSON();
+    let maxN = 0;
+    if (data?.slaves && Array.isArray(data.slaves)) {
+      for (const slave of data.slaves) {
+        if (!slave || typeof slave !== 'object') continue;
+        const slaveKey = Object.keys(slave)[0];
+        const tasks = slave[slaveKey]?.tasks;
+        if (!Array.isArray(tasks)) continue;
+        for (const task of tasks) {
+          if (!task || typeof task !== 'object') continue;
+          const taskKey = Object.keys(task)[0];
+          const info = task[taskKey];
+          for (const topic of [info?.pub_topic, info?.sub_topic]) {
+            if (typeof topic !== 'string') continue;
+            const match = topic.match(/\/ecat\/[^/]+\/app_new_(\d+)\//);
+            if (match) {
+              const n = parseInt(match[1], 10);
+              if (n > maxN) maxN = n;
+            }
+          }
+        }
+      }
+    }
+    return `app_new_${maxN + 1}`;
   }
 
   private async removeTask(sIndex: number, tIndex: number) {
