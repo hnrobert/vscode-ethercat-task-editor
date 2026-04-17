@@ -1,6 +1,6 @@
 import * as vscode from 'vscode';
 import * as yaml from 'yaml';
-import { parseMsgFolder } from './msgParser';
+import { parseMsgFolder } from './utils/msgParser';
 import * as path from 'path';
 
 type YamlParseOptions = yaml.ParseOptions &
@@ -172,7 +172,7 @@ export class YamlCustomEditorProvider
 
   private calculateOffsets(
     data: unknown,
-    _msgs: Record<string, import('./msgParser').MsgField[]>,
+    _msgs: Record<string, import('./utils/msgParser').MsgField[]>,
   ): unknown {
     type UnknownRecord = Record<string, unknown>;
     const isObject = (value: unknown): value is UnknownRecord =>

@@ -1,0 +1,129 @@
+import * as yaml from 'yaml';
+import { MsgField } from './msgParser';
+
+export function calculateOffsets(
+  doc: yaml.Document,
+  data: any,
+  _msgs: Record<string, MsgField[]>,
+): void {
+  if (!data || typeof data !== 'object' || !Array.isArray(data.slaves)) return;
+
+  data.slaves.forEach((slave: any, index: number) => {
+    if (!slave || typeof slave !== 'object') return;
+    const slaveKey = Object.keys(slave)[0];
+    const slaveValues = slave[slaveKey];
+    if (
+      !slaveValues ||
+      typeof slaveValues !== 'object' ||
+      !Array.isArray(slaveValues.tasks)
+    )
+      return;
+
+    let pdoread_offset = 0;
+    let pdowrite_offset = 0;
+
+    slaveValues.tasks.forEach((task: any, taskIndex: number) => {
+      if (!task || typeof task !== 'object') return;
+      const taskKey = Object.keys(task)[0];
+      const taskValues = task[taskKey] as Record<string, any>;
+      if (!taskValues || typeof taskValues !== 'object') return;
+
+      const pathBase = ['slaves', index, slaveKey, 'tasks', taskIndex, taskKey];
+
+      if (taskValues.pdoread_offset !== undefined) {
+        taskValues.pdoread_offset = pdoread_offset;
+        doc.setIn([...pathBase, 'pdoread_offset'], pdoread_offset);
+      }
+      if (taskValues.pdowrite_offset !== undefined) {
+        taskValues.pdowrite_offset = pdowrite_offset;
+        doc.setIn([...pathBase, 'pdowrite_offset'], pdowrite_offset);
+      }
+
+      const type = Number(taskValues.sdowrite_task_type);
+
+      switch (type) {
+        case 1:
+          pdoread_offset += 19;
+          break;
+        case 2: {
+          const cType = Number(taskValues.sdowrite_control_type) || 0;
+          pdoread_offset += cType !== 8 ? 8 : 32;
+          switch (cType) {
+            case 1:
+            case 2:
+              pdowrite_offset += 3;
+              break;
+            case 3:
+              pdowrite_offset += 7;
+              break;
+            case 4:
+              pdowrite_offset += 5;
+              break;
+            case 5:
+              pdowrite_offset += 7;
+              break;
+            case 6:
+              pdowrite_offset += 6;
+              break;
+            case 7:
+              pdowrite_offset += 8;
+              break;
+            case 8:
+              pdowrite_offset += 8;
+              break;
+          }
+          break;
+        }
+        case 3:
+          pdoread_offset += 21;
+          break;
+        case 4:
+          pdowrite_offset += 8;
+          break;
+        case 5:
+          for (let i = 1; i <= 4; i++) {
+            const motorCanId = taskValues[`sdowrite_motor${i}_can_id`];
+            if (motorCanId !== undefined && Number(motorCanId) !== 0) {
+              pdoread_offset += 9;
+              pdowrite_offset += 3;
+            }
+          }
+          break;
+        case 6:
+          pdowrite_offset += 8;
+          break;
+        case 7: {
+          const channelStr: any = taskValues.sdowrite_channel_num;
+          if (channelStr !== undefined) {
+            pdowrite_offset += Number(channelStr) * 2;
+          }
+          break;
+        }
+        case 8:
+        case 9:
+          pdoread_offset += 8;
+          break;
+        case 10:
+          pdoread_offset += 6;
+          break;
+        case 11:
+          pdoread_offset += 24;
+          break;
+        case 12: {
+          pdoread_offset += 9;
+          const dmCtrlType = Number(taskValues.sdowrite_control_type) || 0;
+          if (dmCtrlType === 1 || dmCtrlType === 2) pdowrite_offset += 9;
+          else if (dmCtrlType === 3) pdowrite_offset += 5;
+          break;
+        }
+        case 13:
+          pdoread_offset += 7;
+          pdowrite_offset += 4;
+          break;
+        case 14:
+          pdoread_offset += 17;
+          break;
+      }
+    });
+  });
+}

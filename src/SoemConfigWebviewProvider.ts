@@ -1,25 +1,19 @@
 import * as vscode from 'vscode';
 import * as path from 'path';
 import * as yaml from 'yaml';
-import {
-  parseYamlDocumentWithTags,
-  stringifyYamlDocumentWithTags,
-} from './YamlParser';
+import { parseYamlDocumentWithTags } from './utils/YamlParser';
 import { getTaskTemplateYaml } from './taskTemplates';
-import { parseMsgFolder, MsgField } from './msgParser';
+import { parseMsgFolder } from './utils/msgParser';
 import { TASK_TYPES } from './constants';
+import { TaskTypeMemory } from './utils/taskTypeMemory';
+import { applyAndSaveYaml, parseTopicSegment } from './utils/yamlUtils';
 
 export class SoemConfigWebviewProvider implements vscode.WebviewViewProvider {
   public static readonly viewType = 'ethercatTaskEditor.sidebar';
   private _view?: vscode.WebviewView;
   private readonly msgFolderPath: string;
   private lastParsedDoc?: { doc: yaml.Document; data: any; isValid: boolean };
-
-  // Runtime memory: slaveName -> taskName -> taskTypeValue -> { prop: value }
-  private taskTypeMemory = new Map<
-    string,
-    Map<string, Map<number, Record<string, any>>>
-  >();
+  private readonly taskTypeMemory = new TaskTypeMemory();
 
   public show() {
     if (this._view) {
@@ -30,7 +24,6 @@ export class SoemConfigWebviewProvider implements vscode.WebviewViewProvider {
   constructor(private readonly context: vscode.ExtensionContext) {
     this.msgFolderPath = path.join(context.extensionPath, 'assets', 'msg');
 
-    // Persistent event listeners — survive across webview resolve/dispose cycles
     context.subscriptions.push(
       vscode.window.onDidChangeActiveTextEditor(() => this.updateWebview()),
     );
@@ -91,7 +84,6 @@ export class SoemConfigWebviewProvider implements vscode.WebviewViewProvider {
       }
     });
 
-    // Update when panel visibility changes (open/close sidebar)
     webviewView.onDidChangeVisibility(() => {
       if (webviewView.visible) {
         this.updateWebview();
@@ -136,8 +128,6 @@ export class SoemConfigWebviewProvider implements vscode.WebviewViewProvider {
       const data = doc.toJSON();
       this.lastParsedDoc = { doc, data, isValid: true };
 
-      const msgSizes = parseMsgFolder(this.msgFolderPath);
-
       this._view.webview.postMessage({
         type: 'updateData',
         data: data,
@@ -151,64 +141,7 @@ export class SoemConfigWebviewProvider implements vscode.WebviewViewProvider {
     }
   }
 
-  // --- Task type memory helpers ---
-
-  private saveTaskTypeState(
-    slaveName: string,
-    taskName: string,
-    taskType: number,
-    values: Record<string, any>,
-  ) {
-    let slaveMap = this.taskTypeMemory.get(slaveName);
-    if (!slaveMap) {
-      slaveMap = new Map();
-      this.taskTypeMemory.set(slaveName, slaveMap);
-    }
-    let taskMap = slaveMap.get(taskName);
-    if (!taskMap) {
-      taskMap = new Map();
-      slaveMap.set(taskName, taskMap);
-    }
-    taskMap.set(taskType, { ...values });
-  }
-
-  private getSavedTaskTypeState(
-    slaveName: string,
-    taskName: string,
-    taskType: number,
-  ): Record<string, any> | null {
-    return (
-      this.taskTypeMemory.get(slaveName)?.get(taskName)?.get(taskType) ?? null
-    );
-  }
-
-  private migrateSlaveMemory(oldName: string, newName: string) {
-    const mem = this.taskTypeMemory.get(oldName);
-    if (mem) {
-      this.taskTypeMemory.delete(oldName);
-      this.taskTypeMemory.set(newName, mem);
-    }
-  }
-
-  private migrateTaskMemory(
-    slaveName: string,
-    oldTaskName: string,
-    newTaskName: string,
-  ) {
-    const slaveMem = this.taskTypeMemory.get(slaveName);
-    if (slaveMem?.has(oldTaskName)) {
-      const taskMem = slaveMem.get(oldTaskName)!;
-      slaveMem.delete(oldTaskName);
-      slaveMem.set(newTaskName, taskMem);
-    }
-  }
-
-  // --- YAML value update ---
-
-  private async updateYamlValue(
-    propertyPath: (string | number)[],
-    value: any,
-  ) {
+  private async updateYamlValue(propertyPath: (string | number)[], value: any) {
     const editor = vscode.window.activeTextEditor;
     if (!editor || !this.lastParsedDoc?.doc) return;
 
@@ -217,7 +150,6 @@ export class SoemConfigWebviewProvider implements vscode.WebviewViewProvider {
     let finalValue = value;
     let isHex = false;
 
-    // Check if the frontend sent a string that looks like a hex number
     if (typeof value === 'string' && value.toLowerCase().startsWith('0x')) {
       const parsedHex = parseInt(value, 16);
       if (!isNaN(parsedHex)) {
@@ -226,7 +158,6 @@ export class SoemConfigWebviewProvider implements vscode.WebviewViewProvider {
       }
     }
 
-    // --- Task type memory: snapshot current state BEFORE applying change ---
     const isTaskTypeChange =
       propertyPath.length > 0 &&
       propertyPath[propertyPath.length - 1] === 'sdowrite_task_type';
@@ -246,17 +177,15 @@ export class SoemConfigWebviewProvider implements vscode.WebviewViewProvider {
       if (taskData) {
         const oldType = Number(taskData.sdowrite_task_type);
 
-        // Save current values for old type (exclude computed offsets)
         const valuesToSave: Record<string, any> = {};
         for (const [key, val] of Object.entries(taskData)) {
           if (key !== 'pdoread_offset' && key !== 'pdowrite_offset') {
             valuesToSave[key] = val;
           }
         }
-        this.saveTaskTypeState(sKey, tKey, oldType, valuesToSave);
+        this.taskTypeMemory.save(sKey, tKey, oldType, valuesToSave);
 
-        // Get saved values for new type
-        savedTaskTypeValues = this.getSavedTaskTypeState(
+        savedTaskTypeValues = this.taskTypeMemory.get(
           sKey,
           tKey,
           Number(finalValue),
@@ -264,10 +193,8 @@ export class SoemConfigWebviewProvider implements vscode.WebviewViewProvider {
       }
     }
 
-    // Apply new value
     doc.setIn(propertyPath, finalValue);
 
-    // Attempt automatic formatting for HEX values starting with 0x
     const targetNode = doc.getIn(propertyPath, true);
     if (yaml.isScalar(targetNode)) {
       if (isHex) {
@@ -290,7 +217,6 @@ export class SoemConfigWebviewProvider implements vscode.WebviewViewProvider {
       }
     }
 
-    // Special behavior if task type was updated: regenerate default fields for the new task type
     if (isTaskTypeChange) {
       const taskPath = propertyPath.slice(0, propertyPath.length - 1);
       const targetTaskNode = doc.getIn(taskPath, true);
@@ -328,13 +254,9 @@ export class SoemConfigWebviewProvider implements vscode.WebviewViewProvider {
 
         if (yaml.isMap(newParams)) {
           for (const item of newParams.items) {
-            // Override template default with saved value if available
             if (savedTaskTypeValues && yaml.isScalar(item.key)) {
               const keyStr = String(item.key.value);
-              if (
-                keyStr in savedTaskTypeValues &&
-                yaml.isScalar(item.value)
-              ) {
+              if (keyStr in savedTaskTypeValues && yaml.isScalar(item.value)) {
                 item.value.value = savedTaskTypeValues[keyStr];
               }
             }
@@ -344,10 +266,8 @@ export class SoemConfigWebviewProvider implements vscode.WebviewViewProvider {
       }
     }
 
-    await this.applyAndSaveYaml(editor, doc);
+    await this.saveDoc(editor, doc);
   }
-
-  // --- Slave / Task CRUD (with VSCode native dialogs) ---
 
   private async addSlave() {
     const editor = vscode.window.activeTextEditor;
@@ -376,7 +296,7 @@ export class SoemConfigWebviewProvider implements vscode.WebviewViewProvider {
 `;
       const newSlaveNode = parseYamlDocumentWithTags(newSlaveStr).contents;
       if (newSlaveNode) slavesList.items.push(newSlaveNode as any);
-      await this.applyAndSaveYaml(editor, doc);
+      await this.saveDoc(editor, doc);
     }
   }
 
@@ -395,7 +315,7 @@ export class SoemConfigWebviewProvider implements vscode.WebviewViewProvider {
     const slavesList = doc.getIn(['slaves']);
     if (yaml.isSeq(slavesList)) {
       slavesList.items.splice(sIndex, 1);
-      await this.applyAndSaveYaml(editor, doc);
+      await this.saveDoc(editor, doc);
     }
   }
 
@@ -410,7 +330,7 @@ export class SoemConfigWebviewProvider implements vscode.WebviewViewProvider {
     const currentName = String(keyNode.value);
     if (newName === currentName) return;
 
-    this.migrateSlaveMemory(currentName, newName);
+    this.taskTypeMemory.migrateSlave(currentName, newName);
 
     keyNode.value = newName;
     const latencyTopic = doc.getIn([
@@ -419,16 +339,13 @@ export class SoemConfigWebviewProvider implements vscode.WebviewViewProvider {
       newName,
       'latency_pub_topic',
     ]);
-    if (
-      typeof latencyTopic === 'string' &&
-      latencyTopic.includes('/ecat/')
-    ) {
+    if (typeof latencyTopic === 'string' && latencyTopic.includes('/ecat/')) {
       doc.setIn(
         ['slaves', sIndex, newName, 'latency_pub_topic'],
         `/ecat/${newName}/latency`,
       );
     }
-    await this.applyAndSaveYaml(editor, doc);
+    await this.saveDoc(editor, doc);
   }
 
   private async addTask(sIndex: number) {
@@ -438,9 +355,7 @@ export class SoemConfigWebviewProvider implements vscode.WebviewViewProvider {
     const slaveItem = doc.getIn(['slaves', sIndex]);
     if (!yaml.isMap(slaveItem) || slaveItem.items.length === 0) return;
     const snKey = String(
-      yaml.isScalar(slaveItem.items[0].key)
-        ? slaveItem.items[0].key.value
-        : '',
+      yaml.isScalar(slaveItem.items[0].key) ? slaveItem.items[0].key.value : '',
     );
 
     let tasksList = doc.getIn(['slaves', sIndex, snKey, 'tasks']);
@@ -470,7 +385,7 @@ export class SoemConfigWebviewProvider implements vscode.WebviewViewProvider {
           ['slaves', sIndex, snKey, 'task_count'],
           tasksList.items.length,
         );
-        await this.applyAndSaveYaml(editor, doc);
+        await this.saveDoc(editor, doc);
       }
     }
   }
@@ -490,9 +405,7 @@ export class SoemConfigWebviewProvider implements vscode.WebviewViewProvider {
     const slaveItem = doc.getIn(['slaves', sIndex]);
     if (!yaml.isMap(slaveItem) || slaveItem.items.length === 0) return;
     const snKey = String(
-      yaml.isScalar(slaveItem.items[0].key)
-        ? slaveItem.items[0].key.value
-        : '',
+      yaml.isScalar(slaveItem.items[0].key) ? slaveItem.items[0].key.value : '',
     );
     const tasksList = doc.getIn(['slaves', sIndex, snKey, 'tasks']);
 
@@ -502,24 +415,18 @@ export class SoemConfigWebviewProvider implements vscode.WebviewViewProvider {
         ['slaves', sIndex, snKey, 'task_count'],
         tasksList.items.length,
       );
-      await this.applyAndSaveYaml(editor, doc);
+      await this.saveDoc(editor, doc);
     }
   }
 
-  private async renameTask(
-    sIndex: number,
-    tIndex: number,
-    newSegment: string,
-  ) {
+  private async renameTask(sIndex: number, tIndex: number, newSegment: string) {
     const editor = vscode.window.activeTextEditor;
     if (!editor || !this.lastParsedDoc?.doc) return;
     const doc = this.lastParsedDoc.doc;
     const slaveItem = doc.getIn(['slaves', sIndex]);
     if (!yaml.isMap(slaveItem) || slaveItem.items.length === 0) return;
     const snKey = String(
-      yaml.isScalar(slaveItem.items[0].key)
-        ? slaveItem.items[0].key.value
-        : '',
+      yaml.isScalar(slaveItem.items[0].key) ? slaveItem.items[0].key.value : '',
     );
 
     const taskItem = doc.getIn(['slaves', sIndex, snKey, 'tasks', tIndex]);
@@ -528,7 +435,6 @@ export class SoemConfigWebviewProvider implements vscode.WebviewViewProvider {
     if (!yaml.isScalar(taskKeyNode)) return;
     const currentKey = String(taskKeyNode.value);
 
-    // Only update topic segments — key stays fixed
     const pubTopic = doc.getIn([
       'slaves',
       sIndex,
@@ -549,242 +455,34 @@ export class SoemConfigWebviewProvider implements vscode.WebviewViewProvider {
     ]);
 
     if (typeof pubTopic === 'string') {
-      const oldSeg = this.parseTopicSegment(pubTopic);
+      const oldSeg = parseTopicSegment(pubTopic);
       if (oldSeg && oldSeg !== newSegment) {
         doc.setIn(
-          [
-            'slaves',
-            sIndex,
-            snKey,
-            'tasks',
-            tIndex,
-            currentKey,
-            'pub_topic',
-          ],
+          ['slaves', sIndex, snKey, 'tasks', tIndex, currentKey, 'pub_topic'],
           pubTopic.replace(`/${oldSeg}/`, `/${newSegment}/`),
         );
       }
     }
     if (typeof subTopic === 'string') {
-      const oldSeg = this.parseTopicSegment(subTopic);
+      const oldSeg = parseTopicSegment(subTopic);
       if (oldSeg && oldSeg !== newSegment) {
         doc.setIn(
-          [
-            'slaves',
-            sIndex,
-            snKey,
-            'tasks',
-            tIndex,
-            currentKey,
-            'sub_topic',
-          ],
+          ['slaves', sIndex, snKey, 'tasks', tIndex, currentKey, 'sub_topic'],
           subTopic.replace(`/${oldSeg}/`, `/${newSegment}/`),
         );
       }
     }
 
-    await this.applyAndSaveYaml(editor, doc);
+    await this.saveDoc(editor, doc);
   }
 
-  // --- YAML save helpers ---
-
-  /** Extract the app segment from a topic like /ecat/sn4653115/app1/read → app1 */
-  private parseTopicSegment(topic: string): string | null {
-    const match = topic.match(/^\/ecat\/[^/]+\/([^/]+)\//);
-    return match ? match[1] : null;
-  }
-
-  /** Force every task key to app_1 … app_n based on array position */
-  private normalizeTaskKeys(doc: yaml.Document) {
-    const data = doc.toJSON();
-    if (!data?.slaves || !Array.isArray(data.slaves)) return;
-    for (let sIndex = 0; sIndex < data.slaves.length; sIndex++) {
-      const slave = data.slaves[sIndex];
-      if (!slave || typeof slave !== 'object') continue;
-      const slaveKey = Object.keys(slave)[0];
-      const tasks = slave[slaveKey]?.tasks;
-      if (!Array.isArray(tasks)) continue;
-
-      for (let tIndex = 0; tIndex < tasks.length; tIndex++) {
-        const task = tasks[tIndex];
-        if (!task || typeof task !== 'object') continue;
-        const currentKey = Object.keys(task)[0];
-        const expectedKey = `app_${tIndex + 1}`;
-        if (currentKey === expectedKey) continue;
-
-        const taskNode = doc.getIn(
-          ['slaves', sIndex, slaveKey, 'tasks', tIndex],
-          true,
-        );
-        if (yaml.isMap(taskNode) && taskNode.items.length > 0) {
-          const keyNode = taskNode.items[0].key;
-          if (yaml.isScalar(keyNode)) {
-            keyNode.value = expectedKey;
-          }
-        }
-      }
-    }
-  }
-
-  private async applyAndSaveYaml(
-    editor: vscode.TextEditor,
-    doc: yaml.Document,
-  ) {
-    this.normalizeTaskKeys(doc);
-
-    this.calculateOffsets(
+  private async saveDoc(editor: vscode.TextEditor, doc: yaml.Document) {
+    await applyAndSaveYaml(
+      editor,
       doc,
-      doc.toJSON(),
       parseMsgFolder(this.msgFolderPath),
+      () => this.updateWebview(),
     );
-
-    const fullRange = new vscode.Range(
-      editor.document.positionAt(0),
-      editor.document.positionAt(editor.document.getText().length),
-    );
-
-    const edit = new vscode.WorkspaceEdit();
-    edit.replace(
-      editor.document.uri,
-      fullRange,
-      stringifyYamlDocumentWithTags(doc),
-    );
-    await vscode.workspace.applyEdit(edit);
-    await editor.document.save();
-
-    this.updateWebview();
-  }
-
-  private calculateOffsets(
-    doc: yaml.Document,
-    data: any,
-    _msgs: Record<string, MsgField[]>,
-  ): void {
-    if (!data || typeof data !== 'object' || !Array.isArray(data.slaves))
-      return;
-
-    data.slaves.forEach((slave: any, index: number) => {
-      if (!slave || typeof slave !== 'object') return;
-      const slaveKey = Object.keys(slave)[0];
-      const slaveValues = slave[slaveKey];
-      if (
-        !slaveValues ||
-        typeof slaveValues !== 'object' ||
-        !Array.isArray(slaveValues.tasks)
-      )
-        return;
-
-      let pdoread_offset = 0;
-      let pdowrite_offset = 0;
-
-      slaveValues.tasks.forEach((task: any, taskIndex: number) => {
-        if (!task || typeof task !== 'object') return;
-        const taskKey = Object.keys(task)[0];
-        const taskValues = task[taskKey] as Record<string, any>;
-        if (!taskValues || typeof taskValues !== 'object') return;
-
-        const pathBase = [
-          'slaves',
-          index,
-          slaveKey,
-          'tasks',
-          taskIndex,
-          taskKey,
-        ];
-
-        if (taskValues.pdoread_offset !== undefined) {
-          doc.setIn([...pathBase, 'pdoread_offset'], pdoread_offset);
-        }
-        if (taskValues.pdowrite_offset !== undefined) {
-          doc.setIn([...pathBase, 'pdowrite_offset'], pdowrite_offset);
-        }
-
-        const type = Number(taskValues.sdowrite_task_type);
-
-        switch (type) {
-          case 1:
-            pdoread_offset += 19;
-            break;
-          case 2: {
-            const cType = Number(taskValues.sdowrite_control_type) || 0;
-            pdoread_offset += cType !== 8 ? 8 : 32;
-            switch (cType) {
-              case 1:
-              case 2:
-                pdowrite_offset += 3;
-                break;
-              case 3:
-                pdowrite_offset += 7;
-                break;
-              case 4:
-                pdowrite_offset += 5;
-                break;
-              case 5:
-                pdowrite_offset += 7;
-                break;
-              case 6:
-                pdowrite_offset += 6;
-                break;
-              case 7:
-                pdowrite_offset += 8;
-                break;
-              case 8:
-                pdowrite_offset += 8;
-                break;
-            }
-            break;
-          }
-          case 3:
-            pdoread_offset += 21;
-            break;
-          case 4:
-            pdowrite_offset += 8;
-            break;
-          case 5:
-            for (let i = 1; i <= 4; i++) {
-              const motorCanId = taskValues[`sdowrite_motor${i}_can_id`];
-              if (motorCanId !== undefined && Number(motorCanId) !== 0) {
-                pdoread_offset += 9;
-                pdowrite_offset += 3;
-              }
-            }
-            break;
-          case 6:
-            pdowrite_offset += 8;
-            break;
-          case 7:
-            const channelStr: any = taskValues.sdowrite_channel_num;
-            if (channelStr !== undefined) {
-              pdowrite_offset += Number(channelStr) * 2;
-            }
-            break;
-          case 8:
-          case 9:
-            pdoread_offset += 8;
-            break;
-          case 10:
-            pdoread_offset += 6;
-            break;
-          case 11:
-            pdoread_offset += 24;
-            break;
-          case 12: {
-            pdoread_offset += 9;
-            const dmCtrlType = Number(taskValues.sdowrite_control_type) || 0;
-            if (dmCtrlType === 1 || dmCtrlType === 2) pdowrite_offset += 9;
-            else if (dmCtrlType === 3) pdowrite_offset += 5;
-            break;
-          }
-          case 13:
-            pdoread_offset += 7;
-            pdowrite_offset += 4;
-            break;
-          case 14:
-            pdoread_offset += 17;
-            break;
-        }
-      });
-    });
   }
 
   private getHtmlForWebview() {
