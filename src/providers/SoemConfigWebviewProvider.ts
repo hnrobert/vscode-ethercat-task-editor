@@ -1,17 +1,15 @@
 import * as vscode from 'vscode';
 import * as path from 'path';
 import * as yaml from 'yaml';
-import { parseYamlDocumentWithTags } from './utils/yamlParser';
-import { parseMsgFolder } from './utils/msgParser';
+import { parseYamlDocumentWithTags } from '../utils/yamlParser';
+import { parseMsgFolder } from '../utils/msgParser';
 import {
-  getTaskTemplateYaml,
-  generateTaskTemplate,
-  getTaskTypes,
   getBoardTypes,
-} from './utils/constantsParser';
-import { TaskTypeMemory } from './utils/taskTypeMemory';
-import { applyAndSaveYaml, parseTopicSegment } from './utils/yamlUtils';
-import { validateTopics } from './utils/topicValidator';
+} from '../utils/constantsParser';
+import { TaskRegistry } from '../tasks';
+import { TaskTypeMemory } from '../utils/taskTypeMemory';
+import { applyAndSaveYaml, parseTopicSegment } from '../utils/yamlUtils';
+import { validateTopics } from '../utils/topicValidator';
 
 export class SoemConfigWebviewProvider implements vscode.WebviewViewProvider {
   public static readonly viewType = 'ethercatTaskEditor.sidebar';
@@ -195,7 +193,7 @@ export class SoemConfigWebviewProvider implements vscode.WebviewViewProvider {
       this._view.webview.postMessage({
         type: 'updateData',
         data: data,
-        taskTypes: getTaskTypes(this.context.extensionPath),
+        taskTypes: TaskRegistry.getTaskTypeList(),
         boardTypes: getBoardTypes(this.context.extensionPath),
       });
     } catch (e) {
@@ -277,7 +275,8 @@ export class SoemConfigWebviewProvider implements vscode.WebviewViewProvider {
           const valueScalar = new yaml.Scalar(finalValue);
           valueScalar.tag = '!uint8_t';
           valueScalar.format = 'HEX';
-          (valueScalar as any)._originalSource = '0x' + finalValue.toString(16).padStart(2, '0');
+          (valueScalar as any)._originalSource =
+            '0x' + finalValue.toString(16).padStart(2, '0');
           valueScalar.toJSON = function () {
             return '0x' + (this as any).value.toString(16).padStart(2, '0');
           };
@@ -338,20 +337,14 @@ export class SoemConfigWebviewProvider implements vscode.WebviewViewProvider {
       const taskPath = propertyPath.slice(0, propertyPath.length - 1);
       const targetTaskNode = doc.getIn(taskPath, true);
       if (yaml.isMap(targetTaskNode)) {
-        const templateYaml = getTaskTemplateYaml(
-          this.context.extensionPath,
-          Number(finalValue),
-        );
-        const parsedTemplateDoc = parseYamlDocumentWithTags(
-          'temp:\n' +
-            templateYaml
-              .split('\n')
-              .filter((l) => l.trim())
-              .map((l) => '  ' + l)
-              .join('\n'),
-        );
-        const newParams = parsedTemplateDoc.getIn(['temp'], true);
+        // 使用 TaskRegistry 获取 task 定义
+        const task = TaskRegistry.getTask(Number(finalValue));
+        if (!task) {
+          console.error(`Unknown task type: ${finalValue}`);
+          return;
+        }
 
+        // 删除旧的 task 特定字段
         const keysToRemove: any[] = [];
         for (let i = 0; i < targetTaskNode.items.length; i++) {
           const item = targetTaskNode.items[i];
@@ -372,15 +365,25 @@ export class SoemConfigWebviewProvider implements vscode.WebviewViewProvider {
 
         keysToRemove.forEach((k) => targetTaskNode.delete(k));
 
-        if (yaml.isMap(newParams)) {
-          for (const item of newParams.items) {
-            if (savedTaskTypeValues && yaml.isScalar(item.key)) {
-              const keyStr = String(item.key.value);
-              if (keyStr in savedTaskTypeValues && yaml.isScalar(item.value)) {
-                item.value.value = savedTaskTypeValues[keyStr];
-              }
+        // 添加新 task 的默认字段
+        const fields = task.getFields();
+        for (const field of fields) {
+          if (field.default !== undefined) {
+            const value = field.default;
+            const dataType = field.data_type;
+
+            // 恢复保存的值（如果存在）
+            const finalFieldValue = savedTaskTypeValues && field.key in savedTaskTypeValues
+              ? savedTaskTypeValues[field.key]
+              : value;
+
+            targetTaskNode.set(field.key, finalFieldValue);
+
+            // 设置 YAML 标签
+            const node = targetTaskNode.get(field.key, true);
+            if (yaml.isScalar(node)) {
+              node.tag = `!${dataType}`;
             }
-            targetTaskNode.items.push(item);
           }
         }
       }
@@ -596,12 +599,11 @@ export class SoemConfigWebviewProvider implements vscode.WebviewViewProvider {
         // Append to end
         const appIdx = tasksList.items.length + 1;
         const taskKey = `app_${appIdx}`;
-        const newTaskStr = generateTaskTemplate(
-          this.context.extensionPath,
+        const newTaskStr = TaskRegistry.generateTemplate(
+          taskType,
           taskKey,
           snKey,
           segment,
-          taskType,
         );
         const newTaskNode = parseYamlDocumentWithTags(newTaskStr).contents;
         if (newTaskNode) {
@@ -615,12 +617,11 @@ export class SoemConfigWebviewProvider implements vscode.WebviewViewProvider {
       } else {
         // Insert at position
         const taskKey = `app_${tIndex + 1}`;
-        const newTaskStr = generateTaskTemplate(
-          this.context.extensionPath,
+        const newTaskStr = TaskRegistry.generateTemplate(
+          taskType,
           taskKey,
           snKey,
           segment,
-          taskType,
         );
         const newTaskNode = parseYamlDocumentWithTags(newTaskStr).contents;
         if (newTaskNode) {

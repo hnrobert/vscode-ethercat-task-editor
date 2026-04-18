@@ -1,11 +1,18 @@
 {
     "cSpell.words": [
+        "CANPMU",
         "dialogs",
+        "DJIRC",
+        "DSHOT",
         "ecat",
         "ethercat",
+        "Hipnuc",
+        "IMUCAN",
+        "Openloop",
         "pdoread",
         "pdowrite",
         "RXPDO",
+        "SBUSRC",
         "sdowrite",
         "SOEM",
         "stringifier",

@@ -4,9 +4,24 @@ const vscode = acquireVsCodeApi();
 
 export const data = ref<any>(null);
 export const errorMessage = ref<string | null>(null);
-export const taskTypes = ref<
-  { id: number; description: string; has_read: boolean; has_write: boolean }[]
->([]);
+export interface TaskTypeDef {
+  id: number;
+  description: string;
+  has_read: boolean;
+  has_write: boolean;
+  ui_config?: UIConfig;
+}
+
+export interface UIConfig {
+  field_visibility?: FieldVisibilityRule[];
+}
+
+export interface FieldVisibilityRule {
+  field_pattern: string;
+  visible_when: string;
+}
+
+export const taskTypes = ref<TaskTypeDef[]>([]);
 export const boardTypes = ref<
   { id: number; name: string; max_tx_pdo: number; max_rx_pdo: number }[]
 >([]);

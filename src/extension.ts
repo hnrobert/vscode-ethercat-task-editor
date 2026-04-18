@@ -1,5 +1,5 @@
 import * as vscode from 'vscode';
-import { SoemConfigWebviewProvider } from './SoemConfigWebviewProvider';
+import { SoemConfigWebviewProvider } from './providers/SoemConfigWebviewProvider';
 
 function isEthercatYaml(doc: vscode.TextDocument): boolean {
   if (!doc.fileName.endsWith('.yaml') && !doc.fileName.endsWith('.yml')) {
