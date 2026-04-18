@@ -251,6 +251,7 @@ function onAddBoardType() {
   background-color: var(--vscode-editor-background);
   border-radius: 4px;
   border: 1px solid var(--vscode-panel-border);
+  overflow: hidden;
 }
 
 .board-type-row {
@@ -259,6 +260,7 @@ function onAddBoardType() {
   gap: 8px;
   margin-bottom: 8px;
   font-size: 12px;
+  min-width: 0;
 }
 
 .board-type-row label {
@@ -269,6 +271,7 @@ function onAddBoardType() {
 
 .board-type-row select {
   flex: 1;
+  min-width: 0;
   padding: 4px 8px;
   border: 1px solid var(--vscode-input-border);
   background-color: var(--vscode-input-background);
@@ -276,6 +279,10 @@ function onAddBoardType() {
   border-radius: 3px;
   font-size: 11px;
   cursor: pointer;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  box-sizing: border-box;
+  max-width: 100%;
 }
 
 .board-type-row select:focus {
