@@ -22,7 +22,7 @@ interface TaskTopicInfo {
 export function validateTopics(
   document: vscode.TextDocument,
   doc: yaml.Document,
-  data: any
+  data: any,
 ): vscode.Diagnostic[] {
   const diagnostics: vscode.Diagnostic[] = [];
 
@@ -60,11 +60,27 @@ export function validateTopics(
 
       // Get ranges for topics
       if (taskData.pub_topic) {
-        const range = getFieldRange(document, doc, ['slaves', sIndex, slaveKey, 'tasks', tIndex, taskKey, 'pub_topic']);
+        const range = getFieldRange(document, doc, [
+          'slaves',
+          sIndex,
+          slaveKey,
+          'tasks',
+          tIndex,
+          taskKey,
+          'pub_topic',
+        ]);
         if (range) info.pubTopicRange = range;
       }
       if (taskData.sub_topic) {
-        const range = getFieldRange(document, doc, ['slaves', sIndex, slaveKey, 'tasks', tIndex, taskKey, 'sub_topic']);
+        const range = getFieldRange(document, doc, [
+          'slaves',
+          sIndex,
+          slaveKey,
+          'tasks',
+          tIndex,
+          taskKey,
+          'sub_topic',
+        ]);
         if (range) info.subTopicRange = range;
       }
 
@@ -75,7 +91,7 @@ export function validateTopics(
   // Check for conflicts (same topic used multiple times within same alias)
   const topicMap = new Map<string, TaskTopicInfo[]>();
 
-  taskInfos.forEach(info => {
+  taskInfos.forEach((info) => {
     if (info.pubTopic) {
       const key = `${info.alias}:pub:${info.pubTopic}`;
       if (!topicMap.has(key)) topicMap.set(key, []);
@@ -93,14 +109,14 @@ export function validateTopics(
     if (infos.length > 1) {
       const [, type, topic] = key.split(':');
       const field = type === 'pub' ? 'pub_topic' : 'sub_topic';
-      infos.forEach(info => {
+      infos.forEach((info) => {
         const range = type === 'pub' ? info.pubTopicRange : info.subTopicRange;
         if (range) {
           diagnostics.push({
             range,
             message: `Topic conflict: "${topic}" is used by multiple tasks in ${info.alias}`,
             severity: vscode.DiagnosticSeverity.Error,
-            source: 'ethercat-config',
+            source: 'ethercat-task-editor',
           });
         }
       });
@@ -108,7 +124,7 @@ export function validateTopics(
   });
 
   // Check for inconsistent app segments within same task
-  taskInfos.forEach(info => {
+  taskInfos.forEach((info) => {
     const appSegments = new Set<string>();
 
     if (info.pubTopic) {
@@ -128,7 +144,7 @@ export function validateTopics(
           range: info.pubTopicRange,
           message: `Inconsistent app segment in task ${info.taskKey}: found "${segments.join('", "')}"`,
           severity: vscode.DiagnosticSeverity.Warning,
-          source: 'ethercat-config',
+          source: 'ethercat-task-editor',
         });
       }
       if (info.subTopicRange) {
@@ -136,7 +152,7 @@ export function validateTopics(
           range: info.subTopicRange,
           message: `Inconsistent app segment in task ${info.taskKey}: found "${segments.join('", "')}"`,
           severity: vscode.DiagnosticSeverity.Warning,
-          source: 'ethercat-config',
+          source: 'ethercat-task-editor',
         });
       }
     }
@@ -147,7 +163,9 @@ export function validateTopics(
 
 function extractAppSegment(topic: string, alias: string): string | null {
   // Expected format: /ecat/{alias}/{app_segment}/read or /ecat/{alias}/{app_segment}/write
-  const pattern = new RegExp(`^/ecat/${alias.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}/([^/]+)/(read|write)$`);
+  const pattern = new RegExp(
+    `^/ecat/${alias.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}/([^/]+)/(read|write)$`,
+  );
   const match = topic.match(pattern);
   return match ? match[1] : null;
 }
@@ -155,7 +173,7 @@ function extractAppSegment(topic: string, alias: string): string | null {
 function getFieldRange(
   document: vscode.TextDocument,
   doc: yaml.Document,
-  path: (string | number)[]
+  path: (string | number)[],
 ): vscode.Range | null {
   try {
     const node = doc.getIn(path, true);

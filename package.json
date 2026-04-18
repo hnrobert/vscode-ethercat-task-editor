@@ -2,7 +2,7 @@
   "name": "vscode-ethercat-task-editor",
   "displayName": "EtherCAT Task Editor",
   "description": "Visual editor for SOEM YAML config files based on MSG format.",
-  "version": "1.0.0",
+  "version": "0.0.1",
   "license": "MIT",
   "engines": {
     "vscode": "^1.104.0"
@@ -20,7 +20,7 @@
       "activitybar": [
         {
           "id": "ethercatTaskEditor-container",
-          "title": "EtherCAT Config",
+          "title": "EtherCAT Task Editor",
           "icon": "assets/images/icon-stroke.svg"
         }
       ]
@@ -29,7 +29,7 @@
       "ethercatTaskEditor-container": [
         {
           "id": "ethercatTaskEditor.sidebar",
-          "name": "SOEM Tasks Editor",
+          "name": "EtherCAT Task Editor",
           "type": "webview",
           "icon": "assets/images/icon-stroke.svg"
         }
@@ -54,7 +54,7 @@
       {
         "command": "ethercatTaskEditor.showPanel",
         "title": "Open EtherCAT Config",
-        "icon": "assets/images/icon-stroke.svg"
+        "icon": "assets/images/icon-stroke-outline.svg"
       }
     ],
     "menus": {

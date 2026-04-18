@@ -25,7 +25,9 @@ export class SoemConfigWebviewProvider implements vscode.WebviewViewProvider {
 
   constructor(private readonly context: vscode.ExtensionContext) {
     this.msgFolderPath = path.join(context.extensionPath, 'assets', 'msg');
-    this.diagnosticCollection = vscode.languages.createDiagnosticCollection('ethercat-config');
+    this.diagnosticCollection = vscode.languages.createDiagnosticCollection(
+      'ethercat-task-editor',
+    );
 
     context.subscriptions.push(this.diagnosticCollection);
     context.subscriptions.push(
@@ -89,7 +91,11 @@ export class SoemConfigWebviewProvider implements vscode.WebviewViewProvider {
           await this.addTaskAt(data.sIndex, data.tIndex);
           break;
         case 'confirmTaskType':
-          await this.createTaskWithType(data.sIndex, data.tIndex, data.taskType);
+          await this.createTaskWithType(
+            data.sIndex,
+            data.tIndex,
+            data.taskType,
+          );
           break;
         case 'removeTask':
           await this.removeTask(data.sIndex, data.tIndex);
@@ -98,7 +104,12 @@ export class SoemConfigWebviewProvider implements vscode.WebviewViewProvider {
           await this.renameTask(data.sIndex, data.tIndex, data.newSegment);
           break;
         case 'moveTask':
-          await this.moveTask(data.fromSIndex, data.fromTIndex, data.toSIndex, data.toTIndex);
+          await this.moveTask(
+            data.fromSIndex,
+            data.fromTIndex,
+            data.toSIndex,
+            data.toTIndex,
+          );
           break;
         case 'moveSlave':
           await this.moveSlave(data.fromIndex, data.toIndex);
@@ -123,14 +134,18 @@ export class SoemConfigWebviewProvider implements vscode.WebviewViewProvider {
         !editor.document.fileName.endsWith('.yml'))
     ) {
       this.updateWebview();
-      vscode.window.showWarningMessage('No active YAML document to recalculate.');
+      vscode.window.showWarningMessage(
+        'No active YAML document to recalculate.',
+      );
       return;
     }
     try {
       const doc = parseYamlDocumentWithTags(editor.document.getText());
       this.lastParsedDoc = { doc, data: doc.toJSON(), isValid: true };
       await this.saveDoc(editor, doc);
-      vscode.window.showInformationMessage('Offsets and lengths recalculated successfully.');
+      vscode.window.showInformationMessage(
+        'Offsets and lengths recalculated successfully.',
+      );
     } catch (e) {
       this.updateWebview();
       vscode.window.showErrorMessage(`Recalculation failed: ${e}`);
@@ -264,7 +279,7 @@ export class SoemConfigWebviewProvider implements vscode.WebviewViewProvider {
 
           const newPair = new yaml.Pair(
             new yaml.Scalar('board_type'),
-            valueScalar
+            valueScalar,
           );
 
           // Insert at position 0 (right after the slave key, which is the map itself)
@@ -278,7 +293,8 @@ export class SoemConfigWebviewProvider implements vscode.WebviewViewProvider {
           const targetNode = doc.getIn(propertyPath, true);
           if (yaml.isScalar(targetNode)) {
             targetNode.format = 'HEX';
-            (targetNode as any)._originalSource = '0x' + finalValue.toString(16);
+            (targetNode as any)._originalSource =
+              '0x' + finalValue.toString(16);
             targetNode.toJSON = function () {
               return '0x' + (this as any).value.toString(16);
             };
@@ -474,7 +490,12 @@ export class SoemConfigWebviewProvider implements vscode.WebviewViewProvider {
       yaml.isScalar(slaveItem.items[0].key) ? slaveItem.items[0].key.value : '',
     );
 
-    const latencyTopic = doc.getIn(['slaves', sIndex, snKey, 'latency_pub_topic']);
+    const latencyTopic = doc.getIn([
+      'slaves',
+      sIndex,
+      snKey,
+      'latency_pub_topic',
+    ]);
     let currentAlias = snKey;
     if (typeof latencyTopic === 'string') {
       const m = latencyTopic.match(/^\/ecat\/([^/]+)\/latency/);
@@ -494,13 +515,21 @@ export class SoemConfigWebviewProvider implements vscode.WebviewViewProvider {
       tasksList.items.forEach((taskNode: any, tIndex: number) => {
         if (!yaml.isMap(taskNode) || taskNode.items.length === 0) return;
         const taskKey = String(
-          yaml.isScalar(taskNode.items[0].key) ? taskNode.items[0].key.value : '',
+          yaml.isScalar(taskNode.items[0].key)
+            ? taskNode.items[0].key.value
+            : '',
         );
         const base = ['slaves', sIndex, snKey, 'tasks', tIndex, taskKey];
         for (const field of ['pub_topic', 'sub_topic'] as const) {
           const topic = doc.getIn([...base, field]);
-          if (typeof topic === 'string' && topic.includes(`/ecat/${currentAlias}/`)) {
-            doc.setIn([...base, field], topic.replace(`/ecat/${currentAlias}/`, `/ecat/${newAlias}/`));
+          if (
+            typeof topic === 'string' &&
+            topic.includes(`/ecat/${currentAlias}/`)
+          ) {
+            doc.setIn(
+              [...base, field],
+              topic.replace(`/ecat/${currentAlias}/`, `/ecat/${newAlias}/`),
+            );
           }
         }
       });
@@ -531,7 +560,11 @@ export class SoemConfigWebviewProvider implements vscode.WebviewViewProvider {
     });
   }
 
-  private async createTaskWithType(sIndex: number, tIndex: number, taskType: number) {
+  private async createTaskWithType(
+    sIndex: number,
+    tIndex: number,
+    taskType: number,
+  ) {
     const editor = vscode.window.activeTextEditor;
     if (!editor || !this.lastParsedDoc?.doc) return;
 
@@ -555,21 +588,37 @@ export class SoemConfigWebviewProvider implements vscode.WebviewViewProvider {
         // Append to end
         const appIdx = tasksList.items.length + 1;
         const taskKey = `app_${appIdx}`;
-        const newTaskStr = generateTaskTemplate(taskKey, snKey, segment, taskType);
+        const newTaskStr = generateTaskTemplate(
+          taskKey,
+          snKey,
+          segment,
+          taskType,
+        );
         const newTaskNode = parseYamlDocumentWithTags(newTaskStr).contents;
         if (newTaskNode) {
           tasksList.items.push(newTaskNode as any);
-          doc.setIn(['slaves', sIndex, snKey, 'task_count'], tasksList.items.length);
+          doc.setIn(
+            ['slaves', sIndex, snKey, 'task_count'],
+            tasksList.items.length,
+          );
           await this.saveDoc(editor, doc);
         }
       } else {
         // Insert at position
         const taskKey = `app_${tIndex + 1}`;
-        const newTaskStr = generateTaskTemplate(taskKey, snKey, segment, taskType);
+        const newTaskStr = generateTaskTemplate(
+          taskKey,
+          snKey,
+          segment,
+          taskType,
+        );
         const newTaskNode = parseYamlDocumentWithTags(newTaskStr).contents;
         if (newTaskNode) {
           tasksList.items.splice(tIndex, 0, newTaskNode as any);
-          doc.setIn(['slaves', sIndex, snKey, 'task_count'], tasksList.items.length);
+          doc.setIn(
+            ['slaves', sIndex, snKey, 'task_count'],
+            tasksList.items.length,
+          );
           await this.saveDoc(editor, doc);
         }
       }
@@ -703,10 +752,13 @@ export class SoemConfigWebviewProvider implements vscode.WebviewViewProvider {
     const fromSlaveItem = doc.getIn(['slaves', fromSIndex]);
     if (!yaml.isMap(fromSlaveItem) || fromSlaveItem.items.length === 0) return;
     const fromSnKey = String(
-      yaml.isScalar(fromSlaveItem.items[0].key) ? fromSlaveItem.items[0].key.value : '',
+      yaml.isScalar(fromSlaveItem.items[0].key)
+        ? fromSlaveItem.items[0].key.value
+        : '',
     );
     const fromTasksList = doc.getIn(['slaves', fromSIndex, fromSnKey, 'tasks']);
-    if (!yaml.isSeq(fromTasksList) || fromTIndex >= fromTasksList.items.length) return;
+    if (!yaml.isSeq(fromTasksList) || fromTIndex >= fromTasksList.items.length)
+      return;
 
     // Remove from source
     const taskNode = fromTasksList.items.splice(fromTIndex, 1)[0];
@@ -725,7 +777,9 @@ export class SoemConfigWebviewProvider implements vscode.WebviewViewProvider {
     const toSlaveItem = doc.getIn(['slaves', toSIndex]);
     if (!yaml.isMap(toSlaveItem) || toSlaveItem.items.length === 0) return;
     const toSnKey = String(
-      yaml.isScalar(toSlaveItem.items[0].key) ? toSlaveItem.items[0].key.value : '',
+      yaml.isScalar(toSlaveItem.items[0].key)
+        ? toSlaveItem.items[0].key.value
+        : '',
     );
 
     let toTasksList = doc.getIn(['slaves', toSIndex, toSnKey, 'tasks']);
@@ -777,10 +831,16 @@ export class SoemConfigWebviewProvider implements vscode.WebviewViewProvider {
     for (const item of innerMap.items) {
       if (!yaml.isScalar(item.key)) continue;
       const key = String(item.key.value);
-      if ((key === 'pub_topic' || key === 'sub_topic') && yaml.isScalar(item.value)) {
+      if (
+        (key === 'pub_topic' || key === 'sub_topic') &&
+        yaml.isScalar(item.value)
+      ) {
         const topic = String(item.value.value);
         if (topic.includes(`/ecat/${oldSnKey}/`)) {
-          item.value.value = topic.replace(`/ecat/${oldSnKey}/`, `/ecat/${newSnKey}/`);
+          item.value.value = topic.replace(
+            `/ecat/${oldSnKey}/`,
+            `/ecat/${newSnKey}/`,
+          );
         }
       }
     }
@@ -814,7 +874,7 @@ export class SoemConfigWebviewProvider implements vscode.WebviewViewProvider {
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src ${webview.cspSource} 'unsafe-inline'; script-src 'nonce-${nonce}';">
   <link rel="stylesheet" href="${styleUri}">
-  <title>SOEM Editor</title>
+  <title>EtherCAT Task Editor</title>
 </head>
 <body>
   <div id="app"></div>
