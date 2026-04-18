@@ -14,7 +14,7 @@
         >
           <div class="insert-divider">
             <span class="insert-line"></span>
-            <button class="insert-btn" @click="onInsertSlave(0)">+</button>
+            <button class="insert-btn" @click="onInsertSlave(0)" title="Insert a new slave here">+</button>
             <span class="insert-line"></span>
           </div>
         </div>
@@ -35,7 +35,7 @@
           >
             <div class="insert-divider">
               <span class="insert-line"></span>
-              <button class="insert-btn" @click="onInsertSlave(Number(sIdx) + 1)">+</button>
+              <button class="insert-btn" @click="onInsertSlave(Number(sIdx) + 1)" title="Insert a new slave here">+</button>
               <span class="insert-line"></span>
             </div>
           </div>

@@ -41,7 +41,7 @@
       >
         <div class="insert-divider">
           <span class="insert-line"></span>
-          <button class="insert-btn" @click="onInsertTask(0)">+</button>
+          <button class="insert-btn" @click="onInsertTask(0)" title="Insert a new task here">+</button>
           <span class="insert-line"></span>
         </div>
       </div>
@@ -65,7 +65,7 @@
         >
           <div class="insert-divider">
             <span class="insert-line"></span>
-            <button class="insert-btn" @click="onInsertTask(tIdx + 1)">+</button>
+            <button class="insert-btn" @click="onInsertTask(tIdx + 1)" title="Insert a new task here">+</button>
             <span class="insert-line"></span>
           </div>
         </div>
