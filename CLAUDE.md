@@ -24,8 +24,6 @@ VS Code extension for editing EtherCAT SOEM YAML configs via a webview sidebar p
 
 - **extension.ts** — Entry point. Registers the webview provider and commands (`refresh`, `collapseAll`, `expandAll`, `showPanel`).
 - **SoemConfigWebviewProvider.ts** — Main webview panel. Parses active YAML, sends data to webview, handles CRUD messages (add/remove/rename slaves and tasks), updates YAML values with offset recalculation.
-- **SoemConfigTreeDataProvider.ts** — Alternative tree view UI in the sidebar. Provides a hierarchical view of slaves/tasks/properties with inline editing.
-- **YamlCustomEditorProvider.ts** — Basic custom editor for YAML files.
 - **taskTemplates.ts** — Default parameter templates for each of the 14 task types.
 - **constants.ts** — Task type labels and hex values.
 
@@ -37,7 +35,7 @@ VS Code extension for editing EtherCAT SOEM YAML configs via a webview sidebar p
 
 ### Parser layer
 
-- **YamlParser.ts** — Custom YAML parser with typed tags (`!uint8_t`, `!uint16_t`, `!int32_t`, `!float`, `!std::string`). Preserves hex formatting and custom tag annotations on round-trip.
+- **yamlParser.ts** — Custom YAML parser with typed tags (`!uint8_t`, `!uint16_t`, `!int32_t`, `!float`, `!std::string`). Preserves hex formatting and custom tag annotations on round-trip.
 - **msgParser.ts** — Parses `.msg` files from `assets/msg/` for field definitions.
 - **msgSizes.ts** — Size calculations for MSG field types.
 

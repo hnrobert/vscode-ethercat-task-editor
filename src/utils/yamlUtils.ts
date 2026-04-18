@@ -1,6 +1,6 @@
 import * as vscode from 'vscode';
 import * as yaml from 'yaml';
-import { stringifyYamlDocumentWithTags } from './YamlParser';
+import { stringifyYamlDocumentWithTags } from './yamlParser';
 import { MsgField } from './msgParser';
 import { calculateOffsets } from './offsetCalculator';
 
