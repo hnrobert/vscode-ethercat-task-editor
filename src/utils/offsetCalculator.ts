@@ -102,7 +102,8 @@ export function calculateOffsets(
         const tag = (fieldNode as yaml.Scalar).tag;
         if (tag === '!uint8_t' || tag === '!int8_t') sdoLen += 1;
         else if (tag === '!uint16_t' || tag === '!int16_t') sdoLen += 2;
-        else if (tag === '!uint32_t' || tag === '!int32_t' || tag === '!float') sdoLen += 4;
+        else if (tag === '!uint32_t' || tag === '!int32_t' || tag === '!float')
+          sdoLen += 4;
       }
 
       const type = Number(taskValues.sdowrite_task_type);

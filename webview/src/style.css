@@ -101,12 +101,13 @@ body {
 }
 .btn-ghost:hover {
   opacity: 1;
-  background: var(--vscode-toolbar-hoverBackground, rgba(255,255,255,0.08));
+  background: var(--vscode-toolbar-hoverBackground, rgba(255, 255, 255, 0.08));
 }
 
 /* ---- Slave level ---- */
 .slave-panel {
-  border: 1px solid var(--vscode-widget-border, var(--vscode-input-border, transparent));
+  border: 1px solid
+    var(--vscode-widget-border, var(--vscode-input-border, transparent));
   border-radius: 4px;
   margin-bottom: 8px;
   margin-top: 8px;
@@ -120,8 +121,9 @@ body {
   cursor: pointer;
   user-select: none;
   padding: 4px 8px;
-  background: var(--vscode-list-hoverBackground, rgba(255,255,255,0.03));
-  border-bottom: 1px solid var(--vscode-widget-border, var(--vscode-input-border, transparent));
+  background: var(--vscode-list-hoverBackground, rgba(255, 255, 255, 0.03));
+  border-bottom: 1px solid
+    var(--vscode-widget-border, var(--vscode-input-border, transparent));
 }
 
 .header-row:hover {
@@ -191,7 +193,8 @@ body {
 
 .task-content {
   padding-left: 20px;
-  border-left: 1px solid var(--vscode-widget-border, var(--vscode-input-border, transparent));
+  border-left: 1px solid
+    var(--vscode-widget-border, var(--vscode-input-border, transparent));
   margin-left: 8px;
 }
 
@@ -357,7 +360,10 @@ button:focus {
 .add-bottom-bar button:hover {
   opacity: 1;
   border-color: var(--vscode-focusBorder);
-  background: var(--vscode-button-secondaryHoverBackground, rgba(255, 255, 255, 0.05));
+  background: var(
+    --vscode-button-secondaryHoverBackground,
+    rgba(255, 255, 255, 0.05)
+  );
 }
 
 /* ---------- Error ---------- */
@@ -419,31 +425,31 @@ body.dragging-slave .slave-insert-zone .insert-btn {
 }
 
 /* Summary as drag handle */
-.task-title[draggable="true"],
-.header-row[draggable="true"] {
+.task-title[draggable='true'],
+.header-row[draggable='true'] {
   cursor: grab;
 }
 
-.task-title[draggable="true"]:active,
-.header-row[draggable="true"]:active {
+.task-title[draggable='true']:active,
+.header-row[draggable='true']:active {
   cursor: grabbing;
 }
 
 /* Fix drag handle - disable pointer events on children, re-enable on interactive elements */
-.header-row[draggable="true"] > * {
+.header-row[draggable='true'] > * {
   pointer-events: none;
 }
 
-.header-row[draggable="true"] .btn-group,
-.header-row[draggable="true"] .inline-edit-input {
+.header-row[draggable='true'] .btn-group,
+.header-row[draggable='true'] .inline-edit-input {
   pointer-events: auto;
 }
 
-.task-title[draggable="true"] > * {
+.task-title[draggable='true'] > * {
   pointer-events: none;
 }
 
-.task-title[draggable="true"] .btn-group,
-.task-title[draggable="true"] .inline-edit-input {
+.task-title[draggable='true'] .btn-group,
+.task-title[draggable='true'] .inline-edit-input {
   pointer-events: auto;
 }

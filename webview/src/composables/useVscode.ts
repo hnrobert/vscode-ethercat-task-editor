@@ -4,10 +4,15 @@ const vscode = acquireVsCodeApi();
 
 export const data = ref<any>(null);
 export const errorMessage = ref<string | null>(null);
-export const taskTypes = ref<{ label: string; description: string; value: string }[]>([]);
+export const taskTypes = ref<
+  { label: string; description: string; value: string }[]
+>([]);
 
 // Expose event emitter for task type picker
-export const taskTypePickerEvent = ref<{ sIndex: number; tIndex: number } | null>(null);
+export const taskTypePickerEvent = ref<{
+  sIndex: number;
+  tIndex: number;
+} | null>(null);
 
 window.addEventListener('message', (event) => {
   const message = event.data;
@@ -22,17 +27,24 @@ window.addEventListener('message', (event) => {
       data.value = null;
       break;
     case 'collapseAll':
-      document.querySelectorAll('.slave-panel, .task-container').forEach((el) => {
-        (el as HTMLDetailsElement).open = false;
-      });
+      document
+        .querySelectorAll('.slave-panel, .task-container')
+        .forEach((el) => {
+          (el as HTMLDetailsElement).open = false;
+        });
       break;
     case 'expandAll':
-      document.querySelectorAll('.slave-panel, .task-container').forEach((el) => {
-        (el as HTMLDetailsElement).open = true;
-      });
+      document
+        .querySelectorAll('.slave-panel, .task-container')
+        .forEach((el) => {
+          (el as HTMLDetailsElement).open = true;
+        });
       break;
     case 'requestTaskType':
-      taskTypePickerEvent.value = { sIndex: message.sIndex, tIndex: message.tIndex };
+      taskTypePickerEvent.value = {
+        sIndex: message.sIndex,
+        tIndex: message.tIndex,
+      };
       break;
   }
 });
@@ -100,7 +112,12 @@ export function setDragState(state: DragState) {
   document.body.classList.toggle('dragging-slave', state?.type === 'slave');
 }
 
-export function moveTask(fromSIndex: number, fromTIndex: number, toSIndex: number, toTIndex: number) {
+export function moveTask(
+  fromSIndex: number,
+  fromTIndex: number,
+  toSIndex: number,
+  toTIndex: number,
+) {
   postMessage({ type: 'moveTask', fromSIndex, fromTIndex, toSIndex, toTIndex });
 }
 
