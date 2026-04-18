@@ -5,7 +5,7 @@ const vscode = acquireVsCodeApi();
 export const data = ref<any>(null);
 export const errorMessage = ref<string | null>(null);
 export const taskTypes = ref<
-  { label: string; description: string; value: string }[]
+  { id: number; description: string; has_read: boolean; has_write: boolean }[]
 >([]);
 export const boardTypes = ref<
   { id: number; name: string; max_tx_pdo: number; max_rx_pdo: number }[]

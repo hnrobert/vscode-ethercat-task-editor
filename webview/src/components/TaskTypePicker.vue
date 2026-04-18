@@ -5,11 +5,11 @@
       <div class="task-type-list">
         <button
           v-for="taskType in taskTypes"
-          :key="taskType.value"
+          :key="taskType.id"
           class="task-type-item"
-          @click="onSelect(parseInt(taskType.value))"
+          @click="onSelect(taskType.id)"
         >
-          <span class="task-type-label">{{ taskType.label }}</span>
+          <span class="task-type-label">{{ taskType.id }}</span>
           <span class="task-type-desc">{{ taskType.description }}</span>
         </button>
       </div>

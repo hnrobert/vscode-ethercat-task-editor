@@ -6,7 +6,7 @@ import { parseMsgFolder } from './utils/msgParser';
 import {
   getTaskTemplateYaml,
   generateTaskTemplate,
-  TASK_TYPES_COMPAT,
+  getTaskTypes,
   getBoardTypes,
 } from './utils/constantsParser';
 import { TaskTypeMemory } from './utils/taskTypeMemory';
@@ -195,7 +195,7 @@ export class SoemConfigWebviewProvider implements vscode.WebviewViewProvider {
       this._view.webview.postMessage({
         type: 'updateData',
         data: data,
-        taskTypes: TASK_TYPES_COMPAT(this.context.extensionPath),
+        taskTypes: getTaskTypes(this.context.extensionPath),
         boardTypes: getBoardTypes(this.context.extensionPath),
       });
     } catch (e) {

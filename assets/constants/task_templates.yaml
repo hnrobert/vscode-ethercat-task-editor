@@ -3,13 +3,11 @@
 
 task_types:
   - id: 1
-    label: "1"
     description: "DJI RC"
     has_read: true
     has_write: false
 
   - id: 2
-    label: "2"
     description: "LkTech Motor"
     has_read: true
     has_write: true
@@ -20,7 +18,6 @@ task_types:
       sdowrite_control_type: !uint8_t 8
 
   - id: 3
-    label: "3"
     description: "HIPNUC IMU (CAN)"
     has_read: true
     has_write: false
@@ -32,7 +29,6 @@ task_types:
       conf_frame_name: !std::string 'imu_link'
 
   - id: 4
-    label: "4"
     description: "DSHOT600"
     has_read: false
     has_write: true
@@ -41,7 +37,6 @@ task_types:
       sdowrite_init_value: !uint16_t 0
 
   - id: 5
-    label: "5"
     description: "DJI Motor"
     has_read: true
     has_write: true
@@ -68,13 +63,11 @@ task_types:
       sdowrite_motor3_control_type: !uint8_t 1
 
   - id: 6
-    label: "6"
     description: "OnBoard PWM"
     has_read: false
     has_write: true
 
   - id: 7
-    label: "7"
     description: "External PWM"
     has_read: false
     has_write: true
@@ -85,7 +78,6 @@ task_types:
       sdowrite_init_value: !uint16_t 1000
 
   - id: 8
-    label: "8"
     description: "MS5837 (30BA)"
     has_read: true
     has_write: false
@@ -94,25 +86,21 @@ task_types:
       sdowrite_osr_id: !uint8_t 5
 
   - id: 9
-    label: "9"
     description: "ADC"
     has_read: false
     has_write: false
 
   - id: 10
-    label: "10"
     description: "PMU (CAN)"
     has_read: true
     has_write: false
 
   - id: 11
-    label: "11"
     description: "SBUS RC"
     has_read: true
     has_write: false
 
   - id: 12
-    label: "12"
     description: "DM Motor"
     has_read: true
     has_write: true
@@ -127,7 +115,6 @@ task_types:
       conf_tmax: !float 10.0
 
   - id: 13
-    label: "13"
     description: "Super Capacitor"
     has_read: true
     has_write: true
@@ -137,13 +124,11 @@ task_types:
       sdowrite_cap_to_chassis_id: !uint32_t 0x211
 
   - id: 14
-    label: "14"
     description: "DJI VT13"
     has_read: true
     has_write: false
 
   - id: 15
-    label: "15"
     description: "DD Motor"
     has_read: true
     has_write: true

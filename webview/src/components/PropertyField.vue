@@ -9,10 +9,10 @@
     >
       <option
         v-for="ty in taskTypes"
-        :key="ty.value"
-        :value="ty.value"
+        :key="ty.id"
+        :value="ty.id"
       >
-        {{ ty.label }} - {{ ty.description }}
+        {{ ty.id }} - {{ ty.description }}
       </option>
     </select>
     <select

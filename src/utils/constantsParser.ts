@@ -4,7 +4,6 @@ import { parseYamlWithTags } from './yamlParser';
 
 export interface TaskTypeDef {
   id: number;
-  label: string;
   description: string;
   has_read: boolean;
   has_write: boolean;
@@ -122,11 +121,3 @@ export function generateTaskTemplate(
   return template;
 }
 
-// Legacy compat: TASK_TYPES as simple array for webview
-export function TASK_TYPES_COMPAT(extensionPath: string) {
-  return getTaskTypes(extensionPath).map((t) => ({
-    label: t.label,
-    description: t.description,
-    value: String(t.id),
-  }));
-}
