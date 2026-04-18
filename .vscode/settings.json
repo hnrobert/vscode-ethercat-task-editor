@@ -1,5 +1,6 @@
 {
     "cSpell.words": [
+        "baudrate",
         "CANPMU",
         "dialogs",
         "DJIRC",
@@ -11,12 +12,16 @@
         "Openloop",
         "pdoread",
         "pdowrite",
+        "pmax",
         "RXPDO",
+        "SBUS",
         "SBUSRC",
         "sdowrite",
         "SOEM",
         "stringifier",
-        "TXPDO"
+        "tmax",
+        "TXPDO",
+        "vmax"
     ],
     "cmake.ignoreCMakeListsMissing": true
 }

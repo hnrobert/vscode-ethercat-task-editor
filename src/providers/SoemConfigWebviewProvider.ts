@@ -116,6 +116,18 @@ export class SoemConfigWebviewProvider implements vscode.WebviewViewProvider {
         case 'moveSlave':
           await this.moveSlave(data.fromIndex, data.toIndex);
           break;
+        case 'getTaskFields':
+          this.handleGetTaskFields(data.taskType);
+          break;
+        case 'isFieldVisible':
+          this.handleIsFieldVisible(data.taskType, data.fieldKey, data.taskData);
+          break;
+        case 'getValidOptions':
+          this.handleGetValidOptions(data.taskType, data.fieldKey, data.taskData);
+          break;
+        case 'validateTask':
+          this.handleValidateTask(data.taskType, data.taskData);
+          break;
       }
     });
 
@@ -892,6 +904,76 @@ export class SoemConfigWebviewProvider implements vscode.WebviewViewProvider {
   <script type="module" nonce="${nonce}" src="${scriptUri}"></script>
 </body>
 </html>`;
+  }
+
+  /**
+   * 处理获取 task 字段定义
+   */
+  private handleGetTaskFields(taskType: number) {
+    const task = TaskRegistry.getTask(taskType);
+    if (!task) {
+      this._view?.webview.postMessage({
+        type: 'taskFieldsResponse',
+        taskType,
+        fields: [],
+      });
+      return;
+    }
+
+    this._view?.webview.postMessage({
+      type: 'taskFieldsResponse',
+      taskType,
+      fields: task.getFields(),
+    });
+  }
+
+  /**
+   * 处理检查字段可见性
+   */
+  private handleIsFieldVisible(taskType: number, fieldKey: string, taskData: Record<string, any>) {
+    const isVisible = TaskRegistry.isFieldVisible(taskType, fieldKey, taskData);
+    this._view?.webview.postMessage({
+      type: 'fieldVisibilityResponse',
+      taskType,
+      fieldKey,
+      isVisible,
+    });
+  }
+
+  /**
+   * 处理获取有效选项
+   */
+  private handleGetValidOptions(taskType: number, fieldKey: string, taskData: Record<string, any>) {
+    const task = TaskRegistry.getTask(taskType);
+    if (!task) {
+      this._view?.webview.postMessage({
+        type: 'validOptionsResponse',
+        taskType,
+        fieldKey,
+        options: [],
+      });
+      return;
+    }
+
+    const options = task.getValidOptions(fieldKey, taskData);
+    this._view?.webview.postMessage({
+      type: 'validOptionsResponse',
+      taskType,
+      fieldKey,
+      options,
+    });
+  }
+
+  /**
+   * 处理验证 task
+   */
+  private handleValidateTask(taskType: number, taskData: Record<string, any>) {
+    const errors = TaskRegistry.validateTask(taskType, taskData);
+    this._view?.webview.postMessage({
+      type: 'validateTaskResponse',
+      taskType,
+      errors,
+    });
   }
 }
 

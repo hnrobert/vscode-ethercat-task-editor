@@ -10,7 +10,7 @@
           @click="onSelect(taskType.id)"
         >
           <span class="task-type-label">{{ taskType.id }}</span>
-          <span class="task-type-desc">{{ taskType.description }}</span>
+          <span class="task-type-desc">{{ taskType.name }}</span>
         </button>
       </div>
       <div class="modal-actions">
