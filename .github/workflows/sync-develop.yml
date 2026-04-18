@@ -1,0 +1,78 @@
+name: Sync Develop Branch
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+jobs:
+  sync-develop:
+    name: Sync develop branch with main
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main'
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Configure Git
+        run: |
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+
+      - name: Fetch all branches
+        run: |
+          git fetch origin main
+          git fetch origin develop
+
+      - name: Check if develop branch exists
+        id: check-develop
+        run: |
+          if git show-ref --verify --quiet refs/remotes/origin/develop; then
+            echo "exists=true" >> $GITHUB_OUTPUT
+          else
+            echo "exists=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Create develop branch if it doesn't exist
+        if: steps.check-develop.outputs.exists == 'false'
+        run: |
+          git checkout -b develop
+          git push origin develop
+
+      - name: Sync develop with main
+        if: steps.check-develop.outputs.exists == 'true'
+        run: |
+          git checkout develop
+          DEVELOP_BEFORE=$(git rev-parse HEAD)
+          MAIN_COMMIT=$(git rev-parse origin/main)
+
+          if [ "$DEVELOP_BEFORE" = "$MAIN_COMMIT" ]; then
+            echo "develop is already up to date"
+            exit 0
+          fi
+
+          if git merge --ff-only origin/main; then
+            git push origin develop
+          else
+            DIVERGED_COMMITS=$(git rev-list --count origin/main..develop)
+            if [ "$DIVERGED_COMMITS" -gt 0 ]; then
+              echo "develop has $DIVERGED_COMMITS commits not in main"
+              git log --oneline origin/main..develop
+              exit 1
+            else
+              exit 1
+            fi
+          fi
+
+      - name: Create summary
+        if: always()
+        run: |
+          echo "## Develop Branch Sync Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "- **Main commit**: \`$(git rev-parse origin/main)\`" >> $GITHUB_STEP_SUMMARY
+          echo "- **Status**: ${{ job.status }}" >> $GITHUB_STEP_SUMMARY
