@@ -7,6 +7,9 @@ export const errorMessage = ref<string | null>(null);
 export const taskTypes = ref<
   { label: string; description: string; value: string }[]
 >([]);
+export const boardTypes = ref<
+  { id: number; name: string; max_tx_pdo: number; max_rx_pdo: number }[]
+>([]);
 
 // Expose event emitter for task type picker
 export const taskTypePickerEvent = ref<{
@@ -20,6 +23,7 @@ window.addEventListener('message', (event) => {
     case 'updateData':
       data.value = message.data;
       taskTypes.value = message.taskTypes || [];
+      boardTypes.value = message.boardTypes || [];
       errorMessage.value = null;
       break;
     case 'setError':

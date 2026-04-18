@@ -8,13 +8,13 @@
 </template>
 
 <script setup lang="ts">
-import { data } from '../composables/useVscode';
+import { data, boardTypes } from '../composables/useVscode';
 
 function getBoardType(slave: any): number {
   const key = getSlaveKey(slave);
-  if (!key) return 0x03;
+  if (!key) return 3;
   const slaveData = slave[key];
-  return slaveData?.board_type ?? 0x03;
+  return slaveData?.board_type ?? 3;
 }
 
 function getSlaveKey(slave: any): string {
@@ -23,18 +23,13 @@ function getSlaveKey(slave: any): string {
 }
 
 function getMaxTxPdo(boardType: number): number {
-  switch (boardType) {
-    case 0x03:
-      return 80;
-    case 0x04:
-      return 112;
-    default:
-      return 80;
-  }
+  const def = boardTypes.value.find(bt => bt.id === boardType);
+  return def?.max_tx_pdo ?? 80;
 }
 
 function getMaxRxPdo(boardType: number): number {
-  return 80;
+  const def = boardTypes.value.find(bt => bt.id === boardType);
+  return def?.max_rx_pdo ?? 80;
 }
 
 function getTxPdoLen(slave: any): number {

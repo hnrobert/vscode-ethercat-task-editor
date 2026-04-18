@@ -39,24 +39,14 @@ slaves:
             ...
 ```
 
-## Supported Task Types
+## Configuration
 
-| Type | Description |
-|------|-------------|
-| 1 | DJI RC |
-| 2 | LkTech Motor |
-| 3 | HIPNUC IMU (CAN) |
-| 4 | DSHOT600 |
-| 5 | DJI Motor |
-| 6 | OnBoard PWM |
-| 7 | External PWM |
-| 8 | MS5837 (30BA) |
-| 10 | PMU (CAN) |
-| 11 | SBUS RC |
-| 12 | DM Motor |
-| 13 | Super Capacitor |
-| 14 | DJI VT13 |
-| 15 | DD Motor |
+Task types, board types, and default parameter templates are defined in YAML config files under `assets/constants/`:
+
+- **`task_templates.yaml`** — Task type definitions (label, description, has_read/has_write flags, default parameter templates)
+- **`board_types.yaml`** — Board type definitions (name, max TXPDO/RXPDO lengths)
+
+To add a new task type or board type, edit the corresponding YAML file. No code changes required.
 
 ## Development
 

@@ -21,7 +21,8 @@
 </template>
 
 <script setup lang="ts">
-import { ref, watch } from 'vue';
+import { watch } from 'vue';
+import { taskTypes } from '../composables/useVscode';
 
 const props = defineProps<{
   show: boolean;
@@ -33,24 +34,6 @@ const emit = defineEmits<{
   confirm: [taskType: number];
   cancel: [];
 }>();
-
-const taskTypes = [
-  { label: '1', description: 'dji rc', value: '1' },
-  { label: '2', description: 'lk motor', value: '2' },
-  { label: '3', description: 'hipnuc imu can', value: '3' },
-  { label: '4', description: 'dshot600', value: '4' },
-  { label: '5', description: 'dji motor', value: '5' },
-  { label: '6', description: 'onboard pwm', value: '6' },
-  { label: '7', description: 'external pwm', value: '7' },
-  { label: '8', description: 'ms5876 30ba', value: '8' },
-  { label: '9', description: 'adc', value: '9' },
-  { label: '10', description: 'can pmu', value: '10' },
-  { label: '11', description: 'sbus', value: '11' },
-  { label: '12', description: 'dm motor', value: '12' },
-  { label: '13', description: 'super cap', value: '13' },
-  { label: '14', description: 'vt13', value: '14' },
-  { label: '15', description: 'dd motor', value: '15' },
-];
 
 function onSelect(taskType: number) {
   emit('confirm', taskType);

@@ -2,9 +2,13 @@ import * as vscode from 'vscode';
 import * as path from 'path';
 import * as yaml from 'yaml';
 import { parseYamlDocumentWithTags } from './utils/yamlParser';
-import { getTaskTemplateYaml, generateTaskTemplate } from './taskTemplates';
 import { parseMsgFolder } from './utils/msgParser';
-import { TASK_TYPES } from './constants';
+import {
+  getTaskTemplateYaml,
+  generateTaskTemplate,
+  TASK_TYPES_COMPAT,
+  getBoardTypes,
+} from './utils/constantsParser';
 import { TaskTypeMemory } from './utils/taskTypeMemory';
 import { applyAndSaveYaml, parseTopicSegment } from './utils/yamlUtils';
 import { validateTopics } from './utils/topicValidator';
@@ -191,7 +195,8 @@ export class SoemConfigWebviewProvider implements vscode.WebviewViewProvider {
       this._view.webview.postMessage({
         type: 'updateData',
         data: data,
-        taskTypes: TASK_TYPES,
+        taskTypes: TASK_TYPES_COMPAT(this.context.extensionPath),
+        boardTypes: getBoardTypes(this.context.extensionPath),
       });
     } catch (e) {
       this._view.webview.postMessage({
@@ -272,9 +277,9 @@ export class SoemConfigWebviewProvider implements vscode.WebviewViewProvider {
           const valueScalar = new yaml.Scalar(finalValue);
           valueScalar.tag = '!uint8_t';
           valueScalar.format = 'HEX';
-          (valueScalar as any)._originalSource = '0x' + finalValue.toString(16);
+          (valueScalar as any)._originalSource = '0x' + finalValue.toString(16).padStart(2, '0');
           valueScalar.toJSON = function () {
-            return '0x' + (this as any).value.toString(16);
+            return '0x' + (this as any).value.toString(16).padStart(2, '0');
           };
 
           const newPair = new yaml.Pair(
@@ -294,9 +299,9 @@ export class SoemConfigWebviewProvider implements vscode.WebviewViewProvider {
           if (yaml.isScalar(targetNode)) {
             targetNode.format = 'HEX';
             (targetNode as any)._originalSource =
-              '0x' + finalValue.toString(16);
+              '0x' + finalValue.toString(16).padStart(2, '0');
             targetNode.toJSON = function () {
-              return '0x' + (this as any).value.toString(16);
+              return '0x' + (this as any).value.toString(16).padStart(2, '0');
             };
           }
           await this.saveDoc(editor, doc);
@@ -333,7 +338,10 @@ export class SoemConfigWebviewProvider implements vscode.WebviewViewProvider {
       const taskPath = propertyPath.slice(0, propertyPath.length - 1);
       const targetTaskNode = doc.getIn(taskPath, true);
       if (yaml.isMap(targetTaskNode)) {
-        const templateYaml = getTaskTemplateYaml(Number(finalValue));
+        const templateYaml = getTaskTemplateYaml(
+          this.context.extensionPath,
+          Number(finalValue),
+        );
         const parsedTemplateDoc = parseYamlDocumentWithTags(
           'temp:\n' +
             templateYaml
@@ -589,6 +597,7 @@ export class SoemConfigWebviewProvider implements vscode.WebviewViewProvider {
         const appIdx = tasksList.items.length + 1;
         const taskKey = `app_${appIdx}`;
         const newTaskStr = generateTaskTemplate(
+          this.context.extensionPath,
           taskKey,
           snKey,
           segment,
@@ -607,6 +616,7 @@ export class SoemConfigWebviewProvider implements vscode.WebviewViewProvider {
         // Insert at position
         const taskKey = `app_${tIndex + 1}`;
         const newTaskStr = generateTaskTemplate(
+          this.context.extensionPath,
           taskKey,
           snKey,
           segment,

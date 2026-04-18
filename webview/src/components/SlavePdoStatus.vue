@@ -3,8 +3,9 @@
     <div class="board-type-row" v-if="hasBoardType || showSelector">
       <label>Board Type:</label>
       <select :value="boardType" @change="onBoardTypeChange">
-        <option :value="3">0x03 - H750 Universal Module</option>
-        <option :value="4">0x04 - H750 Universal Module (Large PDO V.)</option>
+        <option v-for="bt in boardTypes" :key="bt.id" :value="bt.id">
+          0x{{ bt.id.toString(16).padStart(2, '0') }} - {{ bt.name }}
+        </option>
       </select>
     </div>
     <button v-else class="add-board-type-btn" @click="onAddBoardType">
@@ -35,7 +36,7 @@
 
 <script setup lang="ts">
 import { ref, computed } from 'vue';
-import { vscode } from '../composables/useVscode';
+import { vscode, boardTypes } from '../composables/useVscode';
 
 const props = defineProps<{
   sIndex: number;
@@ -69,22 +70,16 @@ const boardType = computed(() => {
   return Number(rawValue);
 });
 
+const currentBoardDef = computed(() => {
+  return boardTypes.value.find(bt => bt.id === boardType.value);
+});
+
 const maxTx = computed(() => {
-  const bt = boardType.value;
-  switch (bt) {
-    case 3:
-    case 0x03:
-      return 80;
-    case 4:
-    case 0x04:
-      return 112;
-    default:
-      return 80;
-  }
+  return currentBoardDef.value?.max_tx_pdo ?? 80;
 });
 
 const maxRx = computed(() => {
-  return 80;
+  return currentBoardDef.value?.max_rx_pdo ?? 80;
 });
 
 const txLen = computed(() => {
