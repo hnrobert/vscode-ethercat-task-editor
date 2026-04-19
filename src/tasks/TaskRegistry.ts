@@ -74,13 +74,50 @@ export class TaskRegistry {
   /**
    * 获取所有 task types 的简要信息（用于前端下拉列表）
    */
-  static getTaskTypeList(): Array<{ id: number; name: string; has_read: boolean; has_write: boolean }> {
+  static getTaskTypeList(): Array<{ id: number; name: string; has_read: boolean; has_write: boolean; fields?: any[] }> {
     return TaskRegistry.getAllTasks().map(task => ({
       id: task.getId(),
       name: task.getName(),
       has_read: task.getConfig().has_read,
       has_write: task.getConfig().has_write,
+      fields: TaskRegistry.serializeFields(task.getFields()),
     }));
+  }
+
+  /**
+   * 序列化字段定义，移除函数（函数将在后端评估）
+   */
+  private static serializeFields(fields: any[]): any[] {
+    return fields.map(field => {
+      const serialized: any = {
+        key: field.key,
+        label: field.label,
+        type: field.type,
+        data_type: field.data_type,
+        default: field.default,
+        min: field.min,
+        max: field.max,
+        group: field.group,
+        help: field.help,
+      };
+
+      // 标记字段是否有 visible_when（但不发送函数本身）
+      if (field.visible_when) {
+        serialized.has_visible_when = true;
+      }
+
+      // 序列化选项，但移除 valid_when 函数
+      if (field.options) {
+        serialized.options = field.options.map((opt: any) => ({
+          value: opt.value,
+          label: opt.label,
+          description: opt.description,
+          has_valid_when: !!opt.valid_when,
+        }));
+      }
+
+      return serialized;
+    });
   }
 
   /**

@@ -234,6 +234,36 @@ export class SoemConfigWebviewProvider implements vscode.WebviewViewProvider {
       }
     }
 
+    // 检查字段定义，判断是否应该使用十六进制
+    const fieldKey = propertyPath[propertyPath.length - 1] as string;
+    if (fieldKey && propertyPath.length >= 6) {
+      // 获取 task type
+      const taskPath = propertyPath.slice(0, propertyPath.length - 1);
+      const taskNode = doc.getIn(taskPath, true);
+      if (yaml.isMap(taskNode)) {
+        const taskTypeNode = taskNode.get('sdowrite_task_type', true);
+        if (yaml.isScalar(taskTypeNode)) {
+          const taskType = Number(taskTypeNode.value);
+          const task = TaskRegistry.getTask(taskType);
+          if (task) {
+            const field = task.getField(fieldKey);
+            if (field && typeof field.default === 'number') {
+              // 检查 default 值是否是十六进制表示（>= 0x100 或特定字段）
+              const shouldBeHex =
+                field.default >= 0x100 ||
+                fieldKey.includes('can_id') ||
+                fieldKey.includes('packet_id') ||
+                fieldKey.includes('can_packet_id');
+
+              if (shouldBeHex) {
+                isHex = true;
+              }
+            }
+          }
+        }
+      }
+    }
+
     const isTaskTypeChange =
       propertyPath.length > 0 &&
       propertyPath[propertyPath.length - 1] === 'sdowrite_task_type';
@@ -325,18 +355,39 @@ export class SoemConfigWebviewProvider implements vscode.WebviewViewProvider {
 
     const targetNode = doc.getIn(propertyPath, true);
     if (yaml.isScalar(targetNode)) {
-      if (isHex) {
-        targetNode.format = 'HEX';
-        (targetNode as any)._originalSource =
-          typeof value === 'string' ? value : undefined;
-        targetNode.toJSON = function () {
-          if (
-            (this as any)._originalSource &&
-            Number((this as any)._originalSource) === this.value
-          ) {
-            return (this as any)._originalSource;
+      // 获取字段定义来确定数据类型
+      const fieldKey = propertyPath[propertyPath.length - 1] as string;
+      let dataType: string | undefined;
+
+      if (fieldKey && propertyPath.length >= 6) {
+        const taskPath = propertyPath.slice(0, propertyPath.length - 1);
+        const taskNode = doc.getIn(taskPath, true);
+        if (yaml.isMap(taskNode)) {
+          const taskTypeNode = taskNode.get('sdowrite_task_type', true);
+          if (yaml.isScalar(taskTypeNode)) {
+            const taskType = Number(taskTypeNode.value);
+            const task = TaskRegistry.getTask(taskType);
+            if (task) {
+              const field = task.getField(fieldKey);
+              if (field) {
+                dataType = field.data_type;
+              }
+            }
           }
-          return '0x' + (this as any).value.toString(16);
+        }
+      }
+
+      // 设置 YAML 标签
+      if (dataType && !targetNode.tag) {
+        targetNode.tag = `!${dataType}`;
+      }
+
+      if (isHex) {
+        // 设置为十六进制格式
+        targetNode.format = 'HEX';
+        (targetNode as any)._originalSource = `0x${finalValue.toString(16).toUpperCase()}`;
+        targetNode.toJSON = function () {
+          return '0x' + (this as any).value.toString(16).toUpperCase();
         };
       } else if (typeof finalValue === 'number') {
         targetNode.format = 'PLAIN';
@@ -956,11 +1007,19 @@ export class SoemConfigWebviewProvider implements vscode.WebviewViewProvider {
     }
 
     const options = task.getValidOptions(fieldKey, taskData);
+
+    // 只发送选项的值和标签，不发送函数
+    const serializedOptions = options.map(opt => ({
+      value: opt.value,
+      label: opt.label,
+      description: opt.description,
+    }));
+
     this._view?.webview.postMessage({
       type: 'validOptionsResponse',
       taskType,
       fieldKey,
-      options,
+      options: serializedOptions,
     });
   }
 

@@ -156,7 +156,7 @@ export class Task05_DJIMotor extends TaskBase {
       // Control Type
       {
         key: `sdowrite_motor${motorIndex}_control_type`,
-        label: 'Control Type',
+        label: `Motor ${motorIndex} Control Type`,
         type: 'radio',
         data_type: 'uint8_t',
         default: defaultControlType,
@@ -170,55 +170,55 @@ export class Task05_DJIMotor extends TaskBase {
       // Speed PID
       {
         key: `sdowrite_motor${motorIndex}_speed_pid_kp`,
-        label: 'Kp',
+        label: `Motor ${motorIndex} Speed Kp`,
         type: 'number',
         data_type: 'float',
         default: 13.5,
-        group: 'Speed PID',
+        group: `Motor ${motorIndex} Speed PID`,
         visible_when: (data) =>
           data[`sdowrite_motor${motorIndex}_can_id`] !== 0 &&
           data[`sdowrite_motor${motorIndex}_control_type`] >= 2,
       },
       {
         key: `sdowrite_motor${motorIndex}_speed_pid_ki`,
-        label: 'Ki',
+        label: `Motor ${motorIndex} Speed Ki`,
         type: 'number',
         data_type: 'float',
         default: 1.0,
-        group: 'Speed PID',
+        group: `Motor ${motorIndex} Speed PID`,
         visible_when: (data) =>
           data[`sdowrite_motor${motorIndex}_can_id`] !== 0 &&
           data[`sdowrite_motor${motorIndex}_control_type`] >= 2,
       },
       {
         key: `sdowrite_motor${motorIndex}_speed_pid_kd`,
-        label: 'Kd',
+        label: `Motor ${motorIndex} Speed Kd`,
         type: 'number',
         data_type: 'float',
         default: 0.0,
-        group: 'Speed PID',
+        group: `Motor ${motorIndex} Speed PID`,
         visible_when: (data) =>
           data[`sdowrite_motor${motorIndex}_can_id`] !== 0 &&
           data[`sdowrite_motor${motorIndex}_control_type`] >= 2,
       },
       {
         key: `sdowrite_motor${motorIndex}_speed_pid_max_out`,
-        label: 'Max Out',
+        label: `Motor ${motorIndex} Speed Max Out`,
         type: 'number',
         data_type: 'float',
         default: 16384.0,
-        group: 'Speed PID',
+        group: `Motor ${motorIndex} Speed PID`,
         visible_when: (data) =>
           data[`sdowrite_motor${motorIndex}_can_id`] !== 0 &&
           data[`sdowrite_motor${motorIndex}_control_type`] >= 2,
       },
       {
         key: `sdowrite_motor${motorIndex}_speed_pid_max_iout`,
-        label: 'Max IOut',
+        label: `Motor ${motorIndex} Speed Max IOut`,
         type: 'number',
         data_type: 'float',
         default: 2000.0,
-        group: 'Speed PID',
+        group: `Motor ${motorIndex} Speed PID`,
         visible_when: (data) =>
           data[`sdowrite_motor${motorIndex}_can_id`] !== 0 &&
           data[`sdowrite_motor${motorIndex}_control_type`] >= 2,
@@ -226,55 +226,55 @@ export class Task05_DJIMotor extends TaskBase {
       // Angle PID
       {
         key: `sdowrite_motor${motorIndex}_angle_pid_kp`,
-        label: 'Kp',
+        label: `Motor ${motorIndex} Angle Kp`,
         type: 'number',
         data_type: 'float',
         default: 1.0,
-        group: 'Angle PID',
+        group: `Motor ${motorIndex} Angle PID`,
         visible_when: (data) =>
           data[`sdowrite_motor${motorIndex}_can_id`] !== 0 &&
           data[`sdowrite_motor${motorIndex}_control_type`] >= 3,
       },
       {
         key: `sdowrite_motor${motorIndex}_angle_pid_ki`,
-        label: 'Ki',
+        label: `Motor ${motorIndex} Angle Ki`,
         type: 'number',
         data_type: 'float',
         default: 0.0,
-        group: 'Angle PID',
+        group: `Motor ${motorIndex} Angle PID`,
         visible_when: (data) =>
           data[`sdowrite_motor${motorIndex}_can_id`] !== 0 &&
           data[`sdowrite_motor${motorIndex}_control_type`] >= 3,
       },
       {
         key: `sdowrite_motor${motorIndex}_angle_pid_kd`,
-        label: 'Kd',
+        label: `Motor ${motorIndex} Angle Kd`,
         type: 'number',
         data_type: 'float',
         default: 0.0,
-        group: 'Angle PID',
+        group: `Motor ${motorIndex} Angle PID`,
         visible_when: (data) =>
           data[`sdowrite_motor${motorIndex}_can_id`] !== 0 &&
           data[`sdowrite_motor${motorIndex}_control_type`] >= 3,
       },
       {
         key: `sdowrite_motor${motorIndex}_angle_pid_max_out`,
-        label: 'Max Out',
+        label: `Motor ${motorIndex} Angle Max Out`,
         type: 'number',
         data_type: 'float',
         default: 10000.0,
-        group: 'Angle PID',
+        group: `Motor ${motorIndex} Angle PID`,
         visible_when: (data) =>
           data[`sdowrite_motor${motorIndex}_can_id`] !== 0 &&
           data[`sdowrite_motor${motorIndex}_control_type`] >= 3,
       },
       {
         key: `sdowrite_motor${motorIndex}_angle_pid_max_iout`,
-        label: 'Max IOut',
+        label: `Motor ${motorIndex} Angle Max IOut`,
         type: 'number',
         data_type: 'float',
         default: 1000.0,
-        group: 'Angle PID',
+        group: `Motor ${motorIndex} Angle PID`,
         visible_when: (data) =>
           data[`sdowrite_motor${motorIndex}_can_id`] !== 0 &&
           data[`sdowrite_motor${motorIndex}_control_type`] >= 3,

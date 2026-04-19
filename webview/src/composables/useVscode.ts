@@ -15,6 +15,7 @@ export interface FieldDefinition {
   max?: number;
   group?: string;
   help?: string;
+  has_visible_when?: boolean;
   options?: FieldOption[];
 }
 
@@ -22,6 +23,7 @@ export interface FieldOption {
   value: any;
   label: string;
   description?: string;
+  has_valid_when?: boolean;
 }
 
 export interface TaskTypeDef {
@@ -90,7 +92,6 @@ window.addEventListener('message', (event) => {
       break;
   }
 });
-
 function postMessage(msg: any) {
   vscode.postMessage(msg);
 }
