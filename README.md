@@ -1,8 +1,8 @@
 # EtherCAT Task Editor
 
-A VS Code extension that provides a visual editor for SOEM-based EtherCAT YAML configuration files.
+A VSCode extension that provides a visual editor for SOEM-based EtherCAT YAML configuration files.
 
-Instead of manually editing long YAML files with typed tags and calculating PDO offsets by hand, this extension gives you a structured sidebar panel where you can configure slaves, tasks, and parameters with immediate feedback on PDO usage.
+This extension gives you a structured sidebar panel where you can configure slaves, tasks, and parameters with immediate feedback on PDO usage.
 
 ## Features
 
@@ -12,7 +12,6 @@ Instead of manually editing long YAML files with typed tags and calculating PDO 
 - **Topic name diagnostics** — Detects conflicting or inconsistent ROS2 topic names directly in the YAML editor
 - **Drag and drop** — Reorder tasks and slaves by dragging their headers
 - **Typed YAML round-trip** — Preserves `!uint8_t`, `!uint16_t`, `!float`, `!std::string` tags and hex formatting on save
-- **Task type templates** — Switching task types preserves compatible parameters and fills in defaults for new fields
 
 ## Getting Started
 
