@@ -73,6 +73,13 @@ export function calculateOffsets(
     )
       return;
 
+    // Update task_count to match actual tasks length
+    const actualTaskCount = slaveValues.tasks.length;
+    const recordedTaskCount = slaveValues.task_count;
+    if (recordedTaskCount !== actualTaskCount) {
+      doc.setIn(['slaves', index, slaveKey, 'task_count'], actualTaskCount);
+    }
+
     let pdoread_offset = 0;
     let pdowrite_offset = 0;
     let sdoLen = 1; // +1 for task_count byte

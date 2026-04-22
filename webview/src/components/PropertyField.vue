@@ -151,14 +151,7 @@ const fieldDef = computed<FieldDefinition | undefined>(() => {
   // 首先尝试从 taskTypes 中获取（已经包含了字段定义）
   const taskType = taskTypes.value.find(t => t.id === taskTypeId.value);
   if (taskType?.fields) {
-    const field = taskType.fields.find(f => f.key === props.prop);
-    if (field) {
-      // 调试：打印字段定义
-      if (props.prop.includes('can_packet_id') || props.prop.includes('motor1_can_id')) {
-        console.log(`Field ${props.prop}:`, field, 'options:', field.options?.length);
-      }
-      return field;
-    }
+    return taskType.fields.find(f => f.key === props.prop);
   }
 
   // 如果没有，尝试从缓存中获取
@@ -225,11 +218,6 @@ const isVisible = computed(() => {
     const controlTypeKey = `sdowrite_motor${motorIndex}_control_type`;
     const controlType = taskData.value[controlTypeKey];
 
-    // 调试
-    if (props.prop.includes('pid')) {
-      console.log(`Visibility check for ${props.prop}: control_type=${controlType}`);
-    }
-
     // Speed PID 字段只在 control_type >= 2 时显示
     if (props.prop.includes('speed_pid') && controlType < 2) {
       return false;
@@ -247,12 +235,10 @@ const isVisible = computed(() => {
 // 获取有效选项
 const validOptions = computed<FieldOption[]>(() => {
   if (!fieldDef.value?.options) {
-    console.log(`No options for ${props.prop}`);
     return [];
   }
 
   if (!taskData.value) {
-    console.log(`No taskData for ${props.prop}`);
     return fieldDef.value.options || [];
   }
 
@@ -262,16 +248,6 @@ const validOptions = computed<FieldOption[]>(() => {
     currentNumValue = parseInt(props.val, 16);
   } else if (typeof props.val === 'string') {
     currentNumValue = Number(props.val);
-  }
-
-  // 调试
-  if (props.prop.includes('can_packet_id') || props.prop.includes('motor1_can_id')) {
-    console.log(`Computing validOptions for ${props.prop}:`, {
-      totalOptions: fieldDef.value.options.length,
-      currentValue: props.val,
-      currentNumValue,
-      taskData: taskData.value,
-    });
   }
 
   // 过滤选项：使用硬编码逻辑（因为函数无法序列化）
@@ -290,11 +266,6 @@ const validOptions = computed<FieldOption[]>(() => {
         packetId = parseInt(packetId, 16);
       } else if (typeof packetId === 'string') {
         packetId = Number(packetId);
-      }
-
-      // 调试
-      if (props.prop === 'sdowrite_motor1_can_id') {
-        console.log(`  Filtering with packetId=${packetId} (${typeof packetId}), option=${option.value}`);
       }
 
       // 0x201-0x204 只在 packet_id === 0x200 时有效
@@ -322,13 +293,8 @@ const validOptions = computed<FieldOption[]>(() => {
     // 从所有选项中找到当前值的选项
     const currentOption = fieldDef.value.options.find(opt => opt.value === currentNumValue);
     if (currentOption) {
-      console.log(`Adding current value option: ${currentOption.label} (${currentNumValue})`);
       filtered.push(currentOption);
     }
-  }
-
-  if (props.prop.includes('can_packet_id') || props.prop.includes('motor1_can_id')) {
-    console.log(`  Final filtered options:`, filtered.length, filtered.map(o => `${o.label} (${o.value})`));
   }
 
   return filtered;
@@ -407,7 +373,6 @@ function onSelectChange(e: Event) {
 
 function onRadioChange(value: any) {
   // Radio 的 value 已经是正确的类型
-  console.log(`Radio change: ${props.prop} = ${value} (type: ${typeof value})`);
   updateValue(props.path, value);
 }
 
