@@ -285,18 +285,23 @@ export class SoemConfigWebviewProvider implements vscode.WebviewViewProvider {
         '_control_type',
       );
 
-    let savedTaskTypeValues: Record<string, any> | null = null;
-    let oldControlTypeValue: any | undefined;
+    const isCanIdChange =
+      propertyPath.length > 0 &&
+      typeof propertyPath[propertyPath.length - 1] === 'string' &&
+      (propertyPath[propertyPath.length - 1] as string).endsWith('_can_id');
 
-    // Save old control_type value before updating
-    if (isControlTypeChange) {
+    let savedTaskTypeValues: Record<string, any> | null = null;
+    let oldFieldValue: any | undefined;
+
+    // Save old field value before updating (for control_type or can_id)
+    if (isControlTypeChange || isCanIdChange) {
       const taskPath = propertyPath.slice(0, propertyPath.length - 1);
       const taskNode = doc.getIn(taskPath, true);
       if (yaml.isMap(taskNode)) {
         const fieldKey = propertyPath[propertyPath.length - 1] as string;
         const oldNode = taskNode.get(fieldKey, true);
         if (yaml.isScalar(oldNode)) {
-          oldControlTypeValue = oldNode.value;
+          oldFieldValue = oldNode.value;
         }
       }
     }
@@ -482,7 +487,7 @@ export class SoemConfigWebviewProvider implements vscode.WebviewViewProvider {
     }
 
     // Handle field changes via task-specific hooks
-    if (isControlTypeChange && oldControlTypeValue !== undefined) {
+    if ((isControlTypeChange || isCanIdChange) && oldFieldValue !== undefined) {
       const fieldKey = propertyPath[propertyPath.length - 1] as string;
       const taskPath = propertyPath.slice(0, propertyPath.length - 1);
       const taskNode = doc.getIn(taskPath, true);
@@ -509,7 +514,7 @@ export class SoemConfigWebviewProvider implements vscode.WebviewViewProvider {
             // Call task's onFieldChange hook
             const handled = task.onFieldChange({
               fieldKey,
-              oldValue: oldControlTypeValue,
+              oldValue: oldFieldValue,
               newValue: finalValue,
               taskNode,
               taskData,

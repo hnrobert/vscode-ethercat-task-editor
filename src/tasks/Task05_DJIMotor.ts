@@ -409,20 +409,129 @@ export class Task05_DJIMotor extends TaskBase {
   }
 
   /**
-   * Hook: 处理 control_type 变化时的字段添加/删除
+   * Hook: 处理字段变化时的逻辑
    */
   override onFieldChange(context: FieldChangeContext): boolean {
     const { fieldKey, oldValue, newValue, taskNode } = context;
 
-    // 只处理 motor control_type 的变化
-    const motorMatch = fieldKey.match(/motor(\d+)_control_type/);
-    if (!motorMatch) {
-      return false;
+    // 处理 motor can_id 的变化
+    const canIdMatch = fieldKey.match(/motor(\d+)_can_id/);
+    if (canIdMatch) {
+      return this.handleCanIdChange(
+        canIdMatch[1],
+        oldValue,
+        newValue,
+        taskNode,
+      );
     }
 
-    const motorIndex = motorMatch[1];
+    // 处理 motor control_type 的变化
+    const controlTypeMatch = fieldKey.match(/motor(\d+)_control_type/);
+    if (controlTypeMatch) {
+      return this.handleControlTypeChange(
+        controlTypeMatch[1],
+        oldValue,
+        newValue,
+        taskNode,
+      );
+    }
+
+    return false;
+  }
+
+  /**
+   * 处理 CAN ID 变化
+   */
+  private handleCanIdChange(
+    motorIndex: string,
+    oldValue: any,
+    newValue: any,
+    taskNode: any,
+  ): boolean {
+    const oldCanId = Number(oldValue);
+    const newCanId = Number(newValue);
+
+    console.log(
+      `[DJI Motor] CAN ID changed for motor ${motorIndex}: ${oldCanId} -> ${newCanId}`,
+    );
+
+    // 从启用改为禁用：删除所有相关字段
+    if (oldCanId !== 0 && newCanId === 0) {
+      console.log(`[DJI Motor] Disabling motor ${motorIndex}, removing all fields`);
+      const keysToRemove: any[] = [];
+
+      for (let i = 0; i < taskNode.items.length; i++) {
+        const item = taskNode.items[i];
+        if (!yaml.isScalar(item.key)) continue;
+        const keyStr = String(item.key.value);
+
+        // 删除该 motor 的所有字段（除了 can_id）
+        if (
+          keyStr.includes(`motor${motorIndex}_`) &&
+          keyStr !== `sdowrite_motor${motorIndex}_can_id`
+        ) {
+          keysToRemove.push(item.key);
+          console.log(`[DJI Motor] Will remove field: ${keyStr}`);
+        }
+      }
+
+      keysToRemove.forEach((k) => taskNode.delete(k));
+      return true;
+    }
+
+    // 从禁用改为启用：添加 control_type 字段
+    if (oldCanId === 0 && newCanId !== 0) {
+      console.log(`[DJI Motor] Enabling motor ${motorIndex}, adding control_type`);
+
+      // 找到 can_id 的位置
+      let insertIndex = -1;
+      for (let i = 0; i < taskNode.items.length; i++) {
+        const item = taskNode.items[i];
+        if (
+          yaml.isScalar(item.key) &&
+          String(item.key.value) === `sdowrite_motor${motorIndex}_can_id`
+        ) {
+          insertIndex = i + 1;
+          break;
+        }
+      }
+
+      // 添加 control_type 字段（默认值为 1）
+      const controlTypeKey = `sdowrite_motor${motorIndex}_control_type`;
+      if (!taskNode.has(controlTypeKey)) {
+        const valueScalar = new yaml.Scalar(1);
+        valueScalar.tag = '!uint8_t';
+
+        if (insertIndex >= 0) {
+          const newPair = new yaml.Pair(
+            new yaml.Scalar(controlTypeKey),
+            valueScalar,
+          );
+          taskNode.items.splice(insertIndex, 0, newPair);
+          console.log(`[DJI Motor] Added field: ${controlTypeKey} = 1`);
+        } else {
+          taskNode.set(controlTypeKey, valueScalar);
+        }
+      }
+
+      return true;
+    }
+
+    return false;
+  }
+
+  /**
+   * 处理 Control Type 变化
+   */
+  private handleControlTypeChange(
+    motorIndex: string,
+    oldValue: any,
+    newValue: any,
+    taskNode: any,
+  ): boolean {
     const newControlType = Number(newValue);
     const oldControlType = Number(oldValue);
+    const fieldKey = `sdowrite_motor${motorIndex}_control_type`;
 
     console.log(
       `[DJI Motor] Control Type changed for motor ${motorIndex}: ${oldControlType} -> ${newControlType}`,
