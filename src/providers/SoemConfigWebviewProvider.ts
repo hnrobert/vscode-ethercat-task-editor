@@ -272,7 +272,26 @@ export class SoemConfigWebviewProvider implements vscode.WebviewViewProvider {
       propertyPath.length > 0 &&
       propertyPath[propertyPath.length - 1] === 'board_type';
 
+    const isControlTypeChange =
+      propertyPath.length > 0 &&
+      typeof propertyPath[propertyPath.length - 1] === 'string' &&
+      (propertyPath[propertyPath.length - 1] as string).endsWith('_control_type');
+
     let savedTaskTypeValues: Record<string, any> | null = null;
+    let oldControlTypeValue: number | undefined;
+
+    // Save old control_type value before updating
+    if (isControlTypeChange) {
+      const taskPath = propertyPath.slice(0, propertyPath.length - 1);
+      const taskNode = doc.getIn(taskPath, true);
+      if (yaml.isMap(taskNode)) {
+        const fieldKey = propertyPath[propertyPath.length - 1] as string;
+        const oldNode = taskNode.get(fieldKey, true);
+        if (yaml.isScalar(oldNode)) {
+          oldControlTypeValue = Number(oldNode.value);
+        }
+      }
+    }
 
     if (isTaskTypeChange) {
       const sKey = propertyPath[2] as string;
@@ -446,6 +465,104 @@ export class SoemConfigWebviewProvider implements vscode.WebviewViewProvider {
             const node = targetTaskNode.get(field.key, true);
             if (yaml.isScalar(node)) {
               node.tag = `!${dataType}`;
+            }
+          }
+        }
+      }
+    }
+
+    // Handle motor control_type changes (add/remove PID fields)
+    if (isControlTypeChange && oldControlTypeValue !== undefined) {
+      const fieldKey = propertyPath[propertyPath.length - 1] as string;
+      const motorMatch = fieldKey.match(/motor(\d+)_control_type/);
+
+      console.log(`[Control Type Change] Field: ${fieldKey}, Old: ${oldControlTypeValue}, New: ${finalValue}`);
+
+      if (motorMatch) {
+        const motorIndex = motorMatch[1];
+        const taskPath = propertyPath.slice(0, propertyPath.length - 1);
+        const taskNode = doc.getIn(taskPath, true);
+
+        console.log(`[Control Type Change] Motor ${motorIndex}: ${oldControlTypeValue} -> ${finalValue}`);
+
+        if (yaml.isMap(taskNode)) {
+          const newControlType = Number(finalValue);
+          const oldControlType = oldControlTypeValue;
+
+          // Get task type to retrieve field definitions
+          const taskTypeNode = taskNode.get('sdowrite_task_type', true);
+          if (yaml.isScalar(taskTypeNode)) {
+            const taskType = Number(taskTypeNode.value);
+            const task = TaskRegistry.getTask(taskType);
+
+            if (task) {
+              const fields = task.getFields();
+
+              // Remove fields that should not exist for new control type
+              const keysToRemove: any[] = [];
+              for (let i = 0; i < taskNode.items.length; i++) {
+                const item = taskNode.items[i];
+                if (!yaml.isScalar(item.key)) continue;
+                const keyStr = String(item.key.value);
+
+                // Remove Speed PID fields if control_type < 2
+                if (newControlType < 2 && keyStr.includes(`motor${motorIndex}_speed_pid`)) {
+                  keysToRemove.push(item.key);
+                  console.log(`[Control Type Change] Will remove Speed PID field: ${keyStr}`);
+                }
+
+                // Remove Angle PID fields if control_type < 3
+                if (newControlType < 3 && keyStr.includes(`motor${motorIndex}_angle_pid`)) {
+                  keysToRemove.push(item.key);
+                  console.log(`[Control Type Change] Will remove Angle PID field: ${keyStr}`);
+                }
+              }
+
+              keysToRemove.forEach((k) => {
+                console.log(`[Control Type Change] Removing field: ${k}`);
+                taskNode.delete(k);
+              });
+
+              // Add fields that should exist for new control type
+              // Add Speed PID fields if control_type >= 2 and they don't exist
+              if (newControlType >= 2 && oldControlType < 2) {
+                console.log(`[Control Type Change] Adding Speed PID fields for motor ${motorIndex}`);
+                const speedPidFields = fields.filter(f =>
+                  f.key.includes(`motor${motorIndex}_speed_pid`)
+                );
+
+                for (const field of speedPidFields) {
+                  if (!taskNode.has(field.key)) {
+                    console.log(`[Control Type Change] Adding field: ${field.key} = ${field.default}`);
+                    const value = field.default;
+                    const valueScalar = new yaml.Scalar(value);
+                    if (field.data_type) {
+                      valueScalar.tag = `!${field.data_type}`;
+                    }
+                    taskNode.set(field.key, valueScalar);
+                  }
+                }
+              }
+
+              // Add Angle PID fields if control_type >= 3 and they don't exist
+              if (newControlType >= 3 && oldControlType < 3) {
+                console.log(`[Control Type Change] Adding Angle PID fields for motor ${motorIndex}`);
+                const anglePidFields = fields.filter(f =>
+                  f.key.includes(`motor${motorIndex}_angle_pid`)
+                );
+
+                for (const field of anglePidFields) {
+                  if (!taskNode.has(field.key)) {
+                    console.log(`[Control Type Change] Adding field: ${field.key} = ${field.default}`);
+                    const value = field.default;
+                    const valueScalar = new yaml.Scalar(value);
+                    if (field.data_type) {
+                      valueScalar.tag = `!${field.data_type}`;
+                    }
+                    taskNode.set(field.key, valueScalar);
+                  }
+                }
+              }
             }
           }
         }
