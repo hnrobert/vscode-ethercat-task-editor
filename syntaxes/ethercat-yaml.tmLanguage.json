@@ -1,0 +1,105 @@
+{
+  "$schema": "https://raw.githubusercontent.com/martinring/tmlanguage/master/tmlanguage.json",
+  "name": "EtherCAT YAML",
+  "scopeName": "source.ethercat-yaml",
+  "patterns": [
+    {
+      "include": "#ethercat-specific"
+    },
+    {
+      "include": "source.yaml"
+    }
+  ],
+  "repository": {
+    "ethercat-specific": {
+      "patterns": [
+        {
+          "comment": "EtherCAT field names - sdowrite_*",
+          "match": "\\b(sdowrite_[a-zA-Z0-9_]+)\\s*:",
+          "captures": {
+            "1": {
+              "name": "entity.name.tag.ethercat.sdowrite"
+            }
+          }
+        },
+        {
+          "comment": "EtherCAT field names - pdoread_*",
+          "match": "\\b(pdoread_[a-zA-Z0-9_]+)\\s*:",
+          "captures": {
+            "1": {
+              "name": "entity.name.tag.ethercat.pdoread"
+            }
+          }
+        },
+        {
+          "comment": "EtherCAT field names - pdowrite_*",
+          "match": "\\b(pdowrite_[a-zA-Z0-9_]+)\\s*:",
+          "captures": {
+            "1": {
+              "name": "entity.name.tag.ethercat.pdowrite"
+            }
+          }
+        },
+        {
+          "comment": "EtherCAT field names - conf_*",
+          "match": "\\b(conf_[a-zA-Z0-9_]+)\\s*:",
+          "captures": {
+            "1": {
+              "name": "entity.name.tag.ethercat.conf"
+            }
+          }
+        },
+        {
+          "comment": "EtherCAT structure keywords",
+          "match": "\\b(slaves|tasks|alias|board_type|sn)\\s*:",
+          "captures": {
+            "1": {
+              "name": "keyword.control.ethercat"
+            }
+          }
+        },
+        {
+          "comment": "EtherCAT topic paths",
+          "match": "(/ecat/[a-zA-Z0-9_/]+)",
+          "captures": {
+            "1": {
+              "name": "string.quoted.double.ethercat.topic"
+            }
+          }
+        },
+        {
+          "comment": "EtherCAT motor field names",
+          "match": "\\b(motor[1-4]_[a-zA-Z0-9_]+)\\s*:",
+          "captures": {
+            "1": {
+              "name": "variable.parameter.ethercat.motor"
+            }
+          }
+        },
+        {
+          "comment": "EtherCAT PID field names",
+          "match": "\\b([a-zA-Z0-9_]*_pid_[a-zA-Z0-9_]+)\\s*:",
+          "captures": {
+            "1": {
+              "name": "variable.parameter.ethercat.pid"
+            }
+          }
+        },
+        {
+          "comment": "EtherCAT topic field names",
+          "match": "\\b(pub_topic|sub_topic)\\s*:",
+          "captures": {
+            "1": {
+              "name": "support.type.property-name.ethercat.topic"
+            }
+          }
+        },
+        {
+          "comment": "EtherCAT YAML tags",
+          "match": "!(uint8_t|uint16_t|uint32_t|int8_t|int16_t|int32_t|float|double|std::string)",
+          "name": "storage.type.ethercat.tag"
+        }
+      ]
+    }
+  }
+}

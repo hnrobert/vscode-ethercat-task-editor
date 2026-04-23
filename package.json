@@ -16,6 +16,28 @@
     "onLanguage:yaml"
   ],
   "contributes": {
+    "languages": [
+      {
+        "id": "ethercat-yaml",
+        "aliases": ["EtherCAT Task Config", "EtherCAT YAML"],
+        "extensions": [],
+        "configuration": "./language-configuration.json"
+      }
+    ],
+    "grammars": [
+      {
+        "language": "ethercat-yaml",
+        "scopeName": "source.ethercat-yaml",
+        "path": "./syntaxes/ethercat-yaml.tmLanguage.json"
+      }
+    ],
+    "configurationDefaults": {
+      "[ethercat-yaml]": {
+        "editor.tabSize": 2,
+        "editor.insertSpaces": true,
+        "editor.formatOnSave": false
+      }
+    },
     "viewsContainers": {
       "activitybar": [
         {

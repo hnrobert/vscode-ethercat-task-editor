@@ -1,13 +1,7 @@
 import * as vscode from 'vscode';
 import { SoemConfigWebviewProvider } from './providers/SoemConfigWebviewProvider';
-
-function isEthercatYaml(doc: vscode.TextDocument): boolean {
-  if (!doc.fileName.endsWith('.yaml') && !doc.fileName.endsWith('.yml')) {
-    return false;
-  }
-  const text = doc.getText().trimStart();
-  return text === '' || text.startsWith('slaves:');
-}
+import { EthercatYamlFormatter } from './providers/EthercatYamlFormatter';
+import { isEthercatYaml, setEthercatYamlLanguage } from './utils/languageDetector';
 
 async function updateEthercatContext() {
   const editor = vscode.window.activeTextEditor;
@@ -27,6 +21,35 @@ export function activate(context: vscode.ExtensionContext) {
       provider,
     ),
   );
+
+  // 注册格式化提供者
+  context.subscriptions.push(
+    vscode.languages.registerDocumentFormattingEditProvider(
+      'ethercat-yaml',
+      new EthercatYamlFormatter(),
+    ),
+  );
+
+  // 自动检测并设置语言
+  context.subscriptions.push(
+    vscode.workspace.onDidOpenTextDocument(async (document) => {
+      await setEthercatYamlLanguage(document);
+      await updateEthercatContext();
+    }),
+  );
+
+  context.subscriptions.push(
+    vscode.workspace.onDidChangeTextDocument(async (event) => {
+      await setEthercatYamlLanguage(event.document);
+      await updateEthercatContext();
+    }),
+  );
+
+  // 初始化时检测当前文档
+  if (vscode.window.activeTextEditor) {
+    setEthercatYamlLanguage(vscode.window.activeTextEditor.document);
+  }
+
   context.subscriptions.push(
     vscode.commands.registerCommand('ethercatTaskEditor.refresh', () =>
       provider.refresh(),
