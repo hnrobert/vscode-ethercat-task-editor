@@ -191,44 +191,17 @@ const isVisible = computed(() => {
     return true;
   }
 
+  // 使用后端预计算的可见性
+  if (taskData.value._fieldVisibility && props.prop in taskData.value._fieldVisibility) {
+    return taskData.value._fieldVisibility[props.prop];
+  }
+
   // 如果字段没有 visible_when，默认可见
   if (!fieldDef.value.has_visible_when) {
     return true;
   }
 
-  // 使用硬编码的逻辑（用于向后兼容和性能）
-  // motor fields 只在 motor 启用时显示
-  const motorMatch = props.prop.match(/motor(\d+)/);
-  if (motorMatch) {
-    const motorIndex = motorMatch[1];
-    const canIdKey = `sdowrite_motor${motorIndex}_can_id`;
-    const canId = taskData.value[canIdKey];
-
-    // 如果是 motor 的 can_id 字段，总是显示
-    if (props.prop === canIdKey) {
-      return true;
-    }
-
-    // 其他 motor 字段只在 can_id != 0 时显示
-    if (canId === 0 || canId === undefined) {
-      return false;
-    }
-
-    // 检查 control_type 相关的可见性
-    const controlTypeKey = `sdowrite_motor${motorIndex}_control_type`;
-    const controlType = taskData.value[controlTypeKey];
-
-    // Speed PID 字段只在 control_type >= 2 时显示
-    if (props.prop.includes('speed_pid') && controlType < 2) {
-      return false;
-    }
-
-    // Angle PID 字段只在 control_type >= 3 时显示
-    if (props.prop.includes('angle_pid') && controlType < 3) {
-      return false;
-    }
-  }
-
+  // 后备：默认可见
   return true;
 });
 
@@ -242,62 +215,32 @@ const validOptions = computed<FieldOption[]>(() => {
     return fieldDef.value.options || [];
   }
 
-  // 将当前值转换为数字（如果是十六进制字符串）
-  let currentNumValue = props.val;
-  if (typeof props.val === 'string' && props.val.startsWith('0x')) {
-    currentNumValue = parseInt(props.val, 16);
-  } else if (typeof props.val === 'string') {
-    currentNumValue = Number(props.val);
+  // 使用后端预计算的有效选项
+  if (taskData.value._fieldValidOptions && props.prop in taskData.value._fieldValidOptions) {
+    const validOpts = taskData.value._fieldValidOptions[props.prop];
+
+    // 将当前值转换为数字（如果是十六进制字符串）
+    let currentNumValue = props.val;
+    if (typeof props.val === 'string' && props.val.startsWith('0x')) {
+      currentNumValue = parseInt(props.val, 16);
+    } else if (typeof props.val === 'string') {
+      currentNumValue = Number(props.val);
+    }
+
+    // 如果当前值不在有效选项中，添加它（避免选择框为空）
+    const currentValueInOptions = validOpts.some((opt: any) => opt.value === currentNumValue);
+    if (!currentValueInOptions && currentNumValue !== undefined && currentNumValue !== null && !isNaN(currentNumValue)) {
+      const currentOption = fieldDef.value.options.find(opt => opt.value === currentNumValue);
+      if (currentOption) {
+        return [...validOpts, currentOption];
+      }
+    }
+
+    return validOpts;
   }
 
-  // 过滤选项：使用硬编码逻辑（因为函数无法序列化）
-  const filtered = fieldDef.value.options.filter(option => {
-    // 如果选项没有 valid_when，总是有效
-    if (!option.has_valid_when) {
-      return true;
-    }
-
-    // 硬编码的过滤逻辑（针对 DJI Motor CAN ID）
-    if (props.prop.includes('motor') && props.prop.includes('_can_id')) {
-      let packetId = taskData.value.sdowrite_can_packet_id;
-
-      // 标准化 packetId 为数字
-      if (typeof packetId === 'string' && packetId.startsWith('0x')) {
-        packetId = parseInt(packetId, 16);
-      } else if (typeof packetId === 'string') {
-        packetId = Number(packetId);
-      }
-
-      // 0x201-0x204 只在 packet_id === 0x200 时有效
-      if ([0x201, 0x202, 0x203, 0x204].includes(option.value)) {
-        return packetId === 0x200;
-      }
-
-      // 0x205-0x207 在多个 packet_id 时有效
-      if ([0x205, 0x206, 0x207].includes(option.value)) {
-        return [0x1ff, 0x2ff, 0x1fe, 0x2fe].includes(packetId);
-      }
-
-      // 0x208 只在特定 packet_id 时有效
-      if (option.value === 0x208) {
-        return [0x1ff, 0x1fe].includes(packetId);
-      }
-    }
-
-    return true;
-  });
-
-  // 如果当前值不在有效选项中，添加它（避免选择框为空）
-  const currentValueInOptions = filtered.some(opt => opt.value === currentNumValue);
-  if (!currentValueInOptions && currentNumValue !== undefined && currentNumValue !== null && !isNaN(currentNumValue)) {
-    // 从所有选项中找到当前值的选项
-    const currentOption = fieldDef.value.options.find(opt => opt.value === currentNumValue);
-    if (currentOption) {
-      filtered.push(currentOption);
-    }
-  }
-
-  return filtered;
+  // 后备：返回所有选项
+  return fieldDef.value.options || [];
 });
 
 // 验证错误

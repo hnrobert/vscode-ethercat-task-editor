@@ -85,7 +85,7 @@ export class TaskRegistry {
   }
 
   /**
-   * 序列化字段定义，移除函数（函数将在后端评估）
+   * 序列化字段定义（移除函数，只保留标记）
    */
   private static serializeFields(fields: any[]): any[] {
     return fields.map(field => {
@@ -101,12 +101,12 @@ export class TaskRegistry {
         help: field.help,
       };
 
-      // 标记字段是否有 visible_when（但不发送函数本身）
+      // 标记字段是否有 visible_when
       if (field.visible_when) {
         serialized.has_visible_when = true;
       }
 
-      // 序列化选项，但移除 valid_when 函数
+      // 序列化选项
       if (field.options) {
         serialized.options = field.options.map((opt: any) => ({
           value: opt.value,

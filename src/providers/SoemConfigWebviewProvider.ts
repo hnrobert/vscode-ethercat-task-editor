@@ -208,9 +208,12 @@ export class SoemConfigWebviewProvider implements vscode.WebviewViewProvider {
       const diagnostics = validateTopics(editor.document, doc, data);
       this.diagnosticCollection.set(editor.document.uri, diagnostics);
 
+      // Compute field visibility and option validity for all tasks
+      const enrichedData = this.enrichDataWithVisibility(data);
+
       this._view.webview.postMessage({
         type: 'updateData',
-        data: data,
+        data: enrichedData,
         taskTypes: TaskRegistry.getTaskTypeList(),
         boardTypes: getBoardTypes(this.context.extensionPath),
       });
@@ -221,6 +224,91 @@ export class SoemConfigWebviewProvider implements vscode.WebviewViewProvider {
       });
       this.diagnosticCollection.clear();
     }
+  }
+
+  /**
+   * 为数据添加字段可见性和选项有效性信息
+   */
+  private enrichDataWithVisibility(data: any): any {
+    if (!data?.slaves) return data;
+
+    const enriched = JSON.parse(JSON.stringify(data)); // Deep clone
+
+    for (let sIndex = 0; sIndex < enriched.slaves.length; sIndex++) {
+      const slave = enriched.slaves[sIndex];
+      if (!slave) continue;
+
+      for (const sKey of Object.keys(slave)) {
+        const slaveData = slave[sKey];
+        if (!slaveData?.tasks) continue;
+
+        for (let tIndex = 0; tIndex < slaveData.tasks.length; tIndex++) {
+          const taskList = slaveData.tasks[tIndex];
+          if (!taskList) continue;
+
+          for (const tKey of Object.keys(taskList)) {
+            const taskData = taskList[tKey];
+            if (!taskData?.sdowrite_task_type) continue;
+
+            const taskType = Number(taskData.sdowrite_task_type);
+            const task = TaskRegistry.getTask(taskType);
+            if (!task) continue;
+
+            // 标准化 taskData 中的十六进制值为数字
+            const normalizedTaskData = this.normalizeTaskData(taskData);
+
+            // 为每个字段添加可见性信息
+            const fields = task.getFields();
+            const fieldVisibility: Record<string, boolean> = {};
+            const fieldValidOptions: Record<string, any[]> = {};
+
+            for (const field of fields) {
+              // 计算字段可见性
+              fieldVisibility[field.key] = task.isFieldVisible(field.key, normalizedTaskData);
+
+              // 计算选项有效性
+              if (field.options) {
+                const validOpts = task.getValidOptions(field.key, normalizedTaskData);
+                fieldValidOptions[field.key] = validOpts;
+
+                // 调试日志
+                if (field.key.includes('motor') && field.key.includes('_can_id')) {
+                  console.log(`[enrichData] ${field.key}:`, {
+                    packetId: normalizedTaskData.sdowrite_can_packet_id,
+                    totalOptions: field.options.length,
+                    validOptions: validOpts.length,
+                    validOptionValues: validOpts.map(o => o.value),
+                  });
+                }
+              }
+            }
+
+            // 添加到 task 数据中
+            taskData._fieldVisibility = fieldVisibility;
+            taskData._fieldValidOptions = fieldValidOptions;
+          }
+        }
+      }
+    }
+
+    return enriched;
+  }
+
+  /**
+   * 标准化 task 数据，将十六进制字符串转换为数字
+   */
+  private normalizeTaskData(taskData: Record<string, any>): Record<string, any> {
+    const normalized: Record<string, any> = {};
+
+    for (const [key, value] of Object.entries(taskData)) {
+      if (typeof value === 'string' && value.startsWith('0x')) {
+        normalized[key] = parseInt(value, 16);
+      } else {
+        normalized[key] = value;
+      }
+    }
+
+    return normalized;
   }
 
   private async updateYamlValue(propertyPath: (string | number)[], value: any) {
