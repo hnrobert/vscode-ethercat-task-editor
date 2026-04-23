@@ -58,7 +58,7 @@
       >
         <input
           type="radio"
-          :name="`radio-${prop}`"
+          :name="`radio-${path.join('-')}-${prop}`"
           :value="option.value"
           :checked="normalizedValue === option.value"
           @change="onRadioChange(option.value)"
