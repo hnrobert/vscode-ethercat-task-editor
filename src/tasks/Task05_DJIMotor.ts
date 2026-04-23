@@ -3,7 +3,13 @@
  * 处理 DJI 电机的配置、验证和模板生成
  */
 
-import { TaskBase, FieldDefinition, ValidationError } from './TaskBase';
+import {
+  TaskBase,
+  FieldDefinition,
+  ValidationError,
+  FieldChangeContext,
+} from './TaskBase';
+import * as yaml from 'yaml';
 
 export class Task05_DJIMotor extends TaskBase {
   constructor() {
@@ -54,27 +60,32 @@ export class Task05_DJIMotor extends TaskBase {
           {
             value: 0x200,
             label: '0x200',
-            description: 'Controls motors with feedback IDs 0x201-0x204 (3508/2006 ID1-4)',
+            description:
+              'Controls motors with feedback IDs 0x201-0x204 (3508/2006 ID1-4)',
           },
           {
             value: 0x1ff,
             label: '0x1ff',
-            description: 'Controls motors with feedback IDs 0x201-0x208 (3508/2006 ID5-8)',
+            description:
+              'Controls motors with feedback IDs 0x201-0x208 (3508/2006 ID5-8)',
           },
           {
             value: 0x2ff,
             label: '0x2ff',
-            description: 'Controls motors with feedback IDs 0x205-0x207 (6020 VOLT ID5-7)',
+            description:
+              'Controls motors with feedback IDs 0x205-0x207 (6020 VOLT ID5-7)',
           },
           {
             value: 0x1fe,
             label: '0x1fe',
-            description: 'Controls motors with feedback IDs 0x205-0x208 (6020 CURR ID1-4)',
+            description:
+              'Controls motors with feedback IDs 0x205-0x208 (6020 CURR ID1-4)',
           },
           {
             value: 0x2fe,
             label: '0x2fe',
-            description: 'Controls motors with feedback IDs 0x205-0x207 (6020 CURR ID5-7)',
+            description:
+              'Controls motors with feedback IDs 0x205-0x207 (6020 CURR ID5-7)',
           },
         ],
       },
@@ -85,7 +96,13 @@ export class Task05_DJIMotor extends TaskBase {
     const defaultControlTypes = [1, 1, 1, 1];
 
     for (let n = 1; n <= 4; n++) {
-      fields.push(...Task05_DJIMotor.buildMotorFields(n, defaultCanIds[n - 1], defaultControlTypes[n - 1]));
+      fields.push(
+        ...Task05_DJIMotor.buildMotorFields(
+          n,
+          defaultCanIds[n - 1],
+          defaultControlTypes[n - 1],
+        ),
+      );
     }
 
     return fields;
@@ -97,9 +114,8 @@ export class Task05_DJIMotor extends TaskBase {
   private static buildMotorFields(
     motorIndex: number,
     defaultCanId: number,
-    defaultControlType: number
+    defaultControlType: number,
   ): FieldDefinition[] {
-
     return [
       // CAN ID
       {
@@ -114,42 +130,52 @@ export class Task05_DJIMotor extends TaskBase {
           {
             value: 0x201,
             label: '0x201 (ID 1)',
-            valid_when: (data) => data.sdowrite_can_packet_id === 0x200
+            valid_when: (data) => data.sdowrite_can_packet_id === 0x200,
           },
           {
             value: 0x202,
             label: '0x202 (ID 2)',
-            valid_when: (data) => data.sdowrite_can_packet_id === 0x200
+            valid_when: (data) => data.sdowrite_can_packet_id === 0x200,
           },
           {
             value: 0x203,
             label: '0x203 (ID 3)',
-            valid_when: (data) => data.sdowrite_can_packet_id === 0x200
+            valid_when: (data) => data.sdowrite_can_packet_id === 0x200,
           },
           {
             value: 0x204,
             label: '0x204 (ID 4)',
-            valid_when: (data) => data.sdowrite_can_packet_id === 0x200
+            valid_when: (data) => data.sdowrite_can_packet_id === 0x200,
           },
           {
             value: 0x205,
             label: '0x205 (ID 5)',
-            valid_when: (data) => [0x1ff, 0x2ff, 0x1fe, 0x2fe].includes(data.sdowrite_can_packet_id)
+            valid_when: (data) =>
+              [0x1ff, 0x2ff, 0x1fe, 0x2fe].includes(
+                data.sdowrite_can_packet_id,
+              ),
           },
           {
             value: 0x206,
             label: '0x206 (ID 6)',
-            valid_when: (data) => [0x1ff, 0x2ff, 0x1fe, 0x2fe].includes(data.sdowrite_can_packet_id)
+            valid_when: (data) =>
+              [0x1ff, 0x2ff, 0x1fe, 0x2fe].includes(
+                data.sdowrite_can_packet_id,
+              ),
           },
           {
             value: 0x207,
             label: '0x207 (ID 7)',
-            valid_when: (data) => [0x1ff, 0x2ff, 0x1fe, 0x2fe].includes(data.sdowrite_can_packet_id)
+            valid_when: (data) =>
+              [0x1ff, 0x2ff, 0x1fe, 0x2fe].includes(
+                data.sdowrite_can_packet_id,
+              ),
           },
           {
             value: 0x208,
             label: '0x208 (ID 8)',
-            valid_when: (data) => [0x1ff, 0x1fe].includes(data.sdowrite_can_packet_id)
+            valid_when: (data) =>
+              [0x1ff, 0x1fe].includes(data.sdowrite_can_packet_id),
           },
         ],
       },
@@ -160,11 +186,24 @@ export class Task05_DJIMotor extends TaskBase {
         type: 'radio',
         data_type: 'uint8_t',
         default: defaultControlType,
-        visible_when: (data) => data[`sdowrite_motor${motorIndex}_can_id`] !== 0,
+        visible_when: (data) =>
+          data[`sdowrite_motor${motorIndex}_can_id`] !== 0,
         options: [
-          { value: 1, label: 'Openloop Current (0x01)', description: 'Direct current control, no PID' },
-          { value: 2, label: 'Speed (0x02)', description: 'Speed control with PID' },
-          { value: 3, label: 'Single-Round Position (0x03)', description: 'Position control with cascaded PID' },
+          {
+            value: 1,
+            label: 'Openloop Current (0x01)',
+            description: 'Direct current control, no PID',
+          },
+          {
+            value: 2,
+            label: 'Speed (0x02)',
+            description: 'Speed control with PID',
+          },
+          {
+            value: 3,
+            label: 'Single-Round Position (0x03)',
+            description: 'Position control with cascaded PID',
+          },
         ],
       },
       // Speed PID
@@ -285,7 +324,11 @@ export class Task05_DJIMotor extends TaskBase {
   /**
    * 输出启用的电机字段 only
    */
-  override generateTemplate(taskKey: string, snKey: string, segment: string): string {
+  override generateTemplate(
+    taskKey: string,
+    snKey: string,
+    segment: string,
+  ): string {
     let template = `${taskKey}:\n`;
     template += `  sdowrite_task_type: !uint8_t ${this.config.id}\n`;
     template += `  conf_connection_lost_read_action: !uint8_t 1\n`;
@@ -296,7 +339,11 @@ export class Task05_DJIMotor extends TaskBase {
     template += `  pdowrite_offset: !uint16_t 0\n`;
 
     // 添加基础字段
-    const baseFields = ['sdowrite_control_period', 'sdowrite_can_inst', 'sdowrite_can_packet_id'];
+    const baseFields = [
+      'sdowrite_control_period',
+      'sdowrite_can_inst',
+      'sdowrite_can_packet_id',
+    ];
     for (const fieldKey of baseFields) {
       const field = this.getField(fieldKey);
       if (field && field.default !== undefined) {
@@ -312,7 +359,9 @@ export class Task05_DJIMotor extends TaskBase {
 
         // 只有当 can_id != 0 时才添加其他字段
         if (canIdField.default !== 0) {
-          const controlTypeField = this.getField(`sdowrite_motor${n}_control_type`);
+          const controlTypeField = this.getField(
+            `sdowrite_motor${n}_control_type`,
+          );
           if (controlTypeField && controlTypeField.default !== undefined) {
             template += `  sdowrite_motor${n}_control_type: ${this.formatValue(controlTypeField.default, controlTypeField.data_type)}\n`;
 
@@ -357,5 +406,158 @@ export class Task05_DJIMotor extends TaskBase {
     }
 
     return template;
+  }
+
+  /**
+   * Hook: 处理 control_type 变化时的字段添加/删除
+   */
+  override onFieldChange(context: FieldChangeContext): boolean {
+    const { fieldKey, oldValue, newValue, taskNode } = context;
+
+    // 只处理 motor control_type 的变化
+    const motorMatch = fieldKey.match(/motor(\d+)_control_type/);
+    if (!motorMatch) {
+      return false;
+    }
+
+    const motorIndex = motorMatch[1];
+    const newControlType = Number(newValue);
+    const oldControlType = Number(oldValue);
+
+    console.log(
+      `[DJI Motor] Control Type changed for motor ${motorIndex}: ${oldControlType} -> ${newControlType}`,
+    );
+
+    const fields = this.getFields();
+
+    // Remove fields that should not exist for new control type
+    const keysToRemove: any[] = [];
+    for (let i = 0; i < taskNode.items.length; i++) {
+      const item = taskNode.items[i];
+      if (!yaml.isScalar(item.key)) continue;
+      const keyStr = String(item.key.value);
+
+      // Remove Speed PID fields if control_type < 2
+      if (
+        newControlType < 2 &&
+        keyStr.includes(`motor${motorIndex}_speed_pid`)
+      ) {
+        keysToRemove.push(item.key);
+        console.log(`[DJI Motor] Will remove Speed PID field: ${keyStr}`);
+      }
+
+      // Remove Angle PID fields if control_type < 3
+      if (
+        newControlType < 3 &&
+        keyStr.includes(`motor${motorIndex}_angle_pid`)
+      ) {
+        keysToRemove.push(item.key);
+        console.log(`[DJI Motor] Will remove Angle PID field: ${keyStr}`);
+      }
+    }
+
+    keysToRemove.forEach((k) => {
+      console.log(`[DJI Motor] Removing field: ${k}`);
+      taskNode.delete(k);
+    });
+
+    // Add Speed PID fields if control_type >= 2 and they don't exist
+    if (newControlType >= 2 && oldControlType < 2) {
+      console.log(
+        `[DJI Motor] Adding Speed PID fields for motor ${motorIndex}`,
+      );
+      const speedPidFields = fields.filter((f) =>
+        f.key.includes(`motor${motorIndex}_speed_pid`),
+      );
+
+      // Find the position to insert (after control_type)
+      let insertIndex = -1;
+      for (let i = 0; i < taskNode.items.length; i++) {
+        const item = taskNode.items[i];
+        if (yaml.isScalar(item.key) && String(item.key.value) === fieldKey) {
+          insertIndex = i + 1;
+          break;
+        }
+      }
+
+      for (const field of speedPidFields) {
+        if (!taskNode.has(field.key)) {
+          console.log(
+            `[DJI Motor] Adding field: ${field.key} = ${field.default}`,
+          );
+          const value = field.default;
+          const valueScalar = new yaml.Scalar(value);
+          if (field.data_type) {
+            valueScalar.tag = `!${field.data_type}`;
+          }
+
+          // Insert at the correct position
+          if (insertIndex >= 0) {
+            const newPair = new yaml.Pair(
+              new yaml.Scalar(field.key),
+              valueScalar,
+            );
+            taskNode.items.splice(insertIndex, 0, newPair);
+            insertIndex++; // Move insert position for next field
+          } else {
+            taskNode.set(field.key, valueScalar);
+          }
+        }
+      }
+    }
+
+    // Add Angle PID fields if control_type >= 3 and they don't exist
+    if (newControlType >= 3 && oldControlType < 3) {
+      console.log(
+        `[DJI Motor] Adding Angle PID fields for motor ${motorIndex}`,
+      );
+      const anglePidFields = fields.filter((f) =>
+        f.key.includes(`motor${motorIndex}_angle_pid`),
+      );
+
+      // Find the position to insert (after last speed_pid field or control_type)
+      let insertIndex = -1;
+      for (let i = taskNode.items.length - 1; i >= 0; i--) {
+        const item = taskNode.items[i];
+        if (yaml.isScalar(item.key)) {
+          const keyStr = String(item.key.value);
+          if (
+            keyStr.includes(`motor${motorIndex}_speed_pid`) ||
+            keyStr === fieldKey
+          ) {
+            insertIndex = i + 1;
+            break;
+          }
+        }
+      }
+
+      for (const field of anglePidFields) {
+        if (!taskNode.has(field.key)) {
+          console.log(
+            `[DJI Motor] Adding field: ${field.key} = ${field.default}`,
+          );
+          const value = field.default;
+          const valueScalar = new yaml.Scalar(value);
+          if (field.data_type) {
+            valueScalar.tag = `!${field.data_type}`;
+          }
+
+          // Insert at the correct position
+          if (insertIndex >= 0) {
+            const newPair = new yaml.Pair(
+              new yaml.Scalar(field.key),
+              valueScalar,
+            );
+            taskNode.items.splice(insertIndex, 0, newPair);
+            insertIndex++; // Move insert position for next field
+          } else {
+            taskNode.set(field.key, valueScalar);
+          }
+        }
+      }
+    }
+
+    // Return true to indicate we handled this change
+    return true;
   }
 }

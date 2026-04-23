@@ -3,9 +3,7 @@ import * as path from 'path';
 import * as yaml from 'yaml';
 import { parseYamlDocumentWithTags } from '../utils/yamlParser';
 import { parseMsgFolder } from '../utils/msgParser';
-import {
-  getBoardTypes,
-} from '../utils/constantsParser';
+import { getBoardTypes } from '../utils/constantsParser';
 import { TaskRegistry } from '../tasks';
 import { TaskTypeMemory } from '../utils/taskTypeMemory';
 import { applyAndSaveYaml, parseTopicSegment } from '../utils/yamlUtils';
@@ -120,10 +118,18 @@ export class SoemConfigWebviewProvider implements vscode.WebviewViewProvider {
           this.handleGetTaskFields(data.taskType);
           break;
         case 'isFieldVisible':
-          this.handleIsFieldVisible(data.taskType, data.fieldKey, data.taskData);
+          this.handleIsFieldVisible(
+            data.taskType,
+            data.fieldKey,
+            data.taskData,
+          );
           break;
         case 'getValidOptions':
-          this.handleGetValidOptions(data.taskType, data.fieldKey, data.taskData);
+          this.handleGetValidOptions(
+            data.taskType,
+            data.fieldKey,
+            data.taskData,
+          );
           break;
         case 'validateTask':
           this.handleValidateTask(data.taskType, data.taskData);
@@ -275,10 +281,12 @@ export class SoemConfigWebviewProvider implements vscode.WebviewViewProvider {
     const isControlTypeChange =
       propertyPath.length > 0 &&
       typeof propertyPath[propertyPath.length - 1] === 'string' &&
-      (propertyPath[propertyPath.length - 1] as string).endsWith('_control_type');
+      (propertyPath[propertyPath.length - 1] as string).endsWith(
+        '_control_type',
+      );
 
     let savedTaskTypeValues: Record<string, any> | null = null;
-    let oldControlTypeValue: number | undefined;
+    let oldControlTypeValue: any | undefined;
 
     // Save old control_type value before updating
     if (isControlTypeChange) {
@@ -288,7 +296,7 @@ export class SoemConfigWebviewProvider implements vscode.WebviewViewProvider {
         const fieldKey = propertyPath[propertyPath.length - 1] as string;
         const oldNode = taskNode.get(fieldKey, true);
         if (yaml.isScalar(oldNode)) {
-          oldControlTypeValue = Number(oldNode.value);
+          oldControlTypeValue = oldNode.value;
         }
       }
     }
@@ -404,7 +412,8 @@ export class SoemConfigWebviewProvider implements vscode.WebviewViewProvider {
       if (isHex) {
         // 设置为十六进制格式
         targetNode.format = 'HEX';
-        (targetNode as any)._originalSource = `0x${finalValue.toString(16).toUpperCase()}`;
+        (targetNode as any)._originalSource =
+          `0x${finalValue.toString(16).toUpperCase()}`;
         targetNode.toJSON = function () {
           return '0x' + (this as any).value.toString(16).toUpperCase();
         };
@@ -455,9 +464,10 @@ export class SoemConfigWebviewProvider implements vscode.WebviewViewProvider {
             const dataType = field.data_type;
 
             // 恢复保存的值（如果存在）
-            const finalFieldValue = savedTaskTypeValues && field.key in savedTaskTypeValues
-              ? savedTaskTypeValues[field.key]
-              : value;
+            const finalFieldValue =
+              savedTaskTypeValues && field.key in savedTaskTypeValues
+                ? savedTaskTypeValues[field.key]
+                : value;
 
             targetTaskNode.set(field.key, finalFieldValue);
 
@@ -471,137 +481,44 @@ export class SoemConfigWebviewProvider implements vscode.WebviewViewProvider {
       }
     }
 
-    // Handle motor control_type changes (add/remove PID fields)
+    // Handle field changes via task-specific hooks
     if (isControlTypeChange && oldControlTypeValue !== undefined) {
       const fieldKey = propertyPath[propertyPath.length - 1] as string;
-      const motorMatch = fieldKey.match(/motor(\d+)_control_type/);
+      const taskPath = propertyPath.slice(0, propertyPath.length - 1);
+      const taskNode = doc.getIn(taskPath, true);
 
-      console.log(`[Control Type Change] Field: ${fieldKey}, Old: ${oldControlTypeValue}, New: ${finalValue}`);
+      if (yaml.isMap(taskNode)) {
+        // Get task type to retrieve task instance
+        const taskTypeNode = taskNode.get('sdowrite_task_type', true);
+        if (yaml.isScalar(taskTypeNode)) {
+          const taskType = Number(taskTypeNode.value);
+          const task = TaskRegistry.getTask(taskType);
 
-      if (motorMatch) {
-        const motorIndex = motorMatch[1];
-        const taskPath = propertyPath.slice(0, propertyPath.length - 1);
-        const taskNode = doc.getIn(taskPath, true);
+          if (task) {
+            // Get current task data
+            const sIndex = propertyPath[1] as number;
+            const sKey = propertyPath[2] as string;
+            const tIndex = propertyPath[4] as number;
+            const tKey = propertyPath[5] as string;
 
-        console.log(`[Control Type Change] Motor ${motorIndex}: ${oldControlTypeValue} -> ${finalValue}`);
+            const taskData =
+              this.lastParsedDoc.data?.slaves?.[sIndex]?.[sKey]?.tasks?.[
+                tIndex
+              ]?.[tKey] || {};
 
-        if (yaml.isMap(taskNode)) {
-          const newControlType = Number(finalValue);
-          const oldControlType = oldControlTypeValue;
+            // Call task's onFieldChange hook
+            const handled = task.onFieldChange({
+              fieldKey,
+              oldValue: oldControlTypeValue,
+              newValue: finalValue,
+              taskNode,
+              taskData,
+            });
 
-          // Get task type to retrieve field definitions
-          const taskTypeNode = taskNode.get('sdowrite_task_type', true);
-          if (yaml.isScalar(taskTypeNode)) {
-            const taskType = Number(taskTypeNode.value);
-            const task = TaskRegistry.getTask(taskType);
-
-            if (task) {
-              const fields = task.getFields();
-
-              // Remove fields that should not exist for new control type
-              const keysToRemove: any[] = [];
-              for (let i = 0; i < taskNode.items.length; i++) {
-                const item = taskNode.items[i];
-                if (!yaml.isScalar(item.key)) continue;
-                const keyStr = String(item.key.value);
-
-                // Remove Speed PID fields if control_type < 2
-                if (newControlType < 2 && keyStr.includes(`motor${motorIndex}_speed_pid`)) {
-                  keysToRemove.push(item.key);
-                  console.log(`[Control Type Change] Will remove Speed PID field: ${keyStr}`);
-                }
-
-                // Remove Angle PID fields if control_type < 3
-                if (newControlType < 3 && keyStr.includes(`motor${motorIndex}_angle_pid`)) {
-                  keysToRemove.push(item.key);
-                  console.log(`[Control Type Change] Will remove Angle PID field: ${keyStr}`);
-                }
-              }
-
-              keysToRemove.forEach((k) => {
-                console.log(`[Control Type Change] Removing field: ${k}`);
-                taskNode.delete(k);
-              });
-
-              // Add fields that should exist for new control type
-              // Add Speed PID fields if control_type >= 2 and they don't exist
-              if (newControlType >= 2 && oldControlType < 2) {
-                console.log(`[Control Type Change] Adding Speed PID fields for motor ${motorIndex}`);
-                const speedPidFields = fields.filter(f =>
-                  f.key.includes(`motor${motorIndex}_speed_pid`)
-                );
-
-                // Find the position to insert (after control_type)
-                let insertIndex = -1;
-                for (let i = 0; i < taskNode.items.length; i++) {
-                  const item = taskNode.items[i];
-                  if (yaml.isScalar(item.key) && String(item.key.value) === fieldKey) {
-                    insertIndex = i + 1;
-                    break;
-                  }
-                }
-
-                for (const field of speedPidFields) {
-                  if (!taskNode.has(field.key)) {
-                    console.log(`[Control Type Change] Adding field: ${field.key} = ${field.default}`);
-                    const value = field.default;
-                    const valueScalar = new yaml.Scalar(value);
-                    if (field.data_type) {
-                      valueScalar.tag = `!${field.data_type}`;
-                    }
-
-                    // Insert at the correct position
-                    if (insertIndex >= 0) {
-                      const newPair = new yaml.Pair(new yaml.Scalar(field.key), valueScalar);
-                      taskNode.items.splice(insertIndex, 0, newPair);
-                      insertIndex++; // Move insert position for next field
-                    } else {
-                      taskNode.set(field.key, valueScalar);
-                    }
-                  }
-                }
-              }
-
-              // Add Angle PID fields if control_type >= 3 and they don't exist
-              if (newControlType >= 3 && oldControlType < 3) {
-                console.log(`[Control Type Change] Adding Angle PID fields for motor ${motorIndex}`);
-                const anglePidFields = fields.filter(f =>
-                  f.key.includes(`motor${motorIndex}_angle_pid`)
-                );
-
-                // Find the position to insert (after last speed_pid field or control_type)
-                let insertIndex = -1;
-                for (let i = taskNode.items.length - 1; i >= 0; i--) {
-                  const item = taskNode.items[i];
-                  if (yaml.isScalar(item.key)) {
-                    const keyStr = String(item.key.value);
-                    if (keyStr.includes(`motor${motorIndex}_speed_pid`) || keyStr === fieldKey) {
-                      insertIndex = i + 1;
-                      break;
-                    }
-                  }
-                }
-
-                for (const field of anglePidFields) {
-                  if (!taskNode.has(field.key)) {
-                    console.log(`[Control Type Change] Adding field: ${field.key} = ${field.default}`);
-                    const value = field.default;
-                    const valueScalar = new yaml.Scalar(value);
-                    if (field.data_type) {
-                      valueScalar.tag = `!${field.data_type}`;
-                    }
-
-                    // Insert at the correct position
-                    if (insertIndex >= 0) {
-                      const newPair = new yaml.Pair(new yaml.Scalar(field.key), valueScalar);
-                      taskNode.items.splice(insertIndex, 0, newPair);
-                      insertIndex++; // Move insert position for next field
-                    } else {
-                      taskNode.set(field.key, valueScalar);
-                    }
-                  }
-                }
-              }
+            if (handled) {
+              console.log(
+                `[Provider] Field change handled by task: ${fieldKey}`,
+              );
             }
           }
         }
@@ -1137,7 +1054,11 @@ export class SoemConfigWebviewProvider implements vscode.WebviewViewProvider {
   /**
    * 处理检查字段可见性
    */
-  private handleIsFieldVisible(taskType: number, fieldKey: string, taskData: Record<string, any>) {
+  private handleIsFieldVisible(
+    taskType: number,
+    fieldKey: string,
+    taskData: Record<string, any>,
+  ) {
     const isVisible = TaskRegistry.isFieldVisible(taskType, fieldKey, taskData);
     this._view?.webview.postMessage({
       type: 'fieldVisibilityResponse',
@@ -1150,7 +1071,11 @@ export class SoemConfigWebviewProvider implements vscode.WebviewViewProvider {
   /**
    * 处理获取有效选项
    */
-  private handleGetValidOptions(taskType: number, fieldKey: string, taskData: Record<string, any>) {
+  private handleGetValidOptions(
+    taskType: number,
+    fieldKey: string,
+    taskData: Record<string, any>,
+  ) {
     const task = TaskRegistry.getTask(taskType);
     if (!task) {
       this._view?.webview.postMessage({
@@ -1165,7 +1090,7 @@ export class SoemConfigWebviewProvider implements vscode.WebviewViewProvider {
     const options = task.getValidOptions(fieldKey, taskData);
 
     // 只发送选项的值和标签，不发送函数
-    const serializedOptions = options.map(opt => ({
+    const serializedOptions = options.map((opt) => ({
       value: opt.value,
       label: opt.label,
       description: opt.description,

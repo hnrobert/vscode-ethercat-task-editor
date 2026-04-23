@@ -38,6 +38,17 @@ export interface ValidationError {
   severity: 'error' | 'warning';
 }
 
+/**
+ * Field change context - 字段变化时的上下文信息
+ */
+export interface FieldChangeContext {
+  fieldKey: string;
+  oldValue: any;
+  newValue: any;
+  taskNode: any; // yaml.YAMLMap type
+  taskData: Record<string, any>;
+}
+
 export abstract class TaskBase {
   protected config: TaskConfig;
 
@@ -77,7 +88,7 @@ export abstract class TaskBase {
    * 根据 key 获取字段定义
    */
   getField(key: string): FieldDefinition | undefined {
-    return this.config.fields.find(f => f.key === key);
+    return this.config.fields.find((f) => f.key === key);
   }
 
   /**
@@ -161,14 +172,14 @@ export abstract class TaskBase {
   isOptionValid(
     fieldKey: string,
     optionValue: any,
-    taskData: Record<string, any>
+    taskData: Record<string, any>,
   ): boolean {
     const field = this.getField(fieldKey);
     if (!field || !field.options) {
       return true;
     }
 
-    const option = field.options.find(opt => opt.value === optionValue);
+    const option = field.options.find((opt) => opt.value === optionValue);
     if (!option || !option.valid_when) {
       return true;
     }
@@ -176,7 +187,10 @@ export abstract class TaskBase {
     try {
       return option.valid_when(taskData);
     } catch (e) {
-      console.error(`Error evaluating valid_when for ${fieldKey} option ${optionValue}:`, e);
+      console.error(
+        `Error evaluating valid_when for ${fieldKey} option ${optionValue}:`,
+        e,
+      );
       return true;
     }
   }
@@ -186,20 +200,26 @@ export abstract class TaskBase {
    * @param fieldKey - 字段 key
    * @param taskData - 当前 task 的所有数据
    */
-  getValidOptions(fieldKey: string, taskData: Record<string, any>): FieldOption[] {
+  getValidOptions(
+    fieldKey: string,
+    taskData: Record<string, any>,
+  ): FieldOption[] {
     const field = this.getField(fieldKey);
     if (!field || !field.options) {
       return [];
     }
 
-    return field.options.filter(opt => {
+    return field.options.filter((opt) => {
       if (!opt.valid_when) {
         return true;
       }
       try {
         return opt.valid_when(taskData);
       } catch (e) {
-        console.error(`Error evaluating valid_when for ${fieldKey} option ${opt.value}:`, e);
+        console.error(
+          `Error evaluating valid_when for ${fieldKey} option ${opt.value}:`,
+          e,
+        );
         return true;
       }
     });
@@ -248,7 +268,7 @@ export abstract class TaskBase {
 
       // 检查选项有效性
       if (field.options && field.options.length > 0) {
-        const option = field.options.find(opt => opt.value === value);
+        const option = field.options.find((opt) => opt.value === value);
         if (!option) {
           errors.push({
             field: field.key,
@@ -272,5 +292,17 @@ export abstract class TaskBase {
     }
 
     return errors;
+  }
+
+  /**
+   * Hook: 当字段值变化时调用
+   * 子类可以重写此方法来实现自定义逻辑（如添加/删除相关字段）
+   *
+   * @param _context - 字段变化的上下文信息
+   * @returns 是否已处理（如果返回 true，provider 将跳过默认处理）
+   */
+  onFieldChange(_context: FieldChangeContext): boolean {
+    // 默认不做任何处理
+    return false;
   }
 }
