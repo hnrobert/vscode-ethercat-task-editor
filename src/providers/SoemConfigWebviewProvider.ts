@@ -612,6 +612,9 @@ export class SoemConfigWebviewProvider implements vscode.WebviewViewProvider {
               console.log(
                 `[Provider] Field change handled by task: ${fieldKey}`,
               );
+
+              // 重新排序字段
+              task.reorderFields(taskNode);
             }
           }
         }

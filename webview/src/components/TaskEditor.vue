@@ -43,7 +43,7 @@
 <script setup lang="ts">
 import { computed, nextTick, ref } from 'vue';
 import PropertyField from './PropertyField.vue';
-import { renameTask, removeTask, setDragState } from '../composables/useVscode';
+import { renameTask, removeTask, setDragState, taskTypes } from '../composables/useVscode';
 
 const props = defineProps<{
   sIndex: number;
@@ -53,11 +53,66 @@ const props = defineProps<{
   tInfo: Record<string, any>;
 }>();
 
-const visibleProps = computed(() =>
-  Object.keys(props.tInfo).filter(
-    (p) => p !== 'pdoread_offset' && p !== 'pdowrite_offset' && p !== 'pub_topic' && p !== 'sub_topic',
-  ),
-);
+const visibleProps = computed(() => {
+  // 获取 task type
+  const taskType = props.tInfo.sdowrite_task_type;
+  if (!taskType) {
+    // 如果没有 task type，使用原来的逻辑
+    return Object.keys(props.tInfo).filter(
+      (p) => p !== 'pdoread_offset' && p !== 'pdowrite_offset' && p !== 'pub_topic' && p !== 'sub_topic' && !p.startsWith('_'),
+    );
+  }
+
+  // 从 taskTypes 中获取字段定义
+  const taskTypeDef = taskTypes.value.find((t: any) => t.id === taskType);
+  if (!taskTypeDef?.fields) {
+    // 如果没有字段定义，使用原来的逻辑
+    console.log(`[TaskEditor] No field definition for task type ${taskType}, using fallback`);
+    return Object.keys(props.tInfo).filter(
+      (p) => p !== 'pdoread_offset' && p !== 'pdowrite_offset' && p !== 'pub_topic' && p !== 'sub_topic' && !p.startsWith('_'),
+    );
+  }
+
+  // 按照字段定义的顺序返回存在于 tInfo 中的字段
+  const orderedProps: string[] = [];
+
+  // 首先添加固定的基础字段
+  const baseFields = [
+    'sdowrite_task_type',
+    'conf_connection_lost_read_action',
+    'sdowrite_connection_lost_write_action',
+  ];
+
+  for (const field of baseFields) {
+    if (field in props.tInfo) {
+      orderedProps.push(field);
+    }
+  }
+
+  // 然后按照字段定义的顺序添加其他字段
+  for (const fieldDef of taskTypeDef.fields) {
+    if (fieldDef.key in props.tInfo && !orderedProps.includes(fieldDef.key)) {
+      orderedProps.push(fieldDef.key);
+    }
+  }
+
+  // 最后添加任何未在字段定义中的字段（除了 offset 和 topic）
+  for (const key of Object.keys(props.tInfo)) {
+    if (
+      !orderedProps.includes(key) &&
+      key !== 'pdoread_offset' &&
+      key !== 'pdowrite_offset' &&
+      key !== 'pub_topic' &&
+      key !== 'sub_topic' &&
+      !key.startsWith('_') // 排除内部字段
+    ) {
+      orderedProps.push(key);
+    }
+  }
+
+  console.log(`[TaskEditor] Task ${props.tKey} visible props:`, orderedProps.length, orderedProps);
+  return orderedProps;
+});
 
 /** Extract the topic segment from pub_topic, e.g. /ecat/sn1/app1/read → app1 */
 const segment = computed(() => {

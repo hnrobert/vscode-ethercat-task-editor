@@ -305,4 +305,56 @@ export abstract class TaskBase {
     // 默认不做任何处理
     return false;
   }
+
+  /**
+   * 重新排序 task 节点的字段，使其符合字段定义的顺序
+   * @param taskNode - YAML task 节点
+   */
+  reorderFields(taskNode: any): void {
+    // 导入 yaml 模块
+    const yaml = require('yaml');
+
+    if (!yaml.isMap(taskNode)) {
+      return;
+    }
+
+    // 获取字段定义的顺序
+    const fieldOrder = [
+      'sdowrite_task_type',
+      'conf_connection_lost_read_action',
+      'sdowrite_connection_lost_write_action',
+      'pub_topic',
+      'pdoread_offset',
+      'sub_topic',
+      'pdowrite_offset',
+      ...this.config.fields.map((f) => f.key),
+    ];
+
+    // 创建一个新的 items 数组，按照正确的顺序
+    const newItems: any[] = [];
+    const existingItems = new Map<string, any>();
+
+    // 先收集所有现有的字段
+    for (const item of taskNode.items) {
+      if (yaml.isScalar(item.key)) {
+        existingItems.set(String(item.key.value), item);
+      }
+    }
+
+    // 按照字段顺序添加
+    for (const fieldKey of fieldOrder) {
+      if (existingItems.has(fieldKey)) {
+        newItems.push(existingItems.get(fieldKey));
+        existingItems.delete(fieldKey);
+      }
+    }
+
+    // 添加任何未在字段顺序中的字段
+    for (const item of existingItems.values()) {
+      newItems.push(item);
+    }
+
+    // 替换 items
+    taskNode.items = newItems;
+  }
 }
