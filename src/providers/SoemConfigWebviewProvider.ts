@@ -531,6 +531,16 @@ export class SoemConfigWebviewProvider implements vscode.WebviewViewProvider {
                   f.key.includes(`motor${motorIndex}_speed_pid`)
                 );
 
+                // Find the position to insert (after control_type)
+                let insertIndex = -1;
+                for (let i = 0; i < taskNode.items.length; i++) {
+                  const item = taskNode.items[i];
+                  if (yaml.isScalar(item.key) && String(item.key.value) === fieldKey) {
+                    insertIndex = i + 1;
+                    break;
+                  }
+                }
+
                 for (const field of speedPidFields) {
                   if (!taskNode.has(field.key)) {
                     console.log(`[Control Type Change] Adding field: ${field.key} = ${field.default}`);
@@ -539,7 +549,15 @@ export class SoemConfigWebviewProvider implements vscode.WebviewViewProvider {
                     if (field.data_type) {
                       valueScalar.tag = `!${field.data_type}`;
                     }
-                    taskNode.set(field.key, valueScalar);
+
+                    // Insert at the correct position
+                    if (insertIndex >= 0) {
+                      const newPair = new yaml.Pair(new yaml.Scalar(field.key), valueScalar);
+                      taskNode.items.splice(insertIndex, 0, newPair);
+                      insertIndex++; // Move insert position for next field
+                    } else {
+                      taskNode.set(field.key, valueScalar);
+                    }
                   }
                 }
               }
@@ -551,6 +569,19 @@ export class SoemConfigWebviewProvider implements vscode.WebviewViewProvider {
                   f.key.includes(`motor${motorIndex}_angle_pid`)
                 );
 
+                // Find the position to insert (after last speed_pid field or control_type)
+                let insertIndex = -1;
+                for (let i = taskNode.items.length - 1; i >= 0; i--) {
+                  const item = taskNode.items[i];
+                  if (yaml.isScalar(item.key)) {
+                    const keyStr = String(item.key.value);
+                    if (keyStr.includes(`motor${motorIndex}_speed_pid`) || keyStr === fieldKey) {
+                      insertIndex = i + 1;
+                      break;
+                    }
+                  }
+                }
+
                 for (const field of anglePidFields) {
                   if (!taskNode.has(field.key)) {
                     console.log(`[Control Type Change] Adding field: ${field.key} = ${field.default}`);
@@ -559,7 +590,15 @@ export class SoemConfigWebviewProvider implements vscode.WebviewViewProvider {
                     if (field.data_type) {
                       valueScalar.tag = `!${field.data_type}`;
                     }
-                    taskNode.set(field.key, valueScalar);
+
+                    // Insert at the correct position
+                    if (insertIndex >= 0) {
+                      const newPair = new yaml.Pair(new yaml.Scalar(field.key), valueScalar);
+                      taskNode.items.splice(insertIndex, 0, newPair);
+                      insertIndex++; // Move insert position for next field
+                    } else {
+                      taskNode.set(field.key, valueScalar);
+                    }
                   }
                 }
               }
