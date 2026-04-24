@@ -165,6 +165,17 @@ const fieldDef = computed<FieldDefinition | undefined>(() => {
 
 // 显示标签
 const displayLabel = computed(() => {
+  // 特殊字段的显示标签
+  const specialLabels: Record<string, string> = {
+    'sdowrite_task_type': 'Task Type',
+    'conf_connection_lost_read_action': 'Connection Lost Read Action',
+    'sdowrite_connection_lost_write_action': 'Connection Lost Write Action',
+  };
+
+  if (props.prop in specialLabels) {
+    return specialLabels[props.prop];
+  }
+
   return fieldDef.value?.label || props.prop;
 });
 
