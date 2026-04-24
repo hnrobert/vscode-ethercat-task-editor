@@ -2,6 +2,7 @@ import * as vscode from 'vscode';
 import { SoemConfigWebviewProvider } from './providers/SoemConfigWebviewProvider';
 import { EthercatYamlFormatter } from './providers/EthercatYamlFormatter';
 import { isEthercatYaml, setEthercatYamlLanguage } from './utils/languageDetector';
+import { configureFileIcon } from './utils/iconConfigurator';
 
 async function updateEthercatContext() {
   const editor = vscode.window.activeTextEditor;
@@ -74,6 +75,12 @@ export function activate(context: vscode.ExtensionContext) {
           'ethercatTaskEditor.sidebar.focus',
         );
       },
+    ),
+  );
+  context.subscriptions.push(
+    vscode.commands.registerCommand(
+      'ethercatTaskEditor.configureFileIcon',
+      () => configureFileIcon(context),
     ),
   );
 

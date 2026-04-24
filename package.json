@@ -181,6 +181,10 @@
         "command": "ethercatTaskEditor.showPanel",
         "title": "Open EtherCAT Config",
         "icon": "assets/images/icon-stroke-outline.svg"
+      },
+      {
+        "command": "ethercatTaskEditor.configureFileIcon",
+        "title": "Configure EtherCAT File Icon"
       }
     ],
     "menus": {

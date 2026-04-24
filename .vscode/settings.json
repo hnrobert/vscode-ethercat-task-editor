@@ -9,9 +9,11 @@
         "ethercat",
         "Hipnuc",
         "IMUCAN",
+        "nobg",
         "Openloop",
         "pdoread",
         "pdowrite",
+        "pkief",
         "pmax",
         "RXPDO",
         "SBUS",
@@ -21,7 +23,8 @@
         "stringifier",
         "tmax",
         "TXPDO",
-        "vmax"
+        "vmax",
+        "vsicons"
     ],
     "cmake.ignoreCMakeListsMissing": true
 }
