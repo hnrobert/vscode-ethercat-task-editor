@@ -15,9 +15,10 @@ The extension can automatically configure EtherCAT icons for the following theme
 ### Demo
 
 - Material Icon Theme
-   ![material-icon-theme]()
+   ![material-icon-theme](https://github.com/user-attachments/assets/85bb60db-040c-409b-a3b8-8d0bf87c7ba9)
+
 - VSCode Icons
-   ![vscode-icons]()
+   ![vscode-icons](https://github.com/user-attachments/assets/56219ffa-fe12-4812-b4cc-76c69fa47c2b)
 
 ### Quick Start
 
