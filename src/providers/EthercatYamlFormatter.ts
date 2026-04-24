@@ -28,12 +28,6 @@ export class EthercatYamlFormatter implements vscode.DocumentFormattingEditProvi
       // 重新排序所有 task 的字段
       this.reorderAllTaskFields(doc, data);
 
-      // 设置 2 空格缩进
-      doc.options = {
-        ...doc.options,
-        indent: 2,
-      };
-
       // 生成格式化后的文本
       const formattedText = this.stringifyWithProperSpacing(doc);
 
