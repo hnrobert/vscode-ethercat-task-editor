@@ -20,6 +20,23 @@
       </option>
     </select>
 
+    <!-- Connection Lost Action Fields -->
+    <select
+      v-else-if="prop === 'conf_connection_lost_read_action' || prop === 'sdowrite_connection_lost_write_action'"
+      class="prop-select"
+      :value="String(normalizedValue)"
+      @change="onSelectChange"
+    >
+      <option
+        v-for="option in validOptions"
+        :key="option.value"
+        :value="String(option.value)"
+        :title="option.description"
+      >
+        {{ option.label }}
+      </option>
+    </select>
+
     <!-- Boolean Field -->
     <select
       v-else-if="fieldDef?.type === 'select' && typeof val === 'boolean'"
@@ -218,6 +235,23 @@ const isVisible = computed(() => {
 
 // 获取有效选项
 const validOptions = computed<FieldOption[]>(() => {
+  // 特殊字段的选项定义
+  const specialFieldOptions: Record<string, FieldOption[]> = {
+    'conf_connection_lost_read_action': [
+      { value: 1, label: 'Keep Last', description: 'Keep last value when connection is lost' },
+      { value: 2, label: 'Reset to Default', description: 'Reset to default value when connection is lost' },
+    ],
+    'sdowrite_connection_lost_write_action': [
+      { value: 1, label: 'Keep Last', description: 'Keep last value when connection is lost' },
+      { value: 2, label: 'Reset to Default', description: 'Reset to default value when connection is lost' },
+    ],
+  };
+
+  // 如果是特殊字段，返回预定义的选项
+  if (props.prop in specialFieldOptions) {
+    return specialFieldOptions[props.prop];
+  }
+
   if (!fieldDef.value?.options) {
     return [];
   }
