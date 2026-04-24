@@ -96,10 +96,28 @@
         },
         {
           "comment": "EtherCAT structure keywords",
-          "match": "\\b(slaves|tasks|alias|sn*)\\s*:",
+          "match": "\\b(slaves|tasks|alias)\\s*:",
           "captures": {
             "1": {
               "name": "keyword.control.ethercat"
+            }
+          }
+        },
+        {
+          "comment": "EtherCAT slave serial number (sn*)",
+          "match": "\\b(sn[a-zA-Z0-9_]+)\\s*:",
+          "captures": {
+            "1": {
+              "name": "entity.name.type.ethercat.sn"
+            }
+          }
+        },
+        {
+          "comment": "EtherCAT application names (app_*)",
+          "match": "\\b(app_[a-zA-Z0-9_]+)\\s*:",
+          "captures": {
+            "1": {
+              "name": "entity.name.function.ethercat.app"
             }
           }
         },

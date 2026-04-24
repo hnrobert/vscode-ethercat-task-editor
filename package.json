@@ -85,6 +85,20 @@
             }
           },
           {
+            "scope": "entity.name.type.ethercat.sn",
+            "settings": {
+              "foreground": "#28cdff",
+              "fontStyle": "bold"
+            }
+          },
+          {
+            "scope": "entity.name.function.ethercat.app",
+            "settings": {
+              "foreground": "#fcff66",
+              "fontStyle": "bold"
+            }
+          },
+          {
             "scope": "storage.type.ethercat.tag.string",
             "settings": {
               "foreground": "#808080"
