@@ -14,6 +14,60 @@
     "ethercat-specific": {
       "patterns": [
         {
+          "comment": "EtherCAT YAML tag - std::string",
+          "match": "(!std::string)(?=\\s)",
+          "name": "storage.type.ethercat.tag.string"
+        },
+        {
+          "comment": "EtherCAT YAML tag - uint8_t",
+          "match": "(!uint8_t)(?=\\s)",
+          "name": "storage.type.ethercat.tag.uint8"
+        },
+        {
+          "comment": "EtherCAT YAML tag - uint16_t",
+          "match": "(!uint16_t)(?=\\s)",
+          "name": "storage.type.ethercat.tag.uint16"
+        },
+        {
+          "comment": "EtherCAT YAML tag - uint32_t",
+          "match": "(!uint32_t)(?=\\s)",
+          "name": "storage.type.ethercat.tag.uint32"
+        },
+        {
+          "comment": "EtherCAT YAML tag - int8_t",
+          "match": "(!int8_t)(?=\\s)",
+          "name": "storage.type.ethercat.tag.int8"
+        },
+        {
+          "comment": "EtherCAT YAML tag - int16_t",
+          "match": "(!int16_t)(?=\\s)",
+          "name": "storage.type.ethercat.tag.int16"
+        },
+        {
+          "comment": "EtherCAT YAML tag - int32_t",
+          "match": "(!int32_t)(?=\\s)",
+          "name": "storage.type.ethercat.tag.int32"
+        },
+        {
+          "comment": "EtherCAT YAML tag - float",
+          "match": "(!float)(?=\\s)",
+          "name": "storage.type.ethercat.tag.float"
+        },
+        {
+          "comment": "Invalid EtherCAT YAML tags",
+          "match": "(!\\w+)(?=\\s)",
+          "name": "invalid.illegal.ethercat.tag"
+        },
+        {
+          "comment": "EtherCAT special connection lost fields",
+          "match": "\\b(conf_connection_lost_read_action|sdowrite_connection_lost_write_action)\\s*:",
+          "captures": {
+            "1": {
+              "name": "entity.name.tag.ethercat.conf"
+            }
+          }
+        },
+        {
           "comment": "EtherCAT field names - sdowrite_*",
           "match": "\\b(sdowrite_[a-zA-Z0-9_]+)\\s*:",
           "captures": {
@@ -23,20 +77,11 @@
           }
         },
         {
-          "comment": "EtherCAT field names - pdoread_*",
-          "match": "\\b(pdoread_[a-zA-Z0-9_]+)\\s*:",
+          "comment": "EtherCAT field names - pdo (read/write)",
+          "match": "\\b(pdo(?:read|write)_[a-zA-Z0-9_]+)\\s*:",
           "captures": {
             "1": {
-              "name": "entity.name.tag.ethercat.pdoread"
-            }
-          }
-        },
-        {
-          "comment": "EtherCAT field names - pdowrite_*",
-          "match": "\\b(pdowrite_[a-zA-Z0-9_]+)\\s*:",
-          "captures": {
-            "1": {
-              "name": "entity.name.tag.ethercat.pdowrite"
+              "name": "entity.name.tag.ethercat.pdo"
             }
           }
         },
@@ -51,7 +96,7 @@
         },
         {
           "comment": "EtherCAT structure keywords",
-          "match": "\\b(slaves|tasks|alias|board_type|sn)\\s*:",
+          "match": "\\b(slaves|tasks|alias|sn*)\\s*:",
           "captures": {
             "1": {
               "name": "keyword.control.ethercat"
@@ -93,11 +138,6 @@
               "name": "support.type.property-name.ethercat.topic"
             }
           }
-        },
-        {
-          "comment": "EtherCAT YAML tags",
-          "match": "!(uint8_t|uint16_t|uint32_t|int8_t|int16_t|int32_t|float|double|std::string)",
-          "name": "storage.type.ethercat.tag"
         }
       ]
     }

@@ -8,6 +8,7 @@ import { TaskRegistry } from '../tasks';
 import { TaskTypeMemory } from '../utils/taskTypeMemory';
 import { applyAndSaveYaml, parseTopicSegment } from '../utils/yamlUtils';
 import { validateTopics } from '../utils/topicValidator';
+import { validateTags } from '../utils/tagValidator';
 
 export class SoemConfigWebviewProvider implements vscode.WebviewViewProvider {
   public static readonly viewType = 'ethercatTaskEditor.sidebar';
@@ -204,9 +205,11 @@ export class SoemConfigWebviewProvider implements vscode.WebviewViewProvider {
       const data = doc.toJSON();
       this.lastParsedDoc = { doc, data, isValid: true };
 
-      // Validate topics and set diagnostics
-      const diagnostics = validateTopics(editor.document, doc, data);
-      this.diagnosticCollection.set(editor.document.uri, diagnostics);
+      // Validate topics and tags, set diagnostics
+      const topicDiagnostics = validateTopics(editor.document, doc, data);
+      const tagDiagnostics = validateTags(editor.document, doc);
+      const allDiagnostics = [...topicDiagnostics, ...tagDiagnostics];
+      this.diagnosticCollection.set(editor.document.uri, allDiagnostics);
 
       // Compute field visibility and option validity for all tasks
       const enrichedData = this.enrichDataWithVisibility(data);

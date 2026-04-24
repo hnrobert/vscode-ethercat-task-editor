@@ -19,7 +19,10 @@
     "languages": [
       {
         "id": "ethercat-yaml",
-        "aliases": ["EtherCAT Task Config", "EtherCAT YAML"],
+        "aliases": [
+          "EtherCAT Task Config",
+          "EtherCAT YAML"
+        ],
         "extensions": [],
         "configuration": "./language-configuration.json"
       }
@@ -36,6 +39,107 @@
         "editor.tabSize": 2,
         "editor.insertSpaces": true,
         "editor.formatOnSave": false
+      },
+      "editor.tokenColorCustomizations": {
+        "textMateRules": [
+          {
+            "scope": "entity.name.tag.ethercat.sdowrite",
+            "settings": {
+              "foreground": "#4EC9B0"
+            }
+          },
+          {
+            "scope": "entity.name.tag.ethercat.pdo",
+            "settings": {
+              "foreground": "#febb5d"
+            }
+          },
+          {
+            "scope": "entity.name.tag.ethercat.conf",
+            "settings": {
+              "foreground": "#DCDCAA"
+            }
+          },
+          {
+            "scope": "keyword.control.ethercat",
+            "settings": {
+              "foreground": "#C586C0"
+            }
+          },
+          {
+            "scope": "variable.parameter.ethercat.motor",
+            "settings": {
+              "foreground": "#9CDCFE"
+            }
+          },
+          {
+            "scope": "variable.parameter.ethercat.pid",
+            "settings": {
+              "foreground": "#B5CEA8"
+            }
+          },
+          {
+            "scope": "support.type.property-name.ethercat.topic",
+            "settings": {
+              "foreground": "#00ffff"
+            }
+          },
+          {
+            "scope": "storage.type.ethercat.tag.string",
+            "settings": {
+              "foreground": "#808080"
+            }
+          },
+          {
+            "scope": "storage.type.ethercat.tag.uint8",
+            "settings": {
+              "foreground": "#808080"
+            }
+          },
+          {
+            "scope": "storage.type.ethercat.tag.uint16",
+            "settings": {
+              "foreground": "#808080"
+            }
+          },
+          {
+            "scope": "storage.type.ethercat.tag.uint32",
+            "settings": {
+              "foreground": "#808080"
+            }
+          },
+          {
+            "scope": "storage.type.ethercat.tag.int8",
+            "settings": {
+              "foreground": "#808080"
+            }
+          },
+          {
+            "scope": "storage.type.ethercat.tag.int16",
+            "settings": {
+              "foreground": "#808080"
+            }
+          },
+          {
+            "scope": "storage.type.ethercat.tag.int32",
+            "settings": {
+              "foreground": "#808080"
+            }
+          },
+          {
+            "scope": "storage.type.ethercat.tag.float",
+            "settings": {
+              "foreground": "#808080"
+            }
+          },
+          {
+            "scope": "invalid.illegal.ethercat.tag",
+            "settings": {
+              "foreground": "#F44747",
+              "fontStyle": "italic underline"
+            }
+          }
+        ]
       }
     },
     "viewsContainers": {
