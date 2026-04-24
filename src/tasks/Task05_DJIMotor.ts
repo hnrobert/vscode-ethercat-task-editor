@@ -451,13 +451,13 @@ export class Task05_DJIMotor extends TaskBase {
     const oldCanId = Number(oldValue);
     const newCanId = Number(newValue);
 
-    console.log(
-      `[DJI Motor] CAN ID changed for motor ${motorIndex}: ${oldCanId} -> ${newCanId}`,
-    );
+    // console.log(
+    //   `[DJI Motor] CAN ID changed for motor ${motorIndex}: ${oldCanId} -> ${newCanId}`,
+    // );
 
     // 从启用改为禁用：删除所有相关字段
     if (oldCanId !== 0 && newCanId === 0) {
-      console.log(`[DJI Motor] Disabling motor ${motorIndex}, removing all fields`);
+      // console.log(`[DJI Motor] Disabling motor ${motorIndex}, removing all fields`);
       const keysToRemove: any[] = [];
 
       for (let i = 0; i < taskNode.items.length; i++) {
@@ -471,7 +471,7 @@ export class Task05_DJIMotor extends TaskBase {
           keyStr !== `sdowrite_motor${motorIndex}_can_id`
         ) {
           keysToRemove.push(item.key);
-          console.log(`[DJI Motor] Will remove field: ${keyStr}`);
+          // console.log(`[DJI Motor] Will remove field: ${keyStr}`);
         }
       }
 
@@ -481,7 +481,7 @@ export class Task05_DJIMotor extends TaskBase {
 
     // 从禁用改为启用：添加 control_type 字段
     if (oldCanId === 0 && newCanId !== 0) {
-      console.log(`[DJI Motor] Enabling motor ${motorIndex}, adding control_type`);
+      // console.log(`[DJI Motor] Enabling motor ${motorIndex}, adding control_type`);
 
       // 找到 can_id 的位置
       let insertIndex = -1;
@@ -508,7 +508,7 @@ export class Task05_DJIMotor extends TaskBase {
             valueScalar,
           );
           taskNode.items.splice(insertIndex, 0, newPair);
-          console.log(`[DJI Motor] Added field: ${controlTypeKey} = 1`);
+          // console.log(`[DJI Motor] Added field: ${controlTypeKey} = 1`);
         } else {
           taskNode.set(controlTypeKey, valueScalar);
         }
@@ -533,9 +533,9 @@ export class Task05_DJIMotor extends TaskBase {
     const oldControlType = Number(oldValue);
     const fieldKey = `sdowrite_motor${motorIndex}_control_type`;
 
-    console.log(
-      `[DJI Motor] Control Type changed for motor ${motorIndex}: ${oldControlType} -> ${newControlType}`,
-    );
+    // console.log(
+    //   `[DJI Motor] Control Type changed for motor ${motorIndex}: ${oldControlType} -> ${newControlType}`,
+    // );
 
     const fields = this.getFields();
 
@@ -552,7 +552,7 @@ export class Task05_DJIMotor extends TaskBase {
         keyStr.includes(`motor${motorIndex}_speed_pid`)
       ) {
         keysToRemove.push(item.key);
-        console.log(`[DJI Motor] Will remove Speed PID field: ${keyStr}`);
+        // console.log(`[DJI Motor] Will remove Speed PID field: ${keyStr}`);
       }
 
       // Remove Angle PID fields if control_type < 3
@@ -561,20 +561,20 @@ export class Task05_DJIMotor extends TaskBase {
         keyStr.includes(`motor${motorIndex}_angle_pid`)
       ) {
         keysToRemove.push(item.key);
-        console.log(`[DJI Motor] Will remove Angle PID field: ${keyStr}`);
+        // console.log(`[DJI Motor] Will remove Angle PID field: ${keyStr}`);
       }
     }
 
     keysToRemove.forEach((k) => {
-      console.log(`[DJI Motor] Removing field: ${k}`);
+      // console.log(`[DJI Motor] Removing field: ${k}`);
       taskNode.delete(k);
     });
 
     // Add Speed PID fields if control_type >= 2 and they don't exist
     if (newControlType >= 2 && oldControlType < 2) {
-      console.log(
-        `[DJI Motor] Adding Speed PID fields for motor ${motorIndex}`,
-      );
+      // console.log(
+      //   `[DJI Motor] Adding Speed PID fields for motor ${motorIndex}`,
+      // );
       const speedPidFields = fields.filter((f) =>
         f.key.includes(`motor${motorIndex}_speed_pid`),
       );
@@ -591,9 +591,9 @@ export class Task05_DJIMotor extends TaskBase {
 
       for (const field of speedPidFields) {
         if (!taskNode.has(field.key)) {
-          console.log(
-            `[DJI Motor] Adding field: ${field.key} = ${field.default}`,
-          );
+          // console.log(
+          //   `[DJI Motor] Adding field: ${field.key} = ${field.default}`,
+          // );
           const value = field.default;
           const valueScalar = new yaml.Scalar(value);
           if (field.data_type) {
@@ -617,9 +617,9 @@ export class Task05_DJIMotor extends TaskBase {
 
     // Add Angle PID fields if control_type >= 3 and they don't exist
     if (newControlType >= 3 && oldControlType < 3) {
-      console.log(
-        `[DJI Motor] Adding Angle PID fields for motor ${motorIndex}`,
-      );
+      // console.log(
+      //   `[DJI Motor] Adding Angle PID fields for motor ${motorIndex}`,
+      // );
       const anglePidFields = fields.filter((f) =>
         f.key.includes(`motor${motorIndex}_angle_pid`),
       );
@@ -642,9 +642,9 @@ export class Task05_DJIMotor extends TaskBase {
 
       for (const field of anglePidFields) {
         if (!taskNode.has(field.key)) {
-          console.log(
-            `[DJI Motor] Adding field: ${field.key} = ${field.default}`,
-          );
+          // console.log(
+          //   `[DJI Motor] Adding field: ${field.key} = ${field.default}`,
+          // );
           const value = field.default;
           const valueScalar = new yaml.Scalar(value);
           if (field.data_type) {

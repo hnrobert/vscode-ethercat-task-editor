@@ -276,12 +276,12 @@ export class SoemConfigWebviewProvider implements vscode.WebviewViewProvider {
 
                 // 调试日志
                 if (field.key.includes('motor') && field.key.includes('_can_id')) {
-                  console.log(`[enrichData] ${field.key}:`, {
-                    packetId: normalizedTaskData.sdowrite_can_packet_id,
-                    totalOptions: field.options.length,
-                    validOptions: validOpts.length,
-                    validOptionValues: validOpts.map(o => o.value),
-                  });
+                  // console.log(`[enrichData] ${field.key}:`, {
+                  //   packetId: normalizedTaskData.sdowrite_can_packet_id,
+                  //   totalOptions: field.options.length,
+                  //   validOptions: validOpts.length,
+                  //   validOptionValues: validOpts.map(o => o.value),
+                  // });
                 }
               }
             }
@@ -527,7 +527,7 @@ export class SoemConfigWebviewProvider implements vscode.WebviewViewProvider {
         // 使用 TaskRegistry 获取 task 定义
         const task = TaskRegistry.getTask(Number(finalValue));
         if (!task) {
-          console.error(`Unknown task type: ${finalValue}`);
+          // console.error(`Unknown task type: ${finalValue}`);
           return;
         }
 
@@ -612,9 +612,9 @@ export class SoemConfigWebviewProvider implements vscode.WebviewViewProvider {
             });
 
             if (handled) {
-              console.log(
-                `[Provider] Field change handled by task: ${fieldKey}`,
-              );
+              // console.log(
+              //   `[Provider] Field change handled by task: ${fieldKey}`,
+              // );
 
               // 重新排序字段
               task.reorderFields(taskNode);

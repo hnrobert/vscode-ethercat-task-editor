@@ -158,7 +158,7 @@ export abstract class TaskBase {
     try {
       return field.visible_when(taskData);
     } catch (e) {
-      console.error(`Error evaluating visible_when for ${fieldKey}:`, e);
+      // console.error(`Error evaluating visible_when for ${fieldKey}:`, e);
       return true;
     }
   }
@@ -187,10 +187,10 @@ export abstract class TaskBase {
     try {
       return option.valid_when(taskData);
     } catch (e) {
-      console.error(
-        `Error evaluating valid_when for ${fieldKey} option ${optionValue}:`,
-        e,
-      );
+      // console.error(
+      //   `Error evaluating valid_when for ${fieldKey} option ${optionValue}:`,
+      //   e,
+      // );
       return true;
     }
   }
@@ -216,10 +216,10 @@ export abstract class TaskBase {
       try {
         return opt.valid_when(taskData);
       } catch (e) {
-        console.error(
-          `Error evaluating valid_when for ${fieldKey} option ${opt.value}:`,
-          e,
-        );
+        // console.error(
+        //   `Error evaluating valid_when for ${fieldKey} option ${opt.value}:`,
+        //   e,
+        // );
         return true;
       }
     });
@@ -285,7 +285,7 @@ export abstract class TaskBase {
               });
             }
           } catch (e) {
-            console.error(`Error validating ${field.key}:`, e);
+            // console.error(`Error validating ${field.key}:`, e);
           }
         }
       }

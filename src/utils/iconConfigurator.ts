@@ -6,7 +6,9 @@ import * as fs from 'fs';
  * 配置 EtherCAT 文件图标
  * 尝试将图标嵌入到用户当前使用的主题中
  */
-export async function configureFileIcon(context: vscode.ExtensionContext): Promise<void> {
+export async function configureFileIcon(
+  context: vscode.ExtensionContext,
+): Promise<void> {
   const config = vscode.workspace.getConfiguration();
   const currentTheme = config.get<string>('workbench.iconTheme');
 
@@ -17,12 +19,23 @@ export async function configureFileIcon(context: vscode.ExtensionContext): Promi
     return;
   }
 
-  const iconSourcePath = path.join(context.extensionPath, 'assets', 'images', 'icon-nobg.png');
+  const iconSourcePath = path.join(
+    context.extensionPath,
+    'assets',
+    'images',
+    'icon-nobg.png',
+  );
 
   // 检测并配置不同的主题
-  if (currentTheme === 'material-icon-theme' || currentTheme.includes('material')) {
+  if (
+    currentTheme === 'material-icon-theme' ||
+    currentTheme.includes('material')
+  ) {
     await configureMaterialIconTheme(context, iconSourcePath);
-  } else if (currentTheme === 'vscode-icons' || currentTheme.includes('vscode-icons')) {
+  } else if (
+    currentTheme === 'vscode-icons' ||
+    currentTheme.includes('vscode-icons')
+  ) {
     await configureVSCodeIcons(context, iconSourcePath);
   } else {
     // 对于其他主题，提供通用方案
@@ -34,19 +47,24 @@ export async function configureFileIcon(context: vscode.ExtensionContext): Promi
  * 配置 Material Icon Theme
  * 将图标文件添加到主题目录并修改配置
  */
-async function configureMaterialIconTheme(_context: vscode.ExtensionContext, iconSourcePath: string): Promise<void> {
+async function configureMaterialIconTheme(
+  _context: vscode.ExtensionContext,
+  iconSourcePath: string,
+): Promise<void> {
   try {
     // 查找 Material Icon Theme 的安装目录
     const extensionsPath = path.join(
       process.env.HOME || process.env.USERPROFILE || '',
       '.vscode',
-      'extensions'
+      'extensions',
     );
 
     let themeDir: string | null = null;
     if (fs.existsSync(extensionsPath)) {
       const dirs = fs.readdirSync(extensionsPath);
-      const materialThemeDir = dirs.find(dir => dir.startsWith('pkief.material-icon-theme'));
+      const materialThemeDir = dirs.find((dir) =>
+        dir.startsWith('pkief.material-icon-theme'),
+      );
       if (materialThemeDir) {
         themeDir = path.join(extensionsPath, materialThemeDir);
       }
@@ -78,9 +96,15 @@ async function configureMaterialIconTheme(_context: vscode.ExtensionContext, ico
     fs.copyFileSync(iconSourcePath, pngDestPath);
 
     // 修改主题的 icon 定义文件
-    const iconDefinitionsPath = path.join(themeDir, 'dist', 'material-icons.json');
+    const iconDefinitionsPath = path.join(
+      themeDir,
+      'dist',
+      'material-icons.json',
+    );
     if (fs.existsSync(iconDefinitionsPath)) {
-      const iconDefinitions = JSON.parse(fs.readFileSync(iconDefinitionsPath, 'utf8'));
+      const iconDefinitions = JSON.parse(
+        fs.readFileSync(iconDefinitionsPath, 'utf8'),
+      );
 
       // 添加 EtherCAT 图标定义
       if (!iconDefinitions.iconDefinitions) {
@@ -88,7 +112,7 @@ async function configureMaterialIconTheme(_context: vscode.ExtensionContext, ico
       }
 
       iconDefinitions.iconDefinitions._ethercat = {
-        iconPath: '../icons/ethercat.png'
+        iconPath: '../icons/ethercat.png',
       };
 
       // 添加语言关联
@@ -99,7 +123,10 @@ async function configureMaterialIconTheme(_context: vscode.ExtensionContext, ico
       iconDefinitions.languageIds['ethercat-yaml'] = '_ethercat';
 
       // 写回文件
-      fs.writeFileSync(iconDefinitionsPath, JSON.stringify(iconDefinitions, null, 2));
+      fs.writeFileSync(
+        iconDefinitionsPath,
+        JSON.stringify(iconDefinitions, null, 2),
+      );
 
       vscode.window.showInformationMessage(
         'EtherCAT icon has been added to Material Icon Theme!',
@@ -108,7 +135,7 @@ async function configureMaterialIconTheme(_context: vscode.ExtensionContext, ico
       await configureFallback();
     }
   } catch (error) {
-    console.error('Error configuring Material Icon Theme:', error);
+    // console.error('Error configuring Material Icon Theme:', error);
     vscode.window.showErrorMessage(
       `Failed to configure Material Icon Theme: ${error}. Using fallback configuration.`,
     );
@@ -119,19 +146,24 @@ async function configureMaterialIconTheme(_context: vscode.ExtensionContext, ico
 /**
  * 配置 VSCode Icons
  */
-async function configureVSCodeIcons(_context: vscode.ExtensionContext, iconSourcePath: string): Promise<void> {
+async function configureVSCodeIcons(
+  _context: vscode.ExtensionContext,
+  iconSourcePath: string,
+): Promise<void> {
   try {
     // 查找 VSCode Icons 的安装目录
     const extensionsPath = path.join(
       process.env.HOME || process.env.USERPROFILE || '',
       '.vscode',
-      'extensions'
+      'extensions',
     );
 
     let themeDir: string | null = null;
     if (fs.existsSync(extensionsPath)) {
       const dirs = fs.readdirSync(extensionsPath);
-      const vscodeIconsDir = dirs.find(dir => dir.startsWith('vscode-icons-team.vscode-icons'));
+      const vscodeIconsDir = dirs.find((dir) =>
+        dir.startsWith('vscode-icons-team.vscode-icons'),
+      );
       if (vscodeIconsDir) {
         themeDir = path.join(extensionsPath, vscodeIconsDir);
       }
@@ -194,10 +226,12 @@ async function configureVSCodeIcons(_context: vscode.ExtensionContext, iconSourc
 
     // 计算相对路径
     const configDir = path.dirname(configPath);
-    const relativePath = path.relative(configDir, pngDestPath).replace(/\\/g, '/');
+    const relativePath = path
+      .relative(configDir, pngDestPath)
+      .replace(/\\/g, '/');
 
     iconDefinitions.iconDefinitions._file_type_ethercat = {
-      iconPath: `./${relativePath}`
+      iconPath: `./${relativePath}`,
     };
 
     // 添加语言关联
@@ -214,7 +248,7 @@ async function configureVSCodeIcons(_context: vscode.ExtensionContext, iconSourc
       'EtherCAT icon has been added to VSCode Icons!',
     );
   } catch (error) {
-    console.error('Error configuring VSCode Icons:', error);
+    // console.error('Error configuring VSCode Icons:', error);
     vscode.window.showErrorMessage(
       `Failed to configure VSCode Icons: ${error}. Using fallback configuration.`,
     );
@@ -225,7 +259,11 @@ async function configureVSCodeIcons(_context: vscode.ExtensionContext, iconSourc
 /**
  * 配置通用主题
  */
-async function configureGenericTheme(_context: vscode.ExtensionContext, _iconSourcePath: string, themeName: string): Promise<void> {
+async function configureGenericTheme(
+  _context: vscode.ExtensionContext,
+  _iconSourcePath: string,
+  themeName: string,
+): Promise<void> {
   vscode.window.showInformationMessage(
     `Your current theme "${themeName}" is not directly supported. Using fallback configuration.`,
   );
@@ -239,11 +277,15 @@ async function configureFallback(): Promise<void> {
   const config = vscode.workspace.getConfiguration();
   const currentTheme = config.get<string>('workbench.iconTheme');
 
-  if (currentTheme === 'material-icon-theme' || currentTheme?.includes('material')) {
+  if (
+    currentTheme === 'material-icon-theme' ||
+    currentTheme?.includes('material')
+  ) {
     // Material Icon Theme: 关联到 YAML 图标
-    const associations = config.get<Record<string, string>>(
-      'material-icon-theme.languages.associations',
-    ) || {};
+    const associations =
+      config.get<Record<string, string>>(
+        'material-icon-theme.languages.associations',
+      ) || {};
 
     associations['ethercat-yaml'] = 'yaml';
 
@@ -256,11 +298,13 @@ async function configureFallback(): Promise<void> {
     vscode.window.showInformationMessage(
       'EtherCAT files will use the YAML icon. For a custom icon, please see the documentation.',
     );
-  } else if (currentTheme === 'vscode-icons' || currentTheme?.includes('vscode-icons')) {
+  } else if (
+    currentTheme === 'vscode-icons' ||
+    currentTheme?.includes('vscode-icons')
+  ) {
     // VSCode Icons: 关联到 YAML 图标
-    const associations = config.get<Record<string, string>>(
-      'vsicons.associations.files',
-    ) || {};
+    const associations =
+      config.get<Record<string, string>>('vsicons.associations.files') || {};
 
     // VSCode Icons 使用文件扩展名关联
     associations['.ethercat.yaml'] = 'yaml';

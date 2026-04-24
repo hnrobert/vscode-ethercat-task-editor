@@ -119,7 +119,7 @@ export function normalizeTaskKeys(doc: yaml.Document) {
             true,
           );
           if (yaml.isMap(taskNode)) {
-            console.log(`[normalizeTaskKeys] Reordering fields for task ${expectedKey} (type ${taskType})`);
+            // console.log(`[normalizeTaskKeys] Reordering fields for task ${expectedKey} (type ${taskType})`);
             taskDef.reorderFields(taskNode);
           }
         }

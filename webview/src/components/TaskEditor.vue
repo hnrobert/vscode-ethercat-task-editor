@@ -67,7 +67,7 @@ const visibleProps = computed(() => {
   const taskTypeDef = taskTypes.value.find((t: any) => t.id === taskType);
   if (!taskTypeDef?.fields) {
     // 如果没有字段定义，使用原来的逻辑
-    console.log(`[TaskEditor] No field definition for task type ${taskType}, using fallback`);
+    // console.log(`[TaskEditor] No field definition for task type ${taskType}, using fallback`);
     return Object.keys(props.tInfo).filter(
       (p) => p !== 'pdoread_offset' && p !== 'pdowrite_offset' && p !== 'pub_topic' && p !== 'sub_topic' && !p.startsWith('_'),
     );
@@ -110,7 +110,7 @@ const visibleProps = computed(() => {
     }
   }
 
-  console.log(`[TaskEditor] Task ${props.tKey} visible props:`, orderedProps.length, orderedProps);
+  // console.log(`[TaskEditor] Task ${props.tKey} visible props:`, orderedProps.length, orderedProps);
   return orderedProps;
 });
 

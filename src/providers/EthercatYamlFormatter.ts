@@ -13,8 +13,8 @@ import { TaskRegistry } from '../tasks';
 export class EthercatYamlFormatter implements vscode.DocumentFormattingEditProvider {
   provideDocumentFormattingEdits(
     document: vscode.TextDocument,
-    options: vscode.FormattingOptions,
-    token: vscode.CancellationToken,
+    _options: vscode.FormattingOptions,
+    _token: vscode.CancellationToken,
   ): vscode.ProviderResult<vscode.TextEdit[]> {
     try {
       const text = document.getText();
@@ -45,7 +45,7 @@ export class EthercatYamlFormatter implements vscode.DocumentFormattingEditProvi
 
       return [vscode.TextEdit.replace(fullRange, formattedText)];
     } catch (e) {
-      console.error('Failed to format EtherCAT YAML:', e);
+      // console.error('Failed to format EtherCAT YAML:', e);
       return [];
     }
   }
