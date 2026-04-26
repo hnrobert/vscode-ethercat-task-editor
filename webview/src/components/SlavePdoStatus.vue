@@ -246,12 +246,14 @@ function onAddBoardType() {
 
 <style scoped>
 .slave-pdo-status {
-  margin-top: 8px;
+  /* margin-top: 8px; */
   padding: 10px 12px;
   background-color: var(--vscode-editor-background);
-  border-radius: 4px;
-  border: 1px solid var(--vscode-panel-border);
+  /* border: 1px solid var(--vscode-panel-border); */
   overflow: hidden;
+  position: sticky;
+  top: 30px; /* header-row height + padding */
+  z-index: 9;
 }
 
 .board-type-row {
