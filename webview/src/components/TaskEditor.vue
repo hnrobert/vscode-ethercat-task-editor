@@ -1,8 +1,9 @@
 <template>
-  <details class="task-container" :class="{ dragging: isDragging }" open>
+  <details class="task-container" :class="{ dragging: isDragging }" open @toggle="onToggle">
     <summary
       class="task-title"
       draggable="true"
+      @mousedown="onSummaryMousedown"
       @dragstart="onDragStart"
       @dragend="onDragEnd"
     >
@@ -153,6 +154,34 @@ function onRemove() {
 
 // Drag
 const isDragging = ref(false);
+
+// Sticky scroll correction — capture state before browser toggles
+const preToggleStickyTop = ref(-1);
+
+function onSummaryMousedown(e: MouseEvent) {
+  const el = e.target as HTMLElement;
+  if (el.closest('.btn-group') || el.tagName === 'INPUT') {
+    preToggleStickyTop.value = -1;
+    return;
+  }
+  const summary = e.currentTarget as HTMLElement;
+  const stickyTop = parseFloat(getComputedStyle(summary).top) || 0;
+  const rect = summary.getBoundingClientRect();
+  preToggleStickyTop.value = Math.abs(rect.top - stickyTop) <= 1 ? stickyTop : -1;
+}
+
+function onToggle(e: Event) {
+  if (preToggleStickyTop.value < 0) return;
+  const stickyTop = preToggleStickyTop.value;
+  preToggleStickyTop.value = -1;
+  const details = e.target as HTMLDetailsElement;
+  requestAnimationFrame(() => {
+    const summary = details.querySelector('summary') as HTMLElement;
+    if (!summary) return;
+    const delta = summary.getBoundingClientRect().top - stickyTop;
+    if (Math.abs(delta) > 1) window.scrollBy(0, delta);
+  });
+}
 
 function onDragStart(e: DragEvent) {
   isDragging.value = true;

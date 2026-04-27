@@ -17,13 +17,13 @@
         <div class="pdo-item">
           <span class="pdo-label">TXPDO:</span>
           <span class="pdo-value" :class="{ 'overflow': isTxOverflow }">
-            {{ txLen }} / {{ maxTx }}
+            {{ txLen }}/{{ maxTx }}
           </span>
         </div>
         <div class="pdo-item">
           <span class="pdo-label">RXPDO:</span>
           <span class="pdo-value" :class="{ 'overflow': isRxOverflow }">
-            {{ rxLen }} / {{ maxRx }}
+            {{ rxLen }}/{{ maxRx }}
           </span>
         </div>
       </div>

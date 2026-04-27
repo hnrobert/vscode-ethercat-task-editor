@@ -52,6 +52,7 @@
           <button @click="onAddSlave">+ Add Slave (SN)</button>
         </div>
       </div>
+      <div class="bottom-spacer"></div>
     </template>
 
     <TaskTypePicker

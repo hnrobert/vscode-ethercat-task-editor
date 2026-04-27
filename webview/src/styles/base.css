@@ -13,3 +13,7 @@ body {
   padding: 10px;
   margin: 0;
 }
+
+.bottom-spacer {
+  height: 95vh;
+}

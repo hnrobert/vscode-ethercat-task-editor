@@ -1,8 +1,9 @@
 <template>
-  <details class="slave-panel" :class="{ dragging: isSlaveDragging }" open>
+  <details class="slave-panel" :class="{ dragging: isSlaveDragging }" open @toggle="onToggle">
     <summary
       class="header-row"
       draggable="true"
+      @mousedown="onSummaryMousedown"
       @dragstart="onSlaveDragStart"
       @dragend="onSlaveDragEnd"
     >
@@ -240,6 +241,33 @@ function onBottomDragOver(e: DragEvent) {
 function onBottomDragLeave(e: DragEvent) {
   if (e.relatedTarget && (e.currentTarget as Element).contains(e.relatedTarget as Node)) return;
   dragOverBottom.value = false;
+}
+
+const preToggleStickyTop = ref(-1);
+
+function onSummaryMousedown(e: MouseEvent) {
+  const el = e.target as HTMLElement;
+  if (el.closest('.btn-group') || el.tagName === 'INPUT') {
+    preToggleStickyTop.value = -1;
+    return;
+  }
+  const summary = e.currentTarget as HTMLElement;
+  const stickyTop = parseFloat(getComputedStyle(summary).top) || 0;
+  const rect = summary.getBoundingClientRect();
+  preToggleStickyTop.value = Math.abs(rect.top - stickyTop) <= 1 ? stickyTop : -1;
+}
+
+function onToggle(e: Event) {
+  if (preToggleStickyTop.value < 0) return;
+  const stickyTop = preToggleStickyTop.value;
+  preToggleStickyTop.value = -1;
+  const details = e.target as HTMLDetailsElement;
+  requestAnimationFrame(() => {
+    const summary = details.querySelector('summary') as HTMLElement;
+    if (!summary) return;
+    const delta = summary.getBoundingClientRect().top - stickyTop;
+    if (Math.abs(delta) > 1) window.scrollBy(0, delta);
+  });
 }
 
 function onTaskDrop(toTIndex: number) {
