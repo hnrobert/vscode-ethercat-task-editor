@@ -3,7 +3,7 @@
   "name": "vscode-ethercat-task-editor",
   "displayName": "EtherCAT Task Editor",
   "description": "Visual sidebar editor for EtherCAT SOEM YAML configuration files.",
-  "version": "0.0.5",
+  "version": "0.0.6",
   "license": "Apache-2.0",
   "repository": {
     "type": "git",
