@@ -1,0 +1,109 @@
+/* Form fields (from PropertyField.vue) */
+.prop-row {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 6px 0;
+  border-bottom: 1px solid var(--vscode-widget-border);
+}
+
+.prop-row.has-error {
+  background: rgba(255, 0, 0, 0.05);
+}
+
+.prop-label-container {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+}
+
+.prop-label {
+  font-size: 12px;
+  opacity: 0.9;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  cursor: help;
+}
+
+.help-icon {
+  display: inline-block;
+  width: 14px;
+  height: 14px;
+  line-height: 14px;
+  text-align: center;
+  border-radius: 50%;
+  background: var(--vscode-badge-background);
+  color: var(--vscode-badge-foreground);
+  font-size: 10px;
+  font-weight: bold;
+}
+
+.prop-row .error-message {
+  font-size: 11px;
+  color: var(--vscode-errorForeground);
+}
+
+.prop-input,
+.prop-select {
+  width: 100%;
+  padding: 4px 8px;
+  background: var(--vscode-input-background);
+  color: var(--vscode-input-foreground);
+  border: 1px solid var(--vscode-input-border);
+  border-radius: 2px;
+  font-size: 12px;
+}
+
+.prop-input:focus,
+.prop-select:focus {
+  outline: 1px solid var(--vscode-focusBorder);
+}
+
+.has-error .prop-input,
+.has-error .prop-select {
+  border-color: var(--vscode-inputValidation-errorBorder);
+}
+
+.radio-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.radio-option {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px;
+  cursor: pointer;
+  font-size: 12px;
+}
+
+.radio-option:hover {
+  background: var(--vscode-list-hoverBackground);
+}
+
+.radio-option input[type="radio"] {
+  cursor: pointer;
+}
+
+.radio-option span {
+  flex: 1;
+}
+
+/* Inline rename edit */
+.inline-edit-input {
+  background: var(--vscode-input-background);
+  color: var(--vscode-input-foreground);
+  border: 1px solid var(--vscode-focusBorder);
+  padding: 1px 4px;
+  font-size: inherit;
+  font-weight: inherit;
+  font-family: inherit;
+  outline: none;
+  border-radius: 2px;
+  min-width: 0;
+  flex: 1;
+}

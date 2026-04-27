@@ -1,0 +1,26 @@
+/* Collapsible panels */
+.slave-panel > summary,
+.task-container > summary {
+  list-style: none;
+}
+.slave-panel > summary::-webkit-details-marker,
+.task-container > summary::-webkit-details-marker {
+  display: none;
+}
+
+.chevron {
+  display: inline-block;
+  width: 0;
+  height: 0;
+  border-top: 4.5px solid transparent;
+  border-bottom: 4.5px solid transparent;
+  border-left: 7px solid currentColor;
+  flex-shrink: 0;
+  transition: transform 0.1s ease;
+  opacity: 0.7;
+  margin-right: 2px;
+}
+.slave-panel[open] > summary .chevron,
+.task-container[open] > summary .chevron {
+  transform: rotate(90deg);
+}

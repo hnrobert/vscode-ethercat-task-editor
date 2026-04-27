@@ -1,0 +1,5 @@
+/* Error display */
+.error-message {
+  color: var(--vscode-errorForeground);
+  padding: 6px 0;
+}
