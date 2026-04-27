@@ -1,4 +1,5 @@
 {
+  "publisher": "HNRobert",
   "name": "vscode-ethercat-task-editor",
   "displayName": "EtherCAT Task Editor",
   "description": "Visual editor for SOEM YAML config files based on MSG format.",
