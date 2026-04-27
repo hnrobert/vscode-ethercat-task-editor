@@ -2,7 +2,7 @@
   "name": "vscode-ethercat-task-editor",
   "displayName": "EtherCAT Task Editor",
   "description": "Visual editor for SOEM YAML config files based on MSG format.",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "license": "Apache-2.0",
   "engines": {
     "vscode": "^1.104.0"
