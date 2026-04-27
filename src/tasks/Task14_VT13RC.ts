@@ -28,4 +28,8 @@ export class Task14_VT13RC extends TaskBase {
       },
     ];
   }
+
+  override calculateTxPdoSize(): number {
+    return 18;
+  }
 }

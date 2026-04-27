@@ -28,4 +28,8 @@ export class Task08_MS5837 extends TaskBase {
       },
     ];
   }
+
+  override calculateTxPdoSize(): number {
+    return 9;
+  }
 }

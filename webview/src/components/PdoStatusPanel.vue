@@ -9,6 +9,7 @@
 
 <script setup lang="ts">
 import { data, boardTypes } from '../composables/useVscode';
+import { TaskRegistry } from '@tasks';
 
 function getBoardType(slave: any): number {
   const key = getSlaveKey(slave);
@@ -46,7 +47,7 @@ function getTxPdoLen(slave: any): number {
     if (taskData?.pdoread_offset !== undefined) {
       const offset = Number(taskData.pdoread_offset);
       const taskType = Number(taskData.sdowrite_task_type);
-      const endOffset = offset + getTaskTxPdoSize(taskType, taskData);
+      const endOffset = offset + (TaskRegistry.getTask(taskType)?.calculateTxPdoSize(taskData) ?? 0);
       if (endOffset > maxOffset) {
         maxOffset = endOffset;
       }
@@ -69,99 +70,13 @@ function getRxPdoLen(slave: any): number {
     if (taskData?.pdowrite_offset !== undefined) {
       const offset = Number(taskData.pdowrite_offset);
       const taskType = Number(taskData.sdowrite_task_type);
-      const endOffset = offset + getTaskRxPdoSize(taskType, taskData);
+      const endOffset = offset + (TaskRegistry.getTask(taskType)?.calculateRxPdoSize(taskData) ?? 0);
       if (endOffset > maxOffset) {
         maxOffset = endOffset;
       }
     }
   }
   return maxOffset;
-}
-
-function getTaskTxPdoSize(taskType: number, taskData: any): number {
-  switch (taskType) {
-    case 1:
-      return 19;
-    case 2: {
-      const cType = Number(taskData.sdowrite_control_type) || 0;
-      return cType !== 8 ? 8 : 32;
-    }
-    case 3:
-      return 21;
-    case 5:
-    case 15: {
-      let size = 0;
-      for (let i = 1; i <= 4; i++) {
-        const motorCanId = taskData[`sdowrite_motor${i}_can_id`];
-        if (motorCanId !== undefined && Number(motorCanId) !== 0) {
-          size += 9;
-        }
-      }
-      return size;
-    }
-    case 8:
-      return 9;
-    case 10:
-      return 7;
-    case 11:
-      return 24;
-    case 12:
-      return 9;
-    case 13:
-      return 7;
-    case 14:
-      return 18;
-    default:
-      return 0;
-  }
-}
-
-function getTaskRxPdoSize(taskType: number, taskData: any): number {
-  switch (taskType) {
-    case 2: {
-      const cType = Number(taskData.sdowrite_control_type) || 0;
-      switch (cType) {
-        case 1:
-        case 2:
-          return 3;
-        case 3:
-          return 7;
-        case 4:
-          return 5;
-        case 5:
-          return 7;
-        case 6:
-          return 6;
-        case 7:
-        case 8:
-          return 8;
-        default:
-          return 0;
-      }
-    }
-    case 4:
-    case 6:
-      return 8;
-    case 5:
-    case 15: {
-      let size = 0;
-      for (let i = 1; i <= 4; i++) {
-        const motorCanId = taskData[`sdowrite_motor${i}_can_id`];
-        if (motorCanId !== undefined && Number(motorCanId) !== 0) {
-          size += 3;
-        }
-      }
-      return size;
-    }
-    case 7: {
-      const channelNum = Number(taskData.sdowrite_channel_num) || 0;
-      return channelNum * 2;
-    }
-    case 13:
-      return 4;
-    default:
-      return 0;
-  }
 }
 
 function checkSlaveStatus(slave: Record<string, any>): boolean {

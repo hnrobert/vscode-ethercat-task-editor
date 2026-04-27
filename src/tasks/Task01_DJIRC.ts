@@ -28,4 +28,8 @@ export class Task01_DJIRC extends TaskBase {
       },
     ];
   }
+
+  override calculateTxPdoSize(): number {
+    return 19;
+  }
 }

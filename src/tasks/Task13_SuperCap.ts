@@ -39,4 +39,12 @@ export class Task13_SuperCap extends TaskBase {
       },
     ];
   }
+
+  override calculateTxPdoSize(): number {
+    return 7;
+  }
+
+  override calculateRxPdoSize(): number {
+    return 4;
+  }
 }

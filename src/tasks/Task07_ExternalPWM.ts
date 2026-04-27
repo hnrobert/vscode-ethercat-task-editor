@@ -56,4 +56,9 @@ export class Task07_ExternalPWM extends TaskBase {
       },
     ];
   }
+
+  override calculateRxPdoSize(taskData: Record<string, any>): number {
+    const channelNum = Number(taskData.sdowrite_channel_num) || 0;
+    return channelNum * 2;
+  }
 }

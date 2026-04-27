@@ -96,4 +96,26 @@ export class Task15_DDMotor extends TaskBase {
       },
     ];
   }
+
+  override calculateTxPdoSize(taskData: Record<string, any>): number {
+    let size = 0;
+    for (let i = 1; i <= 4; i++) {
+      const motorCanId = taskData[`sdowrite_motor${i}_can_id`];
+      if (motorCanId !== undefined && Number(motorCanId) !== 0) {
+        size += 9;
+      }
+    }
+    return size;
+  }
+
+  override calculateRxPdoSize(taskData: Record<string, any>): number {
+    let size = 0;
+    for (let i = 1; i <= 4; i++) {
+      const motorCanId = taskData[`sdowrite_motor${i}_can_id`];
+      if (motorCanId !== undefined && Number(motorCanId) !== 0) {
+        size += 3;
+      }
+    }
+    return size;
+  }
 }

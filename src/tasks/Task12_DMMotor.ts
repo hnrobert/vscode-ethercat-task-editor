@@ -70,4 +70,15 @@ export class Task12_DMMotor extends TaskBase {
       },
     ];
   }
+
+  override calculateTxPdoSize(): number {
+    return 9;
+  }
+
+  override calculateRxPdoSize(taskData: Record<string, any>): number {
+    const dmCtrlType = Number(taskData.sdowrite_control_type) || 0;
+    if (dmCtrlType === 1 || dmCtrlType === 2) return 9;
+    if (dmCtrlType === 3) return 5;
+    return 0;
+  }
 }

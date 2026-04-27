@@ -1,5 +1,6 @@
 import * as yaml from 'yaml';
 import { MsgField } from './msgParser';
+import { TaskRegistry } from '../tasks';
 
 export function maintainYamlSpacing(doc: yaml.Document): void {
   const contents = doc.contents;
@@ -114,89 +115,10 @@ export function calculateOffsets(
       }
 
       const type = Number(taskValues.sdowrite_task_type);
-
-      switch (type) {
-        case 1:
-          pdoread_offset += 19;
-          break;
-        case 2: {
-          const cType = Number(taskValues.sdowrite_control_type) || 0;
-          pdoread_offset += cType !== 8 ? 8 : 32;
-          switch (cType) {
-            case 1:
-            case 2:
-              pdowrite_offset += 3;
-              break;
-            case 3:
-              pdowrite_offset += 7;
-              break;
-            case 4:
-              pdowrite_offset += 5;
-              break;
-            case 5:
-              pdowrite_offset += 7;
-              break;
-            case 6:
-              pdowrite_offset += 6;
-              break;
-            case 7:
-              pdowrite_offset += 8;
-              break;
-            case 8:
-              pdowrite_offset += 8;
-              break;
-          }
-          break;
-        }
-        case 3:
-          pdoread_offset += 21;
-          break;
-        case 4:
-          pdowrite_offset += 8;
-          break;
-        case 5:
-        case 15:
-          for (let i = 1; i <= 4; i++) {
-            const motorCanId = taskValues[`sdowrite_motor${i}_can_id`];
-            if (motorCanId !== undefined && Number(motorCanId) !== 0) {
-              pdoread_offset += 9;
-              pdowrite_offset += 3;
-            }
-          }
-          break;
-        case 6:
-          pdowrite_offset += 8;
-          break;
-        case 7: {
-          const channelStr: any = taskValues.sdowrite_channel_num;
-          if (channelStr !== undefined) {
-            pdowrite_offset += Number(channelStr) * 2;
-          }
-          break;
-        }
-        case 8:
-          pdoread_offset += 9;
-          break;
-        case 10:
-          pdoread_offset += 7;
-          break;
-        case 11:
-          pdoread_offset += 24;
-          break;
-        case 12: {
-          pdoread_offset += 9;
-          const dmCtrlType = Number(taskValues.sdowrite_control_type) || 0;
-          if (dmCtrlType === 1 || dmCtrlType === 2) pdowrite_offset += 9;
-          else if (dmCtrlType === 3) pdowrite_offset += 5;
-          break;
-        }
-        case 13:
-          pdoread_offset += 7;
-          pdowrite_offset += 4;
-          break;
-        case 14:
-          pdoread_offset += 18;
-          break;
+      const taskDef = TaskRegistry.getTask(type);
+      if (taskDef) {
+        pdoread_offset += taskDef.calculateTxPdoSize(taskValues);
+        pdowrite_offset += taskDef.calculateRxPdoSize(taskValues);
       }
     });
 

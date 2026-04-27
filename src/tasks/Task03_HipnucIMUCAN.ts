@@ -60,4 +60,8 @@ export class Task03_HipnucIMUCAN extends TaskBase {
       },
     ];
   }
+
+  override calculateTxPdoSize(): number {
+    return 21;
+  }
 }

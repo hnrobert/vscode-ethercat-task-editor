@@ -82,4 +82,31 @@ export class Task02_LkTechMotor extends TaskBase {
       },
     ];
   }
+
+  override calculateTxPdoSize(taskData: Record<string, any>): number {
+    const cType = Number(taskData.sdowrite_control_type) || 0;
+    return cType !== 8 ? 8 : 32;
+  }
+
+  override calculateRxPdoSize(taskData: Record<string, any>): number {
+    const cType = Number(taskData.sdowrite_control_type) || 0;
+    switch (cType) {
+      case 1:
+      case 2:
+        return 3;
+      case 3:
+        return 7;
+      case 4:
+        return 5;
+      case 5:
+        return 7;
+      case 6:
+        return 6;
+      case 7:
+      case 8:
+        return 8;
+      default:
+        return 0;
+    }
+  }
 }

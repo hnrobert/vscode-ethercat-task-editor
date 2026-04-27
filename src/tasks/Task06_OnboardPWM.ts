@@ -52,4 +52,8 @@ export class Task06_OnboardPWM extends TaskBase {
       },
     ];
   }
+
+  override calculateRxPdoSize(): number {
+    return 8;
+  }
 }

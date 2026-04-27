@@ -47,4 +47,8 @@ export class Task04_DSHOT extends TaskBase {
       },
     ];
   }
+
+  override calculateRxPdoSize(): number {
+    return 8;
+  }
 }

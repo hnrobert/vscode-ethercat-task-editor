@@ -28,4 +28,8 @@ export class Task11_SBUSRC extends TaskBase {
       },
     ];
   }
+
+  override calculateTxPdoSize(): number {
+    return 24;
+  }
 }

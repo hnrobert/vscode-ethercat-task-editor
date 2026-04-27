@@ -3,6 +3,8 @@
  * 所有 task type 的基类，定义通用接口和默认行为
  */
 
+import * as yaml from 'yaml';
+
 export interface FieldDefinition {
   key: string;
   label: string;
@@ -295,6 +297,22 @@ export abstract class TaskBase {
   }
 
   /**
+   * 计算该 task 的 TXPDO (pdoread) 大小（字节）
+   * 子类根据自身逻辑重写
+   */
+  calculateTxPdoSize(_taskData: Record<string, any>): number {
+    return 0;
+  }
+
+  /**
+   * 计算该 task 的 RXPDO (pdowrite) 大小（字节）
+   * 子类根据自身逻辑重写
+   */
+  calculateRxPdoSize(_taskData: Record<string, any>): number {
+    return 0;
+  }
+
+  /**
    * Hook: 当字段值变化时调用
    * 子类可以重写此方法来实现自定义逻辑（如添加/删除相关字段）
    *
@@ -311,9 +329,6 @@ export abstract class TaskBase {
    * @param taskNode - YAML task 节点
    */
   reorderFields(taskNode: any): void {
-    // 导入 yaml 模块
-    const yaml = require('yaml');
-
     if (!yaml.isMap(taskNode)) {
       return;
     }

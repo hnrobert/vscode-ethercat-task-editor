@@ -39,4 +39,8 @@ export class Task10_CANPMU extends TaskBase {
       },
     ];
   }
+
+  override calculateTxPdoSize(): number {
+    return 7;
+  }
 }
