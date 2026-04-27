@@ -102,14 +102,13 @@ export class TaskRegistry {
   static generateTemplate(
     taskType: number,
     taskKey: string,
-    snKey: string,
     segment: string,
   ): string {
     const task = TaskRegistry.getTask(taskType);
     if (!task) {
       throw new Error(`Unknown task type: ${taskType}`);
     }
-    return task.generateTemplate(taskKey, snKey, segment);
+    return task.generateTemplate(taskKey, segment);
   }
 
   /**

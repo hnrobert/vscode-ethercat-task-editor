@@ -96,10 +96,9 @@ export abstract class TaskBase {
   /**
    * 生成 task 的 YAML 模板
    * @param taskKey - task 的 key (e.g., "app_1")
-   * @param snKey - slave 的 key (e.g., "sn1")
-   * @param segment - segment 名称 (e.g., "app1")
+   * @param segment - topic segment (e.g., "dji_motor_1")
    */
-  generateTemplate(taskKey: string, snKey: string, segment: string): string {
+  generateTemplate(taskKey: string, segment: string): string {
     let template = `${taskKey}:\n`;
     template += `  sdowrite_task_type: !uint8_t ${this.config.id}\n`;
     template += `  conf_connection_lost_read_action: !uint8_t 1\n`;
@@ -109,12 +108,12 @@ export abstract class TaskBase {
     }
 
     if (this.config.has_read) {
-      template += `  pub_topic: !std::string '/ecat/${snKey}/${segment}/read'\n`;
+      template += `  pub_topic: !std::string '/ecat/${segment}/read'\n`;
       template += `  pdoread_offset: !uint16_t 0\n`;
     }
 
     if (this.config.has_write) {
-      template += `  sub_topic: !std::string '/ecat/${snKey}/${segment}/write'\n`;
+      template += `  sub_topic: !std::string '/ecat/${segment}/write'\n`;
       template += `  pdowrite_offset: !uint16_t 0\n`;
     }
 

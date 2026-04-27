@@ -83,8 +83,6 @@ export class SoemConfigWebviewProvider implements vscode.WebviewViewProvider {
         case 'renameSlave':
           await this.renameSlave(data.sIndex, data.newName);
           break;
-        case 'renameSlaveAlias':
-          await this.renameSlaveAlias(data.sIndex, data.newAlias);
           break;
         case 'addTask':
           await this.addTask(data.sIndex);
@@ -727,64 +725,6 @@ export class SoemConfigWebviewProvider implements vscode.WebviewViewProvider {
     await this.saveDoc(editor, doc);
   }
 
-  private async renameSlaveAlias(sIndex: number, newAlias: string) {
-    const editor = vscode.window.activeTextEditor;
-    if (!editor || !this.lastParsedDoc?.doc) return;
-    const doc = this.lastParsedDoc.doc;
-    const slaveItem = doc.getIn(['slaves', sIndex]);
-    if (!yaml.isMap(slaveItem) || slaveItem.items.length === 0) return;
-    const snKey = String(
-      yaml.isScalar(slaveItem.items[0].key) ? slaveItem.items[0].key.value : '',
-    );
-
-    const latencyTopic = doc.getIn([
-      'slaves',
-      sIndex,
-      snKey,
-      'latency_pub_topic',
-    ]);
-    let currentAlias = snKey;
-    if (typeof latencyTopic === 'string') {
-      const m = latencyTopic.match(/^\/ecat\/([^/]+)\/latency/);
-      if (m) currentAlias = m[1];
-    }
-    if (currentAlias === newAlias) return;
-
-    if (typeof latencyTopic === 'string') {
-      doc.setIn(
-        ['slaves', sIndex, snKey, 'latency_pub_topic'],
-        latencyTopic.replace(`/ecat/${currentAlias}/`, `/ecat/${newAlias}/`),
-      );
-    }
-
-    const tasksList = doc.getIn(['slaves', sIndex, snKey, 'tasks']);
-    if (yaml.isSeq(tasksList)) {
-      tasksList.items.forEach((taskNode: any, tIndex: number) => {
-        if (!yaml.isMap(taskNode) || taskNode.items.length === 0) return;
-        const taskKey = String(
-          yaml.isScalar(taskNode.items[0].key)
-            ? taskNode.items[0].key.value
-            : '',
-        );
-        const base = ['slaves', sIndex, snKey, 'tasks', tIndex, taskKey];
-        for (const field of ['pub_topic', 'sub_topic'] as const) {
-          const topic = doc.getIn([...base, field]);
-          if (
-            typeof topic === 'string' &&
-            topic.includes(`/ecat/${currentAlias}/`)
-          ) {
-            doc.setIn(
-              [...base, field],
-              topic.replace(`/ecat/${currentAlias}/`, `/ecat/${newAlias}/`),
-            );
-          }
-        }
-      });
-    }
-
-    await this.saveDoc(editor, doc);
-  }
-
   private async addTask(sIndex: number) {
     if (!this._view) return;
 
@@ -842,7 +782,6 @@ export class SoemConfigWebviewProvider implements vscode.WebviewViewProvider {
         const newTaskStr = TaskRegistry.generateTemplate(
           taskType,
           taskKey,
-          snKey,
           segment,
         );
         const newTaskNode = parseYamlDocumentWithTags(newTaskStr).contents;
@@ -860,7 +799,6 @@ export class SoemConfigWebviewProvider implements vscode.WebviewViewProvider {
         const newTaskStr = TaskRegistry.generateTemplate(
           taskType,
           taskKey,
-          snKey,
           segment,
         );
         const newTaskNode = parseYamlDocumentWithTags(newTaskStr).contents;
@@ -1014,11 +952,6 @@ export class SoemConfigWebviewProvider implements vscode.WebviewViewProvider {
     }
 
     if (yaml.isSeq(toTasksList)) {
-      // Cross-slave: update topic namespace
-      if (fromSIndex !== toSIndex) {
-        this.remapTaskTopics(taskNode, fromSnKey, toSnKey);
-      }
-
       toTasksList.items.splice(adjustedTIndex, 0, taskNode);
       doc.setIn(
         ['slaves', toSIndex, toSnKey, 'task_count'],
@@ -1045,30 +978,6 @@ export class SoemConfigWebviewProvider implements vscode.WebviewViewProvider {
 
     slavesList.items.splice(adjustedIndex, 0, slaveNode);
     await this.saveDoc(editor, doc);
-  }
-
-  /** Update /ecat/{oldSlave}/... → /ecat/{newSlave}/... in task topics */
-  private remapTaskTopics(taskNode: any, oldSnKey: string, newSnKey: string) {
-    if (!yaml.isMap(taskNode)) return;
-    const innerMap = taskNode.items[0]?.value;
-    if (!yaml.isMap(innerMap)) return;
-
-    for (const item of innerMap.items) {
-      if (!yaml.isScalar(item.key)) continue;
-      const key = String(item.key.value);
-      if (
-        (key === 'pub_topic' || key === 'sub_topic') &&
-        yaml.isScalar(item.value)
-      ) {
-        const topic = String(item.value.value);
-        if (topic.includes(`/ecat/${oldSnKey}/`)) {
-          item.value.value = topic.replace(
-            `/ecat/${oldSnKey}/`,
-            `/ecat/${newSnKey}/`,
-          );
-        }
-      }
-    }
   }
 
   private async saveDoc(editor: vscode.TextEditor, doc: yaml.Document) {

@@ -12,7 +12,6 @@ interface TaskTopicInfo {
   tIndex: number;
   slaveKey: string;
   taskKey: string;
-  alias: string;
   pubTopic?: string;
   subTopic?: string;
   pubTopicRange?: vscode.Range;
@@ -39,7 +38,6 @@ export function validateTopics(
     const slaveData = slave[slaveKey];
     if (!slaveData || typeof slaveData !== 'object') return;
 
-    const alias = slaveData.alias || slaveKey;
     const tasks = slaveData.tasks || [];
 
     tasks.forEach((task: any, tIndex: number) => {
@@ -53,7 +51,6 @@ export function validateTopics(
         tIndex,
         slaveKey,
         taskKey,
-        alias,
         pubTopic: taskData.pub_topic,
         subTopic: taskData.sub_topic,
       };
@@ -88,17 +85,17 @@ export function validateTopics(
     });
   });
 
-  // Check for conflicts (same topic used multiple times within same alias)
+  // Check for conflicts (same topic used multiple times globally)
   const topicMap = new Map<string, TaskTopicInfo[]>();
 
   taskInfos.forEach((info) => {
     if (info.pubTopic) {
-      const key = `${info.alias}:pub:${info.pubTopic}`;
+      const key = `pub:${info.pubTopic}`;
       if (!topicMap.has(key)) topicMap.set(key, []);
       topicMap.get(key)!.push(info);
     }
     if (info.subTopic) {
-      const key = `${info.alias}:sub:${info.subTopic}`;
+      const key = `sub:${info.subTopic}`;
       if (!topicMap.has(key)) topicMap.set(key, []);
       topicMap.get(key)!.push(info);
     }
@@ -107,14 +104,14 @@ export function validateTopics(
   // Report conflicts
   topicMap.forEach((infos, key) => {
     if (infos.length > 1) {
-      const [, type, topic] = key.split(':');
-      const field = type === 'pub' ? 'pub_topic' : 'sub_topic';
+      const [, topic] = key.split(':');
       infos.forEach((info) => {
+        const type = key.startsWith('pub:') ? 'pub' : 'sub';
         const range = type === 'pub' ? info.pubTopicRange : info.subTopicRange;
         if (range) {
           diagnostics.push({
             range,
-            message: `Topic conflict: "${topic}" is used by multiple tasks in ${info.alias}`,
+            message: `Topic conflict: "${topic}" is used by multiple tasks`,
             severity: vscode.DiagnosticSeverity.Error,
             source: 'ethercat-task-editor',
           });
@@ -123,37 +120,30 @@ export function validateTopics(
     }
   });
 
-  // Check for inconsistent app segments within same task
+  // Check for inconsistent segments within same task
   taskInfos.forEach((info) => {
-    const appSegments = new Set<string>();
+    const segments = new Set<string>();
 
     if (info.pubTopic) {
-      const segment = extractAppSegment(info.pubTopic, info.alias);
-      if (segment) appSegments.add(segment);
+      const segment = extractSegment(info.pubTopic);
+      if (segment) segments.add(segment);
     }
     if (info.subTopic) {
-      const segment = extractAppSegment(info.subTopic, info.alias);
-      if (segment) appSegments.add(segment);
+      const segment = extractSegment(info.subTopic);
+      if (segment) segments.add(segment);
     }
 
-    // If there are multiple different app segments in the same task, warn
-    if (appSegments.size > 1) {
-      const segments = Array.from(appSegments);
-      if (info.pubTopicRange) {
-        diagnostics.push({
-          range: info.pubTopicRange,
-          message: `Inconsistent app segment in task ${info.taskKey}: found "${segments.join('", "')}"`,
-          severity: vscode.DiagnosticSeverity.Warning,
-          source: 'ethercat-task-editor',
-        });
-      }
-      if (info.subTopicRange) {
-        diagnostics.push({
-          range: info.subTopicRange,
-          message: `Inconsistent app segment in task ${info.taskKey}: found "${segments.join('", "')}"`,
-          severity: vscode.DiagnosticSeverity.Warning,
-          source: 'ethercat-task-editor',
-        });
+    if (segments.size > 1) {
+      const segList = Array.from(segments);
+      for (const range of [info.pubTopicRange, info.subTopicRange]) {
+        if (range) {
+          diagnostics.push({
+            range,
+            message: `Inconsistent segment in task ${info.taskKey}: found "${segList.join('", "')}"`,
+            severity: vscode.DiagnosticSeverity.Warning,
+            source: 'ethercat-task-editor',
+          });
+        }
       }
     }
   });
@@ -161,12 +151,9 @@ export function validateTopics(
   return diagnostics;
 }
 
-function extractAppSegment(topic: string, alias: string): string | null {
-  // Expected format: /ecat/{alias}/{app_segment}/read or /ecat/{alias}/{app_segment}/write
-  const pattern = new RegExp(
-    `^/ecat/${alias.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}/([^/]+)/(read|write)$`,
-  );
-  const match = topic.match(pattern);
+function extractSegment(topic: string): string | null {
+  // Expected format: /ecat/{segment}/read or /ecat/{segment}/write
+  const match = topic.match(/^\/ecat\/([^/]+)\/(read|write)$/);
   return match ? match[1] : null;
 }
 

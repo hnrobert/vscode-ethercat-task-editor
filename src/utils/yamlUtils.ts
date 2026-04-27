@@ -69,7 +69,7 @@ export function setValueAtPath(
 }
 
 export function parseTopicSegment(topic: string): string | null {
-  const match = topic.match(/^\/ecat\/[^/]+\/([^/]+)\//);
+  const match = topic.match(/^\/ecat\/([^/]+)\//);
   return match ? match[1] : null;
 }
 
@@ -86,7 +86,7 @@ export function nextTopicIndex(data: any, snakeName: string): number {
   if (!data?.slaves || !Array.isArray(data.slaves)) return 1;
 
   const regex = new RegExp(
-    `/ecat/[^/]+/${snakeName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}_(\\d+)/`,
+    `/ecat/${snakeName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}_(\\d+)/`,
   );
   let maxN = 0;
 
