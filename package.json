@@ -2,7 +2,7 @@
   "publisher": "HNRobert",
   "name": "vscode-ethercat-task-editor",
   "displayName": "EtherCAT Task Editor",
-  "description": "Visual editor for SOEM YAML config files based on MSG format.",
+  "description": "Visual sidebar editor for EtherCAT SOEM YAML configuration files.",
   "version": "0.0.5",
   "license": "Apache-2.0",
   "repository": {

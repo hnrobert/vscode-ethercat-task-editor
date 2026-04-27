@@ -1,5 +1,11 @@
 # EtherCAT Task Editor
 
+[![Visual Studio Marketplace](https://flat.badgen.net/vs-marketplace/i/HNRobert.vscode-ethercat-task-editor?icon=visualstudio)](https://marketplace.visualstudio.com/items?itemName=HNRobert.vscode-ethercat-task-editor)
+[![GitHub](https://flat.badgen.net/github/release/hnrobert/vscode-ethercat-task-editor?icon=github)](https://github.com/hnrobert/vscode-ethercat-task-editor)
+[![Apache License](https://flat.badgen.net/badge/license/Apache-2.0/blue)](LICENSE)
+[![Open Issues](https://flat.badgen.net/github/open-issues/hnrobert/vscode-ethercat-task-editor?icon=github)](https://github.com/hnrobert/vscode-ethercat-task-editor/issues)
+[![Closed Issues](https://flat.badgen.net/github/closed-issues/hnrobert/vscode-ethercat-task-editor?icon=github)](https://github.com/hnrobert/vscode-ethercat-task-editor/issues?q=is%3Aissue+is%3Aclosed)
+
 A VSCode extension providing a visual sidebar editor for EtherCAT SOEM YAML configuration files.
 
 ## Features
