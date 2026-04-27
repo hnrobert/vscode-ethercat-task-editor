@@ -1,5 +1,4 @@
 import * as yaml from 'yaml';
-import { MsgField } from './msgParser';
 import { TaskRegistry } from '../tasks';
 
 export function maintainYamlSpacing(doc: yaml.Document): void {
@@ -59,7 +58,6 @@ export function maintainYamlSpacing(doc: yaml.Document): void {
 export function calculateOffsets(
   doc: yaml.Document,
   data: any,
-  _msgs: Record<string, MsgField[]>,
 ): void {
   if (!data || typeof data !== 'object' || !Array.isArray(data.slaves)) return;
 

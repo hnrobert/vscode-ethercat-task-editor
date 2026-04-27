@@ -1,7 +1,6 @@
 import * as vscode from 'vscode';
 import * as yaml from 'yaml';
 import { stringifyYamlDocumentWithTags } from './yamlParser';
-import { MsgField } from './msgParser';
 import { calculateOffsets } from './offsetCalculator';
 
 export type PathEntry = string | number;
@@ -146,11 +145,10 @@ export async function writeDocument(
 export async function applyAndSaveYaml(
   editor: vscode.TextEditor,
   doc: yaml.Document,
-  msgs: Record<string, MsgField[]>,
   onUpdate?: () => void,
 ): Promise<void> {
   normalizeTaskKeys(doc);
-  calculateOffsets(doc, doc.toJSON(), msgs);
+  calculateOffsets(doc, doc.toJSON());
 
   const fullRange = new vscode.Range(
     editor.document.positionAt(0),

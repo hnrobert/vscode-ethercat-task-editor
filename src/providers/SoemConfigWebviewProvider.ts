@@ -1,8 +1,6 @@
 import * as vscode from 'vscode';
-import * as path from 'path';
 import * as yaml from 'yaml';
 import { parseYamlDocumentWithTags } from '../utils/yamlParser';
-import { parseMsgFolder } from '../utils/msgParser';
 import { getBoardTypes } from '../utils/constantsParser';
 import { TaskRegistry } from '../tasks';
 import { TaskTypeMemory } from '../utils/taskTypeMemory';
@@ -13,7 +11,6 @@ import { validateTags } from '../utils/tagValidator';
 export class SoemConfigWebviewProvider implements vscode.WebviewViewProvider {
   public static readonly viewType = 'ethercatTaskEditor.sidebar';
   private _view?: vscode.WebviewView;
-  private readonly msgFolderPath: string;
   private lastParsedDoc?: { doc: yaml.Document; data: any; isValid: boolean };
   private readonly taskTypeMemory = new TaskTypeMemory();
   private diagnosticCollection: vscode.DiagnosticCollection;
@@ -25,7 +22,6 @@ export class SoemConfigWebviewProvider implements vscode.WebviewViewProvider {
   }
 
   constructor(private readonly context: vscode.ExtensionContext) {
-    this.msgFolderPath = path.join(context.extensionPath, 'assets', 'msg');
     this.diagnosticCollection = vscode.languages.createDiagnosticCollection(
       'ethercat-task-editor',
     );
@@ -1096,7 +1092,6 @@ export class SoemConfigWebviewProvider implements vscode.WebviewViewProvider {
     await applyAndSaveYaml(
       editor,
       doc,
-      parseMsgFolder(this.msgFolderPath),
       () => this.updateWebview(),
     );
   }
