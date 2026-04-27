@@ -3,7 +3,7 @@
  * 处理 Hipnuc IMU CAN 的配置
  */
 
-import { TaskBase, FieldDefinition } from './TaskBase';
+import { TaskBase, FieldDefinition } from '../TaskBase';
 
 export class Task03_HipnucIMUCAN extends TaskBase {
   constructor() {

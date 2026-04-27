@@ -8,7 +8,7 @@ import {
   FieldDefinition,
   ValidationError,
   FieldChangeContext,
-} from './TaskBase';
+} from '../TaskBase';
 import * as yaml from 'yaml';
 
 export class Task05_DJIMotor extends TaskBase {

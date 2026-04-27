@@ -3,7 +3,7 @@
  * 处理 DD 电机的配置、验证和模板生成
  */
 
-import { TaskBase, FieldDefinition } from './TaskBase';
+import { TaskBase, FieldDefinition } from '../TaskBase';
 
 export class Task15_DDMotor extends TaskBase {
   constructor() {
@@ -73,7 +73,10 @@ export class Task15_DDMotor extends TaskBase {
     return fields;
   }
 
-  private static buildMotorFields(motorIndex: number, defaultCanId: number): FieldDefinition[] {
+  private static buildMotorFields(
+    motorIndex: number,
+    defaultCanId: number,
+  ): FieldDefinition[] {
     return [
       {
         key: `sdowrite_motor${motorIndex}_can_id`,
@@ -84,14 +87,46 @@ export class Task15_DDMotor extends TaskBase {
         help: 'Set to 0 to disable this motor',
         options: [
           { value: 0, label: 'Disabled' },
-          { value: 0x281, label: '0x281 (ID 1)', valid_when: (data) => data.sdowrite_can_packet_id === 0x280 },
-          { value: 0x282, label: '0x282 (ID 2)', valid_when: (data) => data.sdowrite_can_packet_id === 0x280 },
-          { value: 0x283, label: '0x283 (ID 3)', valid_when: (data) => data.sdowrite_can_packet_id === 0x280 },
-          { value: 0x284, label: '0x284 (ID 4)', valid_when: (data) => data.sdowrite_can_packet_id === 0x280 },
-          { value: 0x2c1, label: '0x2C1 (ID 5)', valid_when: (data) => data.sdowrite_can_packet_id === 0x2c0 },
-          { value: 0x2c2, label: '0x2C2 (ID 6)', valid_when: (data) => data.sdowrite_can_packet_id === 0x2c0 },
-          { value: 0x2c3, label: '0x2C3 (ID 7)', valid_when: (data) => data.sdowrite_can_packet_id === 0x2c0 },
-          { value: 0x2c4, label: '0x2C4 (ID 8)', valid_when: (data) => data.sdowrite_can_packet_id === 0x2c0 },
+          {
+            value: 0x281,
+            label: '0x281 (ID 1)',
+            valid_when: (data) => data.sdowrite_can_packet_id === 0x280,
+          },
+          {
+            value: 0x282,
+            label: '0x282 (ID 2)',
+            valid_when: (data) => data.sdowrite_can_packet_id === 0x280,
+          },
+          {
+            value: 0x283,
+            label: '0x283 (ID 3)',
+            valid_when: (data) => data.sdowrite_can_packet_id === 0x280,
+          },
+          {
+            value: 0x284,
+            label: '0x284 (ID 4)',
+            valid_when: (data) => data.sdowrite_can_packet_id === 0x280,
+          },
+          {
+            value: 0x2c1,
+            label: '0x2C1 (ID 5)',
+            valid_when: (data) => data.sdowrite_can_packet_id === 0x2c0,
+          },
+          {
+            value: 0x2c2,
+            label: '0x2C2 (ID 6)',
+            valid_when: (data) => data.sdowrite_can_packet_id === 0x2c0,
+          },
+          {
+            value: 0x2c3,
+            label: '0x2C3 (ID 7)',
+            valid_when: (data) => data.sdowrite_can_packet_id === 0x2c0,
+          },
+          {
+            value: 0x2c4,
+            label: '0x2C4 (ID 8)',
+            valid_when: (data) => data.sdowrite_can_packet_id === 0x2c0,
+          },
         ],
       },
     ];

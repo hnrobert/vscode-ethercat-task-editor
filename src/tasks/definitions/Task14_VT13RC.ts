@@ -1,18 +1,18 @@
 /**
- * DJI RC Task (Task Type 1)
- * 处理 DJI 遥控器的配置
+ * VT13 RC Task (Task Type 14)
+ * 处理 VT13 遥控器的配置
  */
 
-import { TaskBase, FieldDefinition } from './TaskBase';
+import { TaskBase, FieldDefinition } from '../TaskBase';
 
-export class Task01_DJIRC extends TaskBase {
+export class Task14_VT13RC extends TaskBase {
   constructor() {
     const config = {
-      id: 1,
-      name: 'DJI RC',
+      id: 14,
+      name: 'VT13 RC',
       has_read: true,
       has_write: false,
-      fields: Task01_DJIRC.buildFields(),
+      fields: Task14_VT13RC.buildFields(),
     };
     super(config);
   }
@@ -24,12 +24,12 @@ export class Task01_DJIRC extends TaskBase {
         label: 'Frame Name',
         type: 'text',
         data_type: 'std::string',
-        default: 'dji_rc',
+        default: 'vt13_rc',
       },
     ];
   }
 
   override calculateTxPdoSize(): number {
-    return 19;
+    return 18;
   }
 }

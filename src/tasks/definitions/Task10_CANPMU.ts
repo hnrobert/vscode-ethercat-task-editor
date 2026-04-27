@@ -3,7 +3,7 @@
  * 处理 CAN PMU 的配置
  */
 
-import { TaskBase, FieldDefinition } from './TaskBase';
+import { TaskBase, FieldDefinition } from '../TaskBase';
 
 export class Task10_CANPMU extends TaskBase {
   constructor() {

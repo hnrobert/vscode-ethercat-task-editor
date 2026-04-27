@@ -3,7 +3,7 @@
  * 处理 DM 电机的配置
  */
 
-import { TaskBase, FieldDefinition } from './TaskBase';
+import { TaskBase, FieldDefinition } from '../TaskBase';
 
 export class Task12_DMMotor extends TaskBase {
   constructor() {

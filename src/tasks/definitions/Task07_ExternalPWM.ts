@@ -3,7 +3,7 @@
  * 处理外部 PWM 的配置
  */
 
-import { TaskBase, FieldDefinition } from './TaskBase';
+import { TaskBase, FieldDefinition } from '../TaskBase';
 
 export class Task07_ExternalPWM extends TaskBase {
   constructor() {

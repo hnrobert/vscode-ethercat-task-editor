@@ -3,7 +3,7 @@
  * 处理超级电容的配置
  */
 
-import { TaskBase, FieldDefinition } from './TaskBase';
+import { TaskBase, FieldDefinition } from '../TaskBase';
 
 export class Task13_SuperCap extends TaskBase {
   constructor() {

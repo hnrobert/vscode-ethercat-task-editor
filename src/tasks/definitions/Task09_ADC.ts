@@ -1,18 +1,18 @@
 /**
- * SBUS RC Task (Task Type 11)
- * 处理 SBUS 遥控器的配置
+ * ADC Task (Task Type 9)
+ * 处理 ADC 的配置
  */
 
-import { TaskBase, FieldDefinition } from './TaskBase';
+import { TaskBase, FieldDefinition } from '../TaskBase';
 
-export class Task11_SBUSRC extends TaskBase {
+export class Task09_ADC extends TaskBase {
   constructor() {
     const config = {
-      id: 11,
-      name: 'SBUS RC',
+      id: 9,
+      name: 'ADC',
       has_read: true,
       has_write: false,
-      fields: Task11_SBUSRC.buildFields(),
+      fields: Task09_ADC.buildFields(),
     };
     super(config);
   }
@@ -24,12 +24,8 @@ export class Task11_SBUSRC extends TaskBase {
         label: 'Frame Name',
         type: 'text',
         data_type: 'std::string',
-        default: 'sbus_rc',
+        default: 'adc',
       },
     ];
-  }
-
-  override calculateTxPdoSize(): number {
-    return 24;
   }
 }

@@ -3,7 +3,7 @@
  * 处理 LkTech 电机的配置、验证和模板生成
  */
 
-import { TaskBase, FieldDefinition } from './TaskBase';
+import { TaskBase, FieldDefinition } from '../TaskBase';
 
 export class Task02_LkTechMotor extends TaskBase {
   constructor() {

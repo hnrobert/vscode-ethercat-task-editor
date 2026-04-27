@@ -3,7 +3,7 @@
  * 处理 MS5837 压力传感器的配置
  */
 
-import { TaskBase, FieldDefinition } from './TaskBase';
+import { TaskBase, FieldDefinition } from '../TaskBase';
 
 export class Task08_MS5837 extends TaskBase {
   constructor() {

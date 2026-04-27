@@ -3,7 +3,7 @@
  * 处理板载 PWM 的配置
  */
 
-import { TaskBase, FieldDefinition } from './TaskBase';
+import { TaskBase, FieldDefinition } from '../TaskBase';
 
 export class Task06_OnboardPWM extends TaskBase {
   constructor() {

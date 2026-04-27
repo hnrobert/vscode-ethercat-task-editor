@@ -3,7 +3,7 @@
  * 处理 DSHOT 电调的配置
  */
 
-import { TaskBase, FieldDefinition } from './TaskBase';
+import { TaskBase, FieldDefinition } from '../TaskBase';
 
 export class Task04_DSHOT extends TaskBase {
   constructor() {
