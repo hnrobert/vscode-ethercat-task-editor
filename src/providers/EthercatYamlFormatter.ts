@@ -95,11 +95,24 @@ export class EthercatYamlFormatter implements vscode.DocumentFormattingEditProvi
     // 2. 在 tasks 之间添加空行
     // 3. 移除多余的空行
 
-    // 在每个 slave 之间添加一个空行
-    text = text.replace(/(\n  - [a-zA-Z0-9_]+:)/g, '\n$1');
+    // 在 slave 之间添加一个空行（跳过第一个，紧跟在 slaves: 后面的不需要）
+    text = text.replace(/\n(  - [a-zA-Z0-9_]+:)/g, (match, p1, offset) => {
+      // Check if this is right after "slaves:\n"
+      const before = text.substring(Math.max(0, offset - 10), offset);
+      if (before.trimEnd().endsWith('slaves:')) {
+        return match;
+      }
+      return '\n' + p1;
+    });
 
-    // 在每个 task 之间添加一个空行
-    text = text.replace(/(\n        [a-zA-Z0-9_]+:)/g, '\n$1');
+    // 在 task 之间添加一个空行（跳过紧跟 tasks: 后的第一个）
+    text = text.replace(/\n(        - [a-zA-Z0-9_]+:)/g, (match, p1, offset) => {
+      const before = text.substring(Math.max(0, offset - 10), offset);
+      if (before.trimEnd().endsWith('tasks:')) {
+        return match;
+      }
+      return '\n' + p1;
+    });
 
     // 移除连续的多个空行（保留最多一个空行）
     text = text.replace(/\n\n\n+/g, '\n\n');
