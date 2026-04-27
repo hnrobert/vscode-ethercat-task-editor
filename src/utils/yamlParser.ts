@@ -68,39 +68,26 @@ export function parseYamlDocumentWithTags(text: string): yaml.Document {
 export function stringifyYamlDocumentWithTags(doc: yaml.Document): string {
   let output = doc.toString({ indent: 2, indentSeq: true });
 
-  // Remove blank lines right after "slaves:" before first slave
-  output = output.replace(/(slaves:)\n+(\n  -)/g, '$1\n$2');
+  // Step 1: Collapse ALL blank lines to single newlines
+  output = output.replace(/\n\n+/g, '\n');
 
-  // Remove any existing blank lines after "tasks:" before first task
-  output = output.replace(/(\n {6}tasks:)\n+(\n {8}- app_\d+:)/g, '$1$2');
+  // Step 2: Add blank line before "tasks:" (after slave-level fields)
+  output = output.replace(/\n( {6}tasks:)/g, '\n\n$1');
 
-  // Ensure blank line before "tasks:" (after any field at same indentation level)
-  output = output.replace(
-    /(\n {6}[a-z_]+: !(?:uint8_t|uint16_t|uint32_t|int8_t|int16_t|int32_t|float|std::string) [^\n]+)(\n {6}tasks:)/g,
-    '$1\n$2',
-  );
+  // Step 3: Add blank lines between tasks (skip first after "tasks:")
+  output = output.replace(/\n( {8}- app_\d+:)/g, (match, p1, offset) => {
+    const prevNewline = output.lastIndexOf('\n', offset - 1);
+    const prevLine = output.substring(prevNewline + 1, offset).trimEnd();
+    if (prevLine === '      tasks:') return match;
+    return '\n\n' + p1;
+  });
 
-  // Ensure blank lines between tasks
-  output = output.replace(
-    /(\n {12}[a-z_0-9]+: !(?:uint8_t|uint16_t|uint32_t|int8_t|int16_t|int32_t|float|std::string) [^\n]+)(\n {8}- app_\d+:)/g,
-    '$1\n$2',
-  );
-
-  // Ensure blank lines between slaves
-  output = output.replace(
-    /(\n {12}[a-z_0-9]+: !(?:uint8_t|uint16_t|uint32_t|int8_t|int16_t|int32_t|float|std::string) [^\n]+)(\n {2}- sn\d+:)/g,
-    '$1\n$2',
-  );
-
-  // Remove any stray blank lines inside slave/task blocks (not between them)
-  output = output.replace(/\n\n+/g, (match, offset) => {
-    // Keep exactly one blank line only if it's between slaves or between tasks
-    // Otherwise collapse to single newline
-    const after = output.substring(offset + match.length, offset + match.length + 10);
-    if (after.match(/^ {2}- sn/) || after.match(/^ {8}- app_/)) {
-      return '\n\n';
-    }
-    return '\n';
+  // Step 4: Add blank lines between slaves (skip first after "slaves:")
+  output = output.replace(/\n( {2}- [a-zA-Z0-9_]+:)/g, (match, p1, offset) => {
+    const prevNewline = output.lastIndexOf('\n', offset - 1);
+    const prevLine = output.substring(prevNewline + 1, offset).trimEnd();
+    if (prevLine === 'slaves:') return match;
+    return '\n\n' + p1;
   });
 
   return output;

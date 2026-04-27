@@ -84,46 +84,34 @@ export class EthercatYamlFormatter implements vscode.DocumentFormattingEditProvi
    * 生成带有适当空行的 YAML 字符串
    */
   private stringifyWithProperSpacing(doc: yaml.Document): string {
-    // 使用 yaml 库的 stringify 方法
     let text = doc.toString({
       indent: 2,
-      lineWidth: 0, // 不限制行宽
+      lineWidth: 0,
     });
 
-    // 规范化空行：
-    // 1. 在 slaves 之间添加空行
-    // 2. 在 tasks 之间添加空行
-    // 3. 移除多余的空行
+    // Step 1: Collapse ALL blank lines
+    text = text.replace(/\n\n+/g, '\n');
 
-    // 在 slave 之间添加一个空行（跳过第一个，紧跟在 slaves: 后面的不需要）
-    text = text.replace(/\n(  - [a-zA-Z0-9_]+:)/g, (match, p1, offset) => {
-      // Check if this is right after "slaves:\n"
-      const before = text.substring(Math.max(0, offset - 10), offset);
-      if (before.trimEnd().endsWith('slaves:')) {
-        return match;
-      }
-      return '\n' + p1;
+    // Step 2: Add blank line before "tasks:"
+    text = text.replace(/\n( {6}tasks:)/g, '\n\n$1');
+
+    // Step 3: Add blank lines between tasks (skip first after "tasks:")
+    text = text.replace(/\n( {8}- app_\d+:)/g, (match, p1, offset) => {
+      const prevNewline = text.lastIndexOf('\n', offset - 1);
+      const prevLine = text.substring(prevNewline + 1, offset).trimEnd();
+      if (prevLine === '      tasks:') return match;
+      return '\n\n' + p1;
     });
 
-    // 在 task 之间添加一个空行（跳过紧跟 tasks: 后的第一个）
-    text = text.replace(/\n(        - [a-zA-Z0-9_]+:)/g, (match, p1, offset) => {
-      const before = text.substring(Math.max(0, offset - 10), offset);
-      if (before.trimEnd().endsWith('tasks:')) {
-        return match;
-      }
-      return '\n' + p1;
+    // Step 4: Add blank lines between slaves (skip first after "slaves:")
+    text = text.replace(/\n( {2}- [a-zA-Z0-9_]+:)/g, (match, p1, offset) => {
+      const prevNewline = text.lastIndexOf('\n', offset - 1);
+      const prevLine = text.substring(prevNewline + 1, offset).trimEnd();
+      if (prevLine === 'slaves:') return match;
+      return '\n\n' + p1;
     });
 
-    // Collapse blank lines: keep one only between slaves/tasks, remove elsewhere
-    text = text.replace(/\n\n+/g, (match, offset) => {
-      const after = text.substring(offset + match.length, offset + match.length + 10);
-      if (after.match(/^ {2}- sn/) || after.match(/^ {8}- app_/)) {
-        return '\n\n';
-      }
-      return '\n';
-    });
-
-    // 确保文件末尾只有一个换行符
+    // Ensure trailing newline
     text = text.replace(/\n*$/, '\n');
 
     return text;
