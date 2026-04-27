@@ -14,5 +14,5 @@ export default defineConfig({
   shims: false,
   skipNodeModulesBundle: false,
   external: ['vscode', 'fs', 'path', 'os', 'util', 'assert', 'module'],
-  noExternal: ['micromatch'],
+  noExternal: ['micromatch', 'yaml'],
 });
