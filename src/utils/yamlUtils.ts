@@ -73,6 +73,47 @@ export function parseTopicSegment(topic: string): string | null {
   return match ? match[1] : null;
 }
 
+export function toSnakeCase(name: string): string {
+  return name
+    .toLowerCase()
+    .replace(/[\s\-]+/g, '_')
+    .replace(/[^a-z0-9_]/g, '')
+    .replace(/_+/g, '_')
+    .replace(/^_|_$/g, '');
+}
+
+export function nextTopicIndex(data: any, snakeName: string): number {
+  if (!data?.slaves || !Array.isArray(data.slaves)) return 1;
+
+  const regex = new RegExp(
+    `/ecat/[^/]+/${snakeName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}_(\\d+)/`,
+  );
+  let maxN = 0;
+
+  for (const slave of data.slaves) {
+    if (!slave || typeof slave !== 'object') continue;
+    const slaveKey = Object.keys(slave)[0];
+    const tasks = slave[slaveKey]?.tasks;
+    if (!Array.isArray(tasks)) continue;
+
+    for (const task of tasks) {
+      if (!task || typeof task !== 'object') continue;
+      const taskKey = Object.keys(task)[0];
+      const info = task[taskKey];
+      for (const topic of [info?.pub_topic, info?.sub_topic]) {
+        if (typeof topic !== 'string') continue;
+        const match = topic.match(regex);
+        if (match) {
+          const n = parseInt(match[1], 10);
+          if (n > maxN) maxN = n;
+        }
+      }
+    }
+  }
+
+  return maxN + 1;
+}
+
 export function normalizeTaskKeys(doc: yaml.Document) {
   const data = doc.toJSON();
   if (!data?.slaves || !Array.isArray(data.slaves)) return;

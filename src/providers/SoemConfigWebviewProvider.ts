@@ -4,7 +4,12 @@ import { parseYamlDocumentWithTags } from '../utils/yamlParser';
 import { getBoardTypes } from '../utils/constantsParser';
 import { TaskRegistry } from '../tasks';
 import { TaskTypeMemory } from '../utils/taskTypeMemory';
-import { applyAndSaveYaml, parseTopicSegment } from '../utils/yamlUtils';
+import {
+  applyAndSaveYaml,
+  parseTopicSegment,
+  toSnakeCase,
+  nextTopicIndex,
+} from '../utils/yamlUtils';
 import { validateTopics } from '../utils/topicValidator';
 import { validateTags } from '../utils/tagValidator';
 
@@ -824,7 +829,11 @@ export class SoemConfigWebviewProvider implements vscode.WebviewViewProvider {
     }
 
     if (yaml.isSeq(tasksList)) {
-      const segment = this.nextAppNewSegment(doc);
+      const task = TaskRegistry.getTask(taskType);
+      if (!task) return;
+      const snakeName = toSnakeCase(task.getName());
+      const index = nextTopicIndex(doc.toJSON(), snakeName);
+      const segment = `${snakeName}_${index}`;
 
       if (tIndex === -1) {
         // Append to end
@@ -867,32 +876,6 @@ export class SoemConfigWebviewProvider implements vscode.WebviewViewProvider {
     }
   }
 
-  private nextAppNewSegment(doc: yaml.Document): string {
-    const data = doc.toJSON();
-    let maxN = 0;
-    if (data?.slaves && Array.isArray(data.slaves)) {
-      for (const slave of data.slaves) {
-        if (!slave || typeof slave !== 'object') continue;
-        const slaveKey = Object.keys(slave)[0];
-        const tasks = slave[slaveKey]?.tasks;
-        if (!Array.isArray(tasks)) continue;
-        for (const task of tasks) {
-          if (!task || typeof task !== 'object') continue;
-          const taskKey = Object.keys(task)[0];
-          const info = task[taskKey];
-          for (const topic of [info?.pub_topic, info?.sub_topic]) {
-            if (typeof topic !== 'string') continue;
-            const match = topic.match(/\/ecat\/[^/]+\/app_new_(\d+)\//);
-            if (match) {
-              const n = parseInt(match[1], 10);
-              if (n > maxN) maxN = n;
-            }
-          }
-        }
-      }
-    }
-    return `app_new_${maxN + 1}`;
-  }
 
   private async removeTask(sIndex: number, tIndex: number) {
     const editor = vscode.window.activeTextEditor;
