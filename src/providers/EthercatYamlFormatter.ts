@@ -114,8 +114,14 @@ export class EthercatYamlFormatter implements vscode.DocumentFormattingEditProvi
       return '\n' + p1;
     });
 
-    // 移除连续的多个空行（保留最多一个空行）
-    text = text.replace(/\n\n\n+/g, '\n\n');
+    // Collapse blank lines: keep one only between slaves/tasks, remove elsewhere
+    text = text.replace(/\n\n+/g, (match, offset) => {
+      const after = text.substring(offset + match.length, offset + match.length + 10);
+      if (after.match(/^ {2}- sn/) || after.match(/^ {8}- app_/)) {
+        return '\n\n';
+      }
+      return '\n';
+    });
 
     // 确保文件末尾只有一个换行符
     text = text.replace(/\n*$/, '\n');

@@ -68,6 +68,9 @@ export function parseYamlDocumentWithTags(text: string): yaml.Document {
 export function stringifyYamlDocumentWithTags(doc: yaml.Document): string {
   let output = doc.toString({ indent: 2, indentSeq: true });
 
+  // Remove blank lines right after "slaves:" before first slave
+  output = output.replace(/(slaves:)\n+(\n  -)/g, '$1\n$2');
+
   // Remove any existing blank lines after "tasks:" before first task
   output = output.replace(/(\n {6}tasks:)\n+(\n {8}- app_\d+:)/g, '$1$2');
 
@@ -88,6 +91,17 @@ export function stringifyYamlDocumentWithTags(doc: yaml.Document): string {
     /(\n {12}[a-z_0-9]+: !(?:uint8_t|uint16_t|uint32_t|int8_t|int16_t|int32_t|float|std::string) [^\n]+)(\n {2}- sn\d+:)/g,
     '$1\n$2',
   );
+
+  // Remove any stray blank lines inside slave/task blocks (not between them)
+  output = output.replace(/\n\n+/g, (match, offset) => {
+    // Keep exactly one blank line only if it's between slaves or between tasks
+    // Otherwise collapse to single newline
+    const after = output.substring(offset + match.length, offset + match.length + 10);
+    if (after.match(/^ {2}- sn/) || after.match(/^ {8}- app_/)) {
+      return '\n\n';
+    }
+    return '\n';
+  });
 
   return output;
 }
