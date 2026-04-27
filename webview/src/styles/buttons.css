@@ -1,0 +1,63 @@
+/* Buttons */
+button {
+  background: var(--vscode-button-background);
+  color: var(--vscode-button-foreground);
+  border: 1px solid transparent;
+  padding: 0 10px;
+  height: 26px;
+  cursor: pointer;
+  border-radius: 2px;
+  font-family: inherit;
+  font-size: 12px;
+  line-height: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  white-space: nowrap;
+}
+
+button:hover {
+  background: var(--vscode-button-hoverBackground);
+}
+
+button:active {
+  opacity: 0.9;
+}
+
+button:focus {
+  outline: 1px solid var(--vscode-focusBorder);
+  outline-offset: 1px;
+}
+
+.btn-secondary {
+  background: transparent;
+  color: var(--vscode-button-secondaryForeground);
+  border: 1px solid
+    var(--vscode-button-border, var(--vscode-button-secondaryForeground));
+}
+
+.btn-secondary:hover {
+  background: var(--vscode-button-secondaryHoverBackground);
+}
+
+.btn-danger {
+  background: transparent;
+  color: var(--vscode-errorForeground);
+  border: 1px solid var(--vscode-errorForeground);
+}
+
+.btn-danger:hover {
+  background: var(--vscode-errorForeground);
+  color: white;
+}
+
+.btn-sm {
+  height: 22px;
+  padding: 0 6px;
+  font-size: 11px;
+}
+
+.btn-group {
+  display: flex;
+  gap: 4px;
+}

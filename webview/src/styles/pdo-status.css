@@ -1,0 +1,159 @@
+/* PDO status (SlavePdoStatus) */
+.slave-pdo-status {
+  padding: 10px 12px;
+  background-color: var(--vscode-editor-background);
+  overflow: hidden;
+  position: sticky;
+  top: 30px;
+  z-index: 9;
+}
+
+.board-type-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+  font-size: 12px;
+  min-width: 0;
+}
+
+.board-type-row label {
+  color: var(--vscode-descriptionForeground);
+  font-weight: 500;
+  flex-shrink: 0;
+}
+
+.board-type-row select {
+  flex: 1;
+  min-width: 0;
+  height: 26px;
+  padding: 4px 8px;
+  border: 1px solid var(--vscode-input-border);
+  background-color: var(--vscode-input-background);
+  color: var(--vscode-input-foreground);
+  border-radius: 3px;
+  font-size: 11px;
+  cursor: pointer;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  box-sizing: border-box;
+  max-width: 100%;
+}
+
+.board-type-row select:focus {
+  outline: 1px solid var(--vscode-focusBorder);
+}
+
+.add-board-type-btn {
+  width: 100%;
+  background: transparent;
+  color: var(--vscode-foreground);
+  border: 1px dashed var(--vscode-widget-border, rgba(255, 255, 255, 0.15));
+  opacity: 0.6;
+  padding: 4px 0;
+  font-size: 12px;
+  margin-bottom: 8px;
+  cursor: pointer;
+}
+
+.add-board-type-btn:hover {
+  opacity: 1;
+  border-color: var(--vscode-focusBorder);
+  background: var(
+    --vscode-button-secondaryHoverBackground,
+    rgba(255, 255, 255, 0.05)
+  );
+}
+
+.pdo-info-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.pdo-metrics {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  font-size: 12px;
+}
+
+.pdo-item {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+  white-space: nowrap;
+}
+
+.pdo-label {
+  font-weight: 500;
+  color: var(--vscode-descriptionForeground);
+}
+
+.pdo-value {
+  font-family: var(--vscode-editor-font-family);
+  color: var(--vscode-editor-foreground);
+  font-weight: 500;
+}
+
+.pdo-value.overflow {
+  color: var(--vscode-errorForeground);
+  font-weight: 600;
+}
+
+.status-badge {
+  padding: 3px 10px;
+  border-radius: 3px;
+  font-size: 11px;
+  font-weight: 600;
+  margin-left: auto;
+}
+
+.status-badge.status-ok {
+  background-color: var(--vscode-testing-iconPassed);
+  color: var(--vscode-button-foreground);
+}
+
+.status-badge.status-error {
+  background-color: var(--vscode-errorForeground);
+  color: var(--vscode-button-foreground);
+}
+
+/* PDO status (PdoStatusPanel) */
+.pdo-status-panel {
+  margin-bottom: 8px;
+}
+
+.overall-status {
+  padding: 12px 16px;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 500;
+  font-size: 14px;
+}
+
+.pdo-status-panel .status-ok {
+  background-color: var(--vscode-inputValidation-infoBackground);
+  border: 1px solid var(--vscode-inputValidation-infoBorder);
+  color: var(--vscode-editor-foreground);
+}
+
+.pdo-status-panel .status-error {
+  background-color: var(--vscode-inputValidation-errorBackground);
+  border: 1px solid var(--vscode-inputValidation-errorBorder);
+  color: var(--vscode-errorForeground);
+}
+
+.status-unknown {
+  background-color: var(--vscode-editor-background);
+  border: 1px solid var(--vscode-panel-border);
+  color: var(--vscode-descriptionForeground);
+}
+
+.status-icon {
+  font-size: 18px;
+  font-weight: bold;
+}

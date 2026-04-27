@@ -1,7 +1,15 @@
 export class TaskTypeMemory {
-  private memory = new Map<string, Map<string, Map<number, Record<string, any>>>>();
+  private memory = new Map<
+    string,
+    Map<string, Map<number, Record<string, any>>>
+  >();
 
-  save(slaveName: string, taskName: string, taskType: number, values: Record<string, any>) {
+  save(
+    slaveName: string,
+    taskName: string,
+    taskType: number,
+    values: Record<string, any>,
+  ) {
     let slaveMap = this.memory.get(slaveName);
     if (!slaveMap) {
       slaveMap = new Map();
@@ -15,7 +23,11 @@ export class TaskTypeMemory {
     taskMap.set(taskType, { ...values });
   }
 
-  get(slaveName: string, taskName: string, taskType: number): Record<string, any> | null {
+  get(
+    slaveName: string,
+    taskName: string,
+    taskType: number,
+  ): Record<string, any> | null {
     return this.memory.get(slaveName)?.get(taskName)?.get(taskType) ?? null;
   }
 

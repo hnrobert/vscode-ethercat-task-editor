@@ -1,0 +1,76 @@
+/* Drag-and-drop */
+.task-container.dragging {
+  opacity: 0.35;
+}
+
+.slave-panel.dragging {
+  opacity: 0.35;
+}
+
+body.dragging-task .task-insert-zone {
+  height: 28px;
+}
+
+body.dragging-slave .slave-insert-zone {
+  height: 28px;
+}
+
+body.dragging-task .task-insert-zone .insert-divider {
+  opacity: 1;
+  pointer-events: none;
+}
+
+body.dragging-slave .slave-insert-zone .insert-divider {
+  opacity: 1;
+  pointer-events: none;
+}
+
+body.dragging-task .task-insert-zone .insert-btn,
+body.dragging-slave .slave-insert-zone .insert-btn {
+  display: none;
+}
+
+.insert-zone.drag-over .insert-line,
+.add-bottom-bar.drag-over {
+  border-color: var(--vscode-focusBorder);
+}
+
+.insert-zone.drag-over .insert-line {
+  height: 2px;
+  background: var(--vscode-focusBorder);
+}
+
+.add-bottom-bar.drag-over button {
+  opacity: 1;
+  border-color: var(--vscode-focusBorder);
+  border-style: solid;
+  background: var(--vscode-list-dropBackground, rgba(255, 255, 255, 0.04));
+}
+
+.task-title[draggable='true'],
+.header-row[draggable='true'] {
+  cursor: grab;
+}
+
+.task-title[draggable='true']:active,
+.header-row[draggable='true']:active {
+  cursor: grabbing;
+}
+
+.header-row[draggable='true'] > * {
+  pointer-events: none;
+}
+
+.header-row[draggable='true'] .btn-group,
+.header-row[draggable='true'] .inline-edit-input {
+  pointer-events: auto;
+}
+
+.task-title[draggable='true'] > * {
+  pointer-events: none;
+}
+
+.task-title[draggable='true'] .btn-group,
+.task-title[draggable='true'] .inline-edit-input {
+  pointer-events: auto;
+}

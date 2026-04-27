@@ -5,6 +5,11 @@ import path from 'path';
 export default defineConfig({
   plugins: [vue()],
   root: path.resolve(__dirname),
+  resolve: {
+    alias: {
+      '@tasks': path.resolve(__dirname, '../src/tasks'),
+    },
+  },
   build: {
     outDir: path.resolve(__dirname, '../dist'),
     emptyOutDir: true,

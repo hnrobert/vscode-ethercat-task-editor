@@ -1,0 +1,13 @@
+# Board type definitions for EtherCAT slave modules
+# Used for PDO length validation
+
+board_types:
+  - id: !uint8_t 0x03
+    name: "H750 Universal Module"
+    max_tx_pdo: 80
+    max_rx_pdo: 80
+
+  - id: !uint8_t 0x04
+    name: "H750 Universal Module (Large PDO V.)"
+    max_tx_pdo: 112
+    max_rx_pdo: 80

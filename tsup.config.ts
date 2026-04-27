@@ -1,11 +1,11 @@
-import { defineConfig } from "tsup";
+import { defineConfig } from 'tsup';
 
 export default defineConfig({
-  entry: ["src/extension.ts", "src/test/runTest.ts", "src/test/suite/**/*.ts"],
-  outDir: "out",
-  format: ["cjs"],
-  platform: "node",
-  target: "node16",
+  entry: ['src/extension.ts', 'src/test/runTest.ts', 'src/test/suite/**/*.ts'],
+  outDir: 'out',
+  format: ['cjs'],
+  platform: 'node',
+  target: 'node16',
   sourcemap: true,
   clean: true,
   dts: false,
@@ -13,6 +13,6 @@ export default defineConfig({
   minify: false,
   shims: false,
   skipNodeModulesBundle: false,
-  external: ["vscode", "fs", "path", "os", "util", "assert", "module"],
-  noExternal: ["micromatch"],
+  external: ['vscode', 'fs', 'path', 'os', 'util', 'assert', 'module'],
+  noExternal: ['micromatch'],
 });

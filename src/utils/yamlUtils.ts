@@ -1,7 +1,6 @@
 import * as vscode from 'vscode';
 import * as yaml from 'yaml';
-import { stringifyYamlDocumentWithTags } from './YamlParser';
-import { MsgField } from './msgParser';
+import { stringifyYamlDocumentWithTags } from './yamlParser';
 import { calculateOffsets } from './offsetCalculator';
 
 export type PathEntry = string | number;
@@ -77,6 +76,10 @@ export function parseTopicSegment(topic: string): string | null {
 export function normalizeTaskKeys(doc: yaml.Document) {
   const data = doc.toJSON();
   if (!data?.slaves || !Array.isArray(data.slaves)) return;
+
+  // 导入 TaskRegistry
+  const { TaskRegistry } = require('../tasks');
+
   for (let sIndex = 0; sIndex < data.slaves.length; sIndex++) {
     const slave = data.slaves[sIndex];
     if (!slave || typeof slave !== 'object') continue;
@@ -89,16 +92,35 @@ export function normalizeTaskKeys(doc: yaml.Document) {
       if (!task || typeof task !== 'object') continue;
       const currentKey = Object.keys(task)[0];
       const expectedKey = `app_${tIndex + 1}`;
-      if (currentKey === expectedKey) continue;
 
-      const taskNode = doc.getIn(
-        ['slaves', sIndex, slaveKey, 'tasks', tIndex],
-        true,
-      );
-      if (yaml.isMap(taskNode) && taskNode.items.length > 0) {
-        const keyNode = taskNode.items[0].key;
-        if (yaml.isScalar(keyNode)) {
-          keyNode.value = expectedKey;
+      // 规范化 task key
+      if (currentKey !== expectedKey) {
+        const taskNode = doc.getIn(
+          ['slaves', sIndex, slaveKey, 'tasks', tIndex],
+          true,
+        );
+        if (yaml.isMap(taskNode) && taskNode.items.length > 0) {
+          const keyNode = taskNode.items[0].key;
+          if (yaml.isScalar(keyNode)) {
+            keyNode.value = expectedKey;
+          }
+        }
+      }
+
+      // 重新排序 task 字段
+      const taskData = task[currentKey] || task[expectedKey];
+      if (taskData?.sdowrite_task_type) {
+        const taskType = Number(taskData.sdowrite_task_type);
+        const taskDef = TaskRegistry.getTask(taskType);
+        if (taskDef) {
+          const taskNode = doc.getIn(
+            ['slaves', sIndex, slaveKey, 'tasks', tIndex, expectedKey],
+            true,
+          );
+          if (yaml.isMap(taskNode)) {
+            // console.log(`[normalizeTaskKeys] Reordering fields for task ${expectedKey} (type ${taskType})`);
+            taskDef.reorderFields(taskNode);
+          }
         }
       }
     }
@@ -123,11 +145,10 @@ export async function writeDocument(
 export async function applyAndSaveYaml(
   editor: vscode.TextEditor,
   doc: yaml.Document,
-  msgs: Record<string, MsgField[]>,
   onUpdate?: () => void,
 ): Promise<void> {
   normalizeTaskKeys(doc);
-  calculateOffsets(doc, doc.toJSON(), msgs);
+  calculateOffsets(doc, doc.toJSON());
 
   const fullRange = new vscode.Range(
     editor.document.positionAt(0),

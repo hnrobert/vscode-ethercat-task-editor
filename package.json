@@ -2,7 +2,7 @@
   "name": "vscode-ethercat-task-editor",
   "displayName": "EtherCAT Task Editor",
   "description": "Visual editor for SOEM YAML config files based on MSG format.",
-  "version": "1.0.0",
+  "version": "0.0.1",
   "license": "MIT",
   "engines": {
     "vscode": "^1.104.0"
@@ -16,11 +16,151 @@
     "onLanguage:yaml"
   ],
   "contributes": {
+    "languages": [
+      {
+        "id": "ethercat-yaml",
+        "aliases": [
+          "EtherCAT Task Config",
+          "EtherCAT YAML"
+        ],
+        "extensions": [],
+        "configuration": "./language-configuration.json"
+      }
+    ],
+    "grammars": [
+      {
+        "language": "ethercat-yaml",
+        "scopeName": "source.ethercat-yaml",
+        "path": "./syntaxes/ethercat-yaml.tmLanguage.json"
+      }
+    ],
+    "configurationDefaults": {
+      "[ethercat-yaml]": {
+        "editor.tabSize": 2,
+        "editor.insertSpaces": true,
+        "editor.formatOnSave": false
+      },
+      "editor.tokenColorCustomizations": {
+        "textMateRules": [
+          {
+            "scope": "entity.name.tag.ethercat.sdowrite",
+            "settings": {
+              "foreground": "#4EC9B0"
+            }
+          },
+          {
+            "scope": "entity.name.tag.ethercat.pdo",
+            "settings": {
+              "foreground": "#febb5d"
+            }
+          },
+          {
+            "scope": "entity.name.tag.ethercat.conf",
+            "settings": {
+              "foreground": "#DCDCAA"
+            }
+          },
+          {
+            "scope": "keyword.control.ethercat",
+            "settings": {
+              "foreground": "#C586C0"
+            }
+          },
+          {
+            "scope": "variable.parameter.ethercat.motor",
+            "settings": {
+              "foreground": "#9CDCFE"
+            }
+          },
+          {
+            "scope": "variable.parameter.ethercat.pid",
+            "settings": {
+              "foreground": "#B5CEA8"
+            }
+          },
+          {
+            "scope": "support.type.property-name.ethercat.topic",
+            "settings": {
+              "foreground": "#00ffff"
+            }
+          },
+          {
+            "scope": "entity.name.type.ethercat.sn",
+            "settings": {
+              "foreground": "#28cdff",
+              "fontStyle": "bold"
+            }
+          },
+          {
+            "scope": "entity.name.function.ethercat.app",
+            "settings": {
+              "foreground": "#fcff66",
+              "fontStyle": "bold"
+            }
+          },
+          {
+            "scope": "storage.type.ethercat.tag.string",
+            "settings": {
+              "foreground": "#808080"
+            }
+          },
+          {
+            "scope": "storage.type.ethercat.tag.uint8",
+            "settings": {
+              "foreground": "#808080"
+            }
+          },
+          {
+            "scope": "storage.type.ethercat.tag.uint16",
+            "settings": {
+              "foreground": "#808080"
+            }
+          },
+          {
+            "scope": "storage.type.ethercat.tag.uint32",
+            "settings": {
+              "foreground": "#808080"
+            }
+          },
+          {
+            "scope": "storage.type.ethercat.tag.int8",
+            "settings": {
+              "foreground": "#808080"
+            }
+          },
+          {
+            "scope": "storage.type.ethercat.tag.int16",
+            "settings": {
+              "foreground": "#808080"
+            }
+          },
+          {
+            "scope": "storage.type.ethercat.tag.int32",
+            "settings": {
+              "foreground": "#808080"
+            }
+          },
+          {
+            "scope": "storage.type.ethercat.tag.float",
+            "settings": {
+              "foreground": "#808080"
+            }
+          },
+          {
+            "scope": "invalid.illegal.ethercat.tag",
+            "settings": {
+              "foreground": "#F44747",
+              "fontStyle": "italic underline"
+            }
+          }
+        ]
+      }
+    },
     "viewsContainers": {
       "activitybar": [
         {
           "id": "ethercatTaskEditor-container",
-          "title": "EtherCAT Config",
+          "title": "EtherCAT Task Editor",
           "icon": "assets/images/icon-stroke.svg"
         }
       ]
@@ -29,7 +169,7 @@
       "ethercatTaskEditor-container": [
         {
           "id": "ethercatTaskEditor.sidebar",
-          "name": "SOEM Tasks Editor",
+          "name": "EtherCAT Task Editor",
           "type": "webview",
           "icon": "assets/images/icon-stroke.svg"
         }
@@ -54,7 +194,11 @@
       {
         "command": "ethercatTaskEditor.showPanel",
         "title": "Open EtherCAT Config",
-        "icon": "assets/images/icon-stroke.svg"
+        "icon": "assets/images/icon-stroke-outline.svg"
+      },
+      {
+        "command": "ethercatTaskEditor.configureFileIcon",
+        "title": "Configure EtherCAT File Icon"
       }
     ],
     "menus": {
