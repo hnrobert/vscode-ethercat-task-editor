@@ -17,3 +17,24 @@ body {
 .bottom-spacer {
   height: 95vh;
 }
+
+.empty-state {
+  display: flex;
+  justify-content: center;
+  padding-top: 40px;
+}
+
+.add-slave-empty {
+  padding: 8px 20px;
+  border: 1px dashed var(--vscode-widget-border, rgba(255, 255, 255, 0.15));
+  background: transparent;
+  color: var(--vscode-foreground);
+  cursor: pointer;
+  font-size: 13px;
+  border-radius: 4px;
+}
+
+.add-slave-empty:hover {
+  background: var(--vscode-button-secondaryHoverBackground, rgba(255, 255, 255, 0.05));
+  border-color: var(--vscode-focusBorder);
+}

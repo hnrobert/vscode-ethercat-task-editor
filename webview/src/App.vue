@@ -2,6 +2,7 @@
   <div>
     <div v-if="errorMessage" class="error-message">{{ errorMessage }}</div>
     <template v-else-if="data?.slaves">
+
       <PdoStatusPanel />
       <div class="slave-list">
         <!-- Insert zone before first slave -->
@@ -53,6 +54,12 @@
         </div>
       </div>
       <div class="bottom-spacer"></div>
+    </template>
+
+    <template v-else>
+      <div class="empty-state">
+        <button class="add-slave-empty" @click="onAddSlave">+ Add Slave (SN)</button>
+      </div>
     </template>
 
     <TaskTypePicker

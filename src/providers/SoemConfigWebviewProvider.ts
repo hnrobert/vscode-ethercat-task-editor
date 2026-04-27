@@ -13,6 +13,16 @@ import {
 import { validateTopics } from '../utils/topicValidator';
 import { validateTags } from '../utils/tagValidator';
 
+function ensureBlockStyle(node: unknown) {
+  if (yaml.isMap(node) || yaml.isSeq(node)) {
+    node.flow = false;
+    for (const item of node.items) {
+      const child = yaml.isMap(node) ? item.value : item;
+      ensureBlockStyle(child);
+    }
+  }
+}
+
 export class SoemConfigWebviewProvider implements vscode.WebviewViewProvider {
   public static readonly viewType = 'ethercatTaskEditor.sidebar';
   private _view?: vscode.WebviewView;
@@ -649,10 +659,13 @@ export class SoemConfigWebviewProvider implements vscode.WebviewViewProvider {
   sdo_len: !uint16_t 0
   task_count: !uint8_t 0
   latency_pub_topic: !std::string '/ecat/${snName.replace('+', '')}/latency'
-  tasks: []
+  tasks:
 `;
       const newSlaveNode = parseYamlDocumentWithTags(newSlaveStr).contents;
-      if (newSlaveNode) slavesList.items.push(newSlaveNode as any);
+      if (newSlaveNode) {
+        ensureBlockStyle(newSlaveNode);
+        slavesList.items.push(newSlaveNode as any);
+      }
       await this.saveDoc(editor, doc);
     }
   }
@@ -680,10 +693,11 @@ export class SoemConfigWebviewProvider implements vscode.WebviewViewProvider {
   sdo_len: !uint16_t 0
   task_count: !uint8_t 0
   latency_pub_topic: !std::string '/ecat/${snName.replace('+', '')}/latency'
-  tasks: []
+  tasks:
 `;
       const newSlaveNode = parseYamlDocumentWithTags(newSlaveStr).contents;
       if (newSlaveNode) {
+        ensureBlockStyle(newSlaveNode);
         slavesList.items.splice(sIndex, 0, newSlaveNode as any);
         await this.saveDoc(editor, doc);
       }
@@ -763,12 +777,15 @@ export class SoemConfigWebviewProvider implements vscode.WebviewViewProvider {
     );
 
     let tasksList = doc.getIn(['slaves', sIndex, snKey, 'tasks']);
-    if (!tasksList) {
-      doc.setIn(['slaves', sIndex, snKey, 'tasks'], []);
-      tasksList = doc.getIn(['slaves', sIndex, snKey, 'tasks']);
+    if (!yaml.isSeq(tasksList)) {
+      const seq = new yaml.YAMLSeq();
+      seq.flow = false;
+      doc.setIn(['slaves', sIndex, snKey, 'tasks'], seq);
+      tasksList = seq;
     }
 
     if (yaml.isSeq(tasksList)) {
+      tasksList.flow = false;
       const task = TaskRegistry.getTask(taskType);
       if (!task) return;
       const snakeName = toSnakeCase(task.getName());
@@ -786,6 +803,7 @@ export class SoemConfigWebviewProvider implements vscode.WebviewViewProvider {
         );
         const newTaskNode = parseYamlDocumentWithTags(newTaskStr).contents;
         if (newTaskNode) {
+          ensureBlockStyle(newTaskNode);
           tasksList.items.push(newTaskNode as any);
           doc.setIn(
             ['slaves', sIndex, snKey, 'task_count'],
@@ -803,6 +821,7 @@ export class SoemConfigWebviewProvider implements vscode.WebviewViewProvider {
         );
         const newTaskNode = parseYamlDocumentWithTags(newTaskStr).contents;
         if (newTaskNode) {
+          ensureBlockStyle(newTaskNode);
           tasksList.items.splice(tIndex, 0, newTaskNode as any);
           doc.setIn(
             ['slaves', sIndex, snKey, 'task_count'],
@@ -946,12 +965,15 @@ export class SoemConfigWebviewProvider implements vscode.WebviewViewProvider {
     );
 
     let toTasksList = doc.getIn(['slaves', toSIndex, toSnKey, 'tasks']);
-    if (!toTasksList) {
-      doc.setIn(['slaves', toSIndex, toSnKey, 'tasks'], []);
-      toTasksList = doc.getIn(['slaves', toSIndex, toSnKey, 'tasks']);
+    if (!yaml.isSeq(toTasksList)) {
+      const seq = new yaml.YAMLSeq();
+      seq.flow = false;
+      doc.setIn(['slaves', toSIndex, toSnKey, 'tasks'], seq);
+      toTasksList = seq;
     }
 
     if (yaml.isSeq(toTasksList)) {
+      toTasksList.flow = false;
       toTasksList.items.splice(adjustedTIndex, 0, taskNode);
       doc.setIn(
         ['slaves', toSIndex, toSnKey, 'task_count'],
