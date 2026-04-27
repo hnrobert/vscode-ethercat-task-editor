@@ -20,20 +20,20 @@ export class Task07_ExternalPWM extends TaskBase {
   private static buildFields(): FieldDefinition[] {
     return [
       {
-        key: 'sdowrite_port_id',
-        label: 'Port ID',
+        key: 'sdowrite_uart_id',
+        label: 'UART ID',
         type: 'select',
         data_type: 'uint8_t',
         default: 1,
         options: [
-          { value: 1, label: 'Port 1' },
-          { value: 2, label: 'Port 2' },
-          { value: 3, label: 'Port 3' },
-          { value: 4, label: 'Port 4' },
-          { value: 5, label: 'Port 5' },
-          { value: 6, label: 'Port 6' },
-          { value: 7, label: 'Port 7' },
-          { value: 8, label: 'Port 8' },
+          { value: 1, label: 'UART 1' },
+          { value: 2, label: 'UART 2' },
+          { value: 3, label: 'UART 3' },
+          { value: 4, label: 'UART 4' },
+          { value: 5, label: 'UART 5' },
+          { value: 6, label: 'UART 6' },
+          { value: 7, label: 'UART 7' },
+          { value: 8, label: 'UART 8' },
         ],
       },
       {
@@ -44,6 +44,15 @@ export class Task07_ExternalPWM extends TaskBase {
         default: 20000,
         min: 0,
         max: 65535,
+      },
+      {
+        key: 'sdowrite_channel_num',
+        label: 'Channel Count',
+        type: 'number',
+        data_type: 'uint8_t',
+        default: 1,
+        min: 1,
+        max: 8,
       },
       {
         key: 'sdowrite_init_value',

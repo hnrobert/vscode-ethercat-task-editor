@@ -40,8 +40,8 @@ export class Task15_DDMotor extends TaskBase {
         ],
       },
       {
-        key: 'sdowrite_can_type',
-        label: 'CAN Type',
+        key: 'sdowrite_can_baudrate',
+        label: 'CAN Baudrate',
         type: 'select',
         data_type: 'uint8_t',
         default: 1,

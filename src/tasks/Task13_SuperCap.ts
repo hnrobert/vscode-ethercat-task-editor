@@ -31,8 +31,15 @@ export class Task13_SuperCap extends TaskBase {
         ],
       },
       {
-        key: 'sdowrite_can_id',
-        label: 'CAN ID',
+        key: 'sdowrite_chassis_to_cap_id',
+        label: 'Chassis → Cap ID',
+        type: 'hex',
+        data_type: 'uint32_t',
+        default: 0x211,
+      },
+      {
+        key: 'sdowrite_cap_to_chassis_id',
+        label: 'Cap → Chassis ID',
         type: 'hex',
         data_type: 'uint32_t',
         default: 0x211,

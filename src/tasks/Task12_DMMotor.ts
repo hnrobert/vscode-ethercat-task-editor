@@ -29,6 +29,20 @@ export class Task12_DMMotor extends TaskBase {
         max: 1000,
       },
       {
+        key: 'sdowrite_can_id',
+        label: 'Motor CAN ID',
+        type: 'hex',
+        data_type: 'uint16_t',
+        default: 0x01,
+      },
+      {
+        key: 'sdowrite_master_id',
+        label: 'Master ID',
+        type: 'hex',
+        data_type: 'uint16_t',
+        default: 0x00,
+      },
+      {
         key: 'sdowrite_can_inst',
         label: 'CAN Instance',
         type: 'select',
@@ -37,23 +51,6 @@ export class Task12_DMMotor extends TaskBase {
         options: [
           { value: 1, label: 'CAN1' },
           { value: 2, label: 'CAN2' },
-        ],
-      },
-      {
-        key: 'sdowrite_motor_id',
-        label: 'Motor ID',
-        type: 'select',
-        data_type: 'uint8_t',
-        default: 1,
-        options: [
-          { value: 1, label: '1' },
-          { value: 2, label: '2' },
-          { value: 3, label: '3' },
-          { value: 4, label: '4' },
-          { value: 5, label: '5' },
-          { value: 6, label: '6' },
-          { value: 7, label: '7' },
-          { value: 8, label: '8' },
         ],
       },
       {
@@ -67,6 +64,27 @@ export class Task12_DMMotor extends TaskBase {
           { value: 2, label: 'Position Control with Speed Limit' },
           { value: 3, label: 'Speed Control' },
         ],
+      },
+      {
+        key: 'conf_pmax',
+        label: 'P Max',
+        type: 'number',
+        data_type: 'float',
+        default: 10.0,
+      },
+      {
+        key: 'conf_vmax',
+        label: 'V Max',
+        type: 'number',
+        data_type: 'float',
+        default: 10.0,
+      },
+      {
+        key: 'conf_tmax',
+        label: 'T Max',
+        type: 'number',
+        data_type: 'float',
+        default: 10.0,
       },
     ];
   }
