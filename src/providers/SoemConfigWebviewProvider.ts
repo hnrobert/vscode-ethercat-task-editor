@@ -1040,6 +1040,9 @@ export class SoemConfigWebviewProvider implements vscode.WebviewViewProvider {
     const styleUri = webview.asWebviewUri(
       vscode.Uri.joinPath(extensionUri, 'dist', 'assets', 'index.css'),
     );
+    const iconUri = webview.asWebviewUri(
+      vscode.Uri.joinPath(extensionUri, 'assets', 'images', 'icon-stroke.svg'),
+    );
     const nonce = getNonce();
 
     return `<!DOCTYPE html>
@@ -1047,12 +1050,12 @@ export class SoemConfigWebviewProvider implements vscode.WebviewViewProvider {
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src ${webview.cspSource} 'unsafe-inline'; script-src 'nonce-${nonce}';">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; img-src ${webview.cspSource}; style-src ${webview.cspSource} 'unsafe-inline'; script-src 'nonce-${nonce}';">
   <link rel="stylesheet" href="${styleUri}">
   <title>EtherCAT Task Editor</title>
 </head>
 <body>
-  <div id="app"></div>
+  <div id="app" data-icon-uri="${iconUri}"></div>
   <script type="module" nonce="${nonce}" src="${scriptUri}"></script>
 </body>
 </html>`;

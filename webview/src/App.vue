@@ -1,7 +1,7 @@
 <template>
   <div>
     <div v-if="errorMessage" class="error-message">{{ errorMessage }}</div>
-    <template v-else-if="data?.slaves">
+    <template v-else-if="data?.slaves?.length">
 
       <PdoStatusPanel />
       <div class="slave-list">
@@ -58,8 +58,42 @@
     </template>
 
     <template v-else>
-      <div class="empty-state">
-        <button class="add-slave-empty" @click="onAddSlave">+ Add Slave (SN)</button>
+      <div class="welcome">
+        <div class="welcome-header">
+          <img class="welcome-icon" :src="iconUri" alt="EtherCAT" />
+          <h2>EtherCAT Task Editor</h2>
+          <p class="welcome-subtitle">Visual editor for SOEM YAML configuration files</p>
+        </div>
+
+        <div class="welcome-steps">
+          <div class="welcome-step">
+            <span class="step-num">1</span>
+            <div>
+              <strong>Add a Slave</strong>
+              <p>Enter the slave serial number (e.g., sn1234567)</p>
+            </div>
+          </div>
+          <div class="welcome-step">
+            <span class="step-num">2</span>
+            <div>
+              <strong>Set Board Type</strong>
+              <p>Choose the board type for PDO size validation</p>
+            </div>
+          </div>
+          <div class="welcome-step">
+            <span class="step-num">3</span>
+            <div>
+              <strong>Add Tasks</strong>
+              <p>Pick a task type and configure its parameters</p>
+            </div>
+          </div>
+        </div>
+
+        <button class="welcome-btn" @click="onAddSlave">+ Add Slave (SN)</button>
+
+        <div class="welcome-hint">
+          Open a <code>.yaml</code> file with a <code>slaves:</code> section to auto-load an existing config.
+        </div>
       </div>
     </template>
 
@@ -77,6 +111,8 @@
 import { ref, watch } from 'vue';
 import SlaveCard from './components/SlaveCard.vue';
 import TaskTypePicker from './components/TaskTypePicker.vue';
+
+const iconUri = (document.getElementById('app')?.dataset.iconUri) ?? '';
 import PdoStatusPanel from './components/PdoStatusPanel.vue';
 import { data, errorMessage, addSlave, addSlaveAt, moveSlave, dragState, setDragState, vscode, taskTypePickerEvent } from './composables/useVscode';
 
