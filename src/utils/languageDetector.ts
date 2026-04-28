@@ -11,14 +11,9 @@ export function isEthercatYaml(document: vscode.TextDocument): boolean {
 
   try {
     const text = document.getText();
+    if (!text.trim()) return false;
     const parsed = yaml.parse(text);
-
-    // Has top-level slaves key (array or null)
-    if (parsed && 'slaves' in parsed) {
-      return true;
-    }
-
-    return false;
+    return parsed && 'slaves' in parsed;
   } catch (e) {
     return false;
   }
