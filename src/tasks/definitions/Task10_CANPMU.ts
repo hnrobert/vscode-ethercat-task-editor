@@ -33,9 +33,10 @@ export class Task10_CANPMU extends TaskBase {
       {
         key: 'sdowrite_can_id',
         label: 'CAN ID',
-        type: 'hex',
+        type: 'number',
         data_type: 'uint32_t',
         default: 0x211,
+        is_hex: true,
       },
     ];
   }

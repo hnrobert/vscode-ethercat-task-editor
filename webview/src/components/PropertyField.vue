@@ -67,38 +67,42 @@
 
     <!-- Radio Field with Options -->
     <div v-else-if="fieldDef?.type === 'radio' && fieldDef.options" class="radio-group">
-      <label
-        v-for="option in validOptions"
-        :key="option.value"
-        class="radio-option"
-        :title="option.description"
-      >
-        <input
-          type="radio"
-          :name="`radio-${path.join('-')}-${prop}`"
-          :value="option.value"
-          :checked="normalizedValue === option.value"
-          @change="onRadioChange(option.value)"
-        />
-        <span>{{ option.label }}</span>
-      </label>
+      <template v-for="(option, idx) in validOptions" :key="option.value">
+        <div v-if="option.group && (idx === 0 || validOptions[idx - 1].group !== option.group)" class="radio-group-divider">
+          {{ option.group }}
+        </div>
+        <label
+          class="radio-option"
+          :title="option.description"
+        >
+          <input
+            type="radio"
+            :name="`radio-${path.join('-')}-${prop}`"
+            :value="option.value"
+            :checked="normalizedValue === option.value"
+            @change="onRadioChange(option.value)"
+          />
+          <span>{{ option.label }}</span>
+        </label>
+      </template>
     </div>
 
     <!-- Number Field -->
     <input
-      v-else-if="fieldDef?.type === 'number'"
+      v-else-if="fieldDef?.type === 'number' && !fieldDef?.is_hex"
       type="number"
       class="prop-input"
       :value="val"
       :min="fieldDef.min"
       :max="fieldDef.max"
       :step="fieldDef.data_type === 'float' ? 'any' : '1'"
+      :disabled="isDisabled"
       @change="onInputChange"
     />
 
     <!-- Hex Field -->
     <input
-      v-else-if="fieldDef?.type === 'hex'"
+      v-else-if="fieldDef?.type === 'number' && fieldDef?.is_hex"
       type="text"
       class="prop-input"
       :value="formatHex(val)"
@@ -231,6 +235,16 @@ const isVisible = computed(() => {
 
   // 后备：默认可见
   return true;
+});
+
+// 检查字段是否禁用
+const isDisabled = computed(() => {
+  if (!fieldDef.value || !taskData.value) return false;
+  if (!fieldDef.value.has_disabled_when) return false;
+  if (taskData.value._fieldDisabled && props.prop in taskData.value._fieldDisabled) {
+    return taskData.value._fieldDisabled[props.prop];
+  }
+  return false;
 });
 
 // 获取有效选项

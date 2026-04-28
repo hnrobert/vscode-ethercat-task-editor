@@ -55,6 +55,7 @@ export class Task05_DJIMotor extends TaskBase {
         type: 'radio',
         data_type: 'uint32_t',
         default: 0x200,
+        is_hex: true,
         help: 'Determines which motor IDs this packet controls',
         options: [
           {
@@ -124,6 +125,7 @@ export class Task05_DJIMotor extends TaskBase {
         type: 'select',
         data_type: 'uint32_t',
         default: defaultCanId,
+        is_hex: true,
         help: 'Set to 0 to disable this motor. Valid IDs depend on can_packet_id.',
         options: [
           { value: 0, label: 'Disabled' },
@@ -346,7 +348,7 @@ export class Task05_DJIMotor extends TaskBase {
     for (const fieldKey of baseFields) {
       const field = this.getField(fieldKey);
       if (field && field.default !== undefined) {
-        template += `  ${field.key}: ${this.formatValue(field.default, field.data_type)}\n`;
+        template += `  ${field.key}: ${this.formatValue(field.default, field.data_type, !!field.is_hex)}\n`;
       }
     }
 
@@ -354,7 +356,7 @@ export class Task05_DJIMotor extends TaskBase {
     for (let n = 1; n <= 4; n++) {
       const canIdField = this.getField(`sdowrite_motor${n}_can_id`);
       if (canIdField && canIdField.default !== undefined) {
-        template += `  sdowrite_motor${n}_can_id: ${this.formatValue(canIdField.default, canIdField.data_type)}\n`;
+        template += `  sdowrite_motor${n}_can_id: ${this.formatValue(canIdField.default, canIdField.data_type, !!canIdField.is_hex)}\n`;
 
         // 只有当 can_id != 0 时才添加其他字段
         if (canIdField.default !== 0) {
@@ -378,7 +380,7 @@ export class Task05_DJIMotor extends TaskBase {
               for (const fieldKey of speedPidFields) {
                 const field = this.getField(fieldKey);
                 if (field && field.default !== undefined) {
-                  template += `  ${field.key}: ${this.formatValue(field.default, field.data_type)}\n`;
+                  template += `  ${field.key}: ${this.formatValue(field.default, field.data_type, !!field.is_hex)}\n`;
                 }
               }
             }
@@ -395,7 +397,7 @@ export class Task05_DJIMotor extends TaskBase {
               for (const fieldKey of anglePidFields) {
                 const field = this.getField(fieldKey);
                 if (field && field.default !== undefined) {
-                  template += `  ${field.key}: ${this.formatValue(field.default, field.data_type)}\n`;
+                  template += `  ${field.key}: ${this.formatValue(field.default, field.data_type, !!field.is_hex)}\n`;
                 }
               }
             }

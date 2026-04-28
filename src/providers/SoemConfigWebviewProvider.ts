@@ -272,11 +272,20 @@ export class SoemConfigWebviewProvider implements vscode.WebviewViewProvider {
             // 为每个字段添加可见性信息
             const fields = task.getFields();
             const fieldVisibility: Record<string, boolean> = {};
+            const fieldDisabled: Record<string, boolean> = {};
             const fieldValidOptions: Record<string, any[]> = {};
 
             for (const field of fields) {
               // 计算字段可见性
               fieldVisibility[field.key] = task.isFieldVisible(field.key, normalizedTaskData);
+
+              // 计算字段禁用状态
+              fieldDisabled[field.key] = task.isFieldDisabled(field.key, normalizedTaskData);
+
+              // 应用 from_yaml 转换：YAML 值 → UI 显示值
+              if (field.from_yaml && taskData[field.key] !== undefined) {
+                taskData[field.key] = field.from_yaml(taskData[field.key]);
+              }
 
               // 计算选项有效性
               if (field.options) {
@@ -297,6 +306,7 @@ export class SoemConfigWebviewProvider implements vscode.WebviewViewProvider {
 
             // 添加到 task 数据中
             taskData._fieldVisibility = fieldVisibility;
+            taskData._fieldDisabled = fieldDisabled;
             taskData._fieldValidOptions = fieldValidOptions;
           }
         }
@@ -353,16 +363,15 @@ export class SoemConfigWebviewProvider implements vscode.WebviewViewProvider {
           const task = TaskRegistry.getTask(taskType);
           if (task) {
             const field = task.getField(fieldKey);
-            if (field && typeof field.default === 'number') {
-              // 检查 default 值是否是十六进制表示（>= 0x100 或特定字段）
-              const shouldBeHex =
-                field.default >= 0x100 ||
-                fieldKey.includes('can_id') ||
-                fieldKey.includes('packet_id') ||
-                fieldKey.includes('can_packet_id');
-
-              if (shouldBeHex) {
+            if (field) {
+              if (field.is_hex) {
                 isHex = true;
+              } else if (typeof field.default === 'number' && field.default >= 0x100) {
+                isHex = true;
+              }
+              // 应用 to_yaml 转换：UI 显示值 → YAML 存储值
+              if (field.to_yaml) {
+                finalValue = field.to_yaml(finalValue);
               }
             }
           }
@@ -580,6 +589,14 @@ export class SoemConfigWebviewProvider implements vscode.WebviewViewProvider {
             const node = targetTaskNode.get(field.key, true);
             if (yaml.isScalar(node)) {
               node.tag = `!${dataType}`;
+              if (field.is_hex && typeof finalFieldValue === 'number') {
+                node.format = 'HEX';
+                (node as any)._originalSource =
+                  '0x' + finalFieldValue.toString(16).toUpperCase();
+                node.toJSON = function () {
+                  return '0x' + (this as any).value.toString(16).toUpperCase();
+                };
+              }
             }
           }
         }

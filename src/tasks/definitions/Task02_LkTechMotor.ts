@@ -3,7 +3,8 @@
  * 处理 LkTech 电机的配置、验证和模板生成
  */
 
-import { TaskBase, FieldDefinition } from '../TaskBase';
+import { TaskBase, FieldDefinition, FieldChangeContext } from '../TaskBase';
+import * as yaml from 'yaml';
 
 export class Task02_LkTechMotor extends TaskBase {
   constructor() {
@@ -40,28 +41,18 @@ export class Task02_LkTechMotor extends TaskBase {
         ],
       },
       {
-        key: 'sdowrite_motor_id',
-        label: 'Motor ID',
-        type: 'select',
-        data_type: 'uint8_t',
-        default: 1,
-        options: [
-          { value: 1, label: '1' },
-          { value: 2, label: '2' },
-          { value: 3, label: '3' },
-          { value: 4, label: '4' },
-          { value: 5, label: '5' },
-          { value: 6, label: '6' },
-          { value: 7, label: '7' },
-          { value: 8, label: '8' },
-        ],
-      },
-      {
         key: 'sdowrite_can_packet_id',
-        label: 'CAN Packet ID',
-        type: 'hex',
+        label: 'Motor Driver ID',
+        type: 'number',
         data_type: 'uint32_t',
-        default: 0x141,
+        default: 1,
+        min: 1,
+        max: 32,
+        is_hex: true,
+        from_yaml: (value) => value - 0x140,
+        to_yaml: (value) => value + 0x140,
+        help: 'Motor driver ID (1-32). CAN packet ID = 0x140 + this ID. Not needed in broadcast mode.',
+        visible_when: (data) => data.sdowrite_control_type !== 8,
       },
       {
         key: 'sdowrite_control_type',
@@ -69,15 +60,36 @@ export class Task02_LkTechMotor extends TaskBase {
         type: 'radio',
         data_type: 'uint8_t',
         default: 1,
+        help: 'More info: http://www.lkmotor.cn/Download.aspx?ClassID=47',
         options: [
-          { value: 1, label: 'Openloop Current' },
-          { value: 2, label: 'Torque' },
-          { value: 3, label: 'Speed with Torque Limit' },
-          { value: 4, label: 'Multi-Round Position' },
-          { value: 5, label: 'Multi-Round Position with Speed Limit' },
-          { value: 6, label: 'Single-Round Position' },
-          { value: 7, label: 'Single-Round Position with Speed Limit' },
-          { value: 8, label: 'Broadcast Current' },
+          { value: 8, label: 'Current (Broadcast)', group: 'Broadcast mode' },
+          { value: 1, label: 'Openloop Current', group: 'Single motor mode' },
+          { value: 2, label: 'Torque', group: 'Single motor mode' },
+          {
+            value: 3,
+            label: 'Speed with Torque Limit',
+            group: 'Single motor mode',
+          },
+          {
+            value: 4,
+            label: 'Multi-Round Position',
+            group: 'Single motor mode',
+          },
+          {
+            value: 5,
+            label: 'Multi-Round Position with Speed Limit',
+            group: 'Single motor mode',
+          },
+          {
+            value: 6,
+            label: 'Single-Round Position',
+            group: 'Single motor mode',
+          },
+          {
+            value: 7,
+            label: 'Single-Round Position with Speed Limit',
+            group: 'Single motor mode',
+          },
         ],
       },
     ];
@@ -100,11 +112,10 @@ export class Task02_LkTechMotor extends TaskBase {
     for (const fieldKey of [
       'sdowrite_control_period',
       'sdowrite_can_inst',
-      'sdowrite_motor_id',
     ]) {
       const field = this.getField(fieldKey);
       if (field && field.default !== undefined) {
-        template += `  ${field.key}: ${this.formatValue(field.default, field.data_type)}\n`;
+        template += `  ${field.key}: ${this.formatValue(field.default, field.data_type, !!field.is_hex)}\n`;
       }
     }
 
@@ -112,7 +123,8 @@ export class Task02_LkTechMotor extends TaskBase {
     if (controlType !== 8) {
       const field = this.getField('sdowrite_can_packet_id');
       if (field && field.default !== undefined) {
-        template += `  ${field.key}: ${this.formatValue(field.default, field.data_type)}\n`;
+        const yamlValue = field.to_yaml ? field.to_yaml(field.default) : field.default;
+        template += `  ${field.key}: ${this.formatValue(yamlValue, field.data_type, !!field.is_hex)}\n`;
       }
     }
 
@@ -124,6 +136,63 @@ export class Task02_LkTechMotor extends TaskBase {
   override calculateTxPdoSize(taskData: Record<string, any>): number {
     const cType = Number(taskData.sdowrite_control_type) || 0;
     return cType !== 8 ? 8 : 32;
+  }
+
+  override onFieldChange(context: FieldChangeContext): boolean {
+    const { fieldKey, newValue, taskNode } = context;
+
+    if (fieldKey === 'sdowrite_control_type') {
+      const newType = Number(newValue);
+
+      if (newType === 8) {
+        // Broadcast mode: remove can_packet_id
+        taskNode.delete('sdowrite_can_packet_id');
+      } else {
+        // Single motor mode: add can_packet_id if missing
+        if (!taskNode.has('sdowrite_can_packet_id')) {
+          const field = this.getField('sdowrite_can_packet_id');
+          if (field) {
+            // default is UI value (1), YAML value via to_yaml (0x141)
+            const yamlValue = field.to_yaml ? field.to_yaml(field.default) : field.default;
+            const valueScalar = new yaml.Scalar(yamlValue);
+            valueScalar.tag = `!${field.data_type}`;
+            valueScalar.format = 'HEX';
+            (valueScalar as any)._originalSource =
+              '0x' + yamlValue.toString(16).toUpperCase();
+            valueScalar.toJSON = function () {
+              return '0x' + (this as any).value.toString(16).toUpperCase();
+            };
+
+            // Insert after can_inst field
+            let insertIndex = -1;
+            for (let i = 0; i < taskNode.items.length; i++) {
+              const item = taskNode.items[i];
+              if (
+                yaml.isScalar(item.key) &&
+                String(item.key.value) === 'sdowrite_can_inst'
+              ) {
+                insertIndex = i + 1;
+                break;
+              }
+            }
+
+            const newPair = new yaml.Pair(
+              new yaml.Scalar('sdowrite_can_packet_id'),
+              valueScalar,
+            );
+
+            if (insertIndex >= 0) {
+              taskNode.items.splice(insertIndex, 0, newPair);
+            } else {
+              taskNode.items.push(newPair);
+            }
+          }
+        }
+      }
+      return true;
+    }
+
+    return false;
   }
 
   override calculateRxPdoSize(taskData: Record<string, any>): number {

@@ -32,17 +32,19 @@ export class Task13_SuperCap extends TaskBase {
       },
       {
         key: 'sdowrite_chassis_to_cap_id',
-        label: 'Chassis → Cap ID',
-        type: 'hex',
+        label: 'Capacitor Control Packet ID',
+        type: 'number',
         data_type: 'uint32_t',
-        default: 0x211,
+        default: 0x01,
+        is_hex: true,
       },
       {
         key: 'sdowrite_cap_to_chassis_id',
-        label: 'Cap → Chassis ID',
-        type: 'hex',
+        label: 'Capacitor Report Packet ID',
+        type: 'number',
         data_type: 'uint32_t',
-        default: 0x211,
+        default: 0x02,
+        is_hex: true,
       },
     ];
   }

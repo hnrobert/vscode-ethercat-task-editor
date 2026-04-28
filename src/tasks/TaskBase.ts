@@ -8,14 +8,20 @@ import * as yaml from 'yaml';
 export interface FieldDefinition {
   key: string;
   label: string;
-  type: 'number' | 'select' | 'radio' | 'hex' | 'text';
+  type: 'number' | 'select' | 'radio' | 'text';
   data_type: string;
   default?: any;
   min?: number;
   max?: number;
+  is_hex?: boolean;
+  /** Transform YAML value to UI display value */
+  from_yaml?: (value: any) => any;
+  /** Transform UI display value to YAML storage value */
+  to_yaml?: (value: any) => any;
   group?: string;
   help?: string;
   visible_when?: (data: Record<string, any>) => boolean;
+  disabled_when?: (data: Record<string, any>) => boolean;
   options?: FieldOption[];
 }
 
@@ -23,6 +29,7 @@ export interface FieldOption {
   value: any;
   label: string;
   description?: string;
+  group?: string;
   valid_when?: (data: Record<string, any>) => boolean;
 }
 
@@ -120,7 +127,7 @@ export abstract class TaskBase {
     // 添加所有字段的默认值
     for (const field of this.config.fields) {
       if (field.default !== undefined) {
-        const value = this.formatValue(field.default, field.data_type);
+        const value = this.formatValue(field.default, field.data_type, !!field.is_hex);
         template += `  ${field.key}: ${value}\n`;
       }
     }
@@ -131,16 +138,12 @@ export abstract class TaskBase {
   /**
    * 格式化值为 YAML 格式
    */
-  protected formatValue(value: any, dataType: string): string {
+  protected formatValue(value: any, dataType: string, asHex = false): string {
     if (dataType === 'std::string') {
       return `!std::string '${value}'`;
     }
-    if (typeof value === 'number') {
-      // 检查是否是十六进制
-      const hexStr = '0x' + value.toString(16).toUpperCase();
-      if (value > 255 || hexStr.length <= 6) {
-        return `!${dataType} ${hexStr}`;
-      }
+    if (asHex && typeof value === 'number') {
+      return `!${dataType} 0x${value.toString(16).toUpperCase()}`;
     }
     return `!${dataType} ${value}`;
   }
@@ -161,6 +164,22 @@ export abstract class TaskBase {
     } catch (e) {
       // console.error(`Error evaluating visible_when for ${fieldKey}:`, e);
       return true;
+    }
+  }
+
+  /**
+   * 检查字段是否禁用
+   */
+  isFieldDisabled(fieldKey: string, taskData: Record<string, any>): boolean {
+    const field = this.getField(fieldKey);
+    if (!field || !field.disabled_when) {
+      return false;
+    }
+
+    try {
+      return field.disabled_when(taskData);
+    } catch (e) {
+      return false;
     }
   }
 
