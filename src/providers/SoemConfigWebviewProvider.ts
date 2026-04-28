@@ -659,6 +659,7 @@ export class SoemConfigWebviewProvider implements vscode.WebviewViewProvider {
     if (yaml.isSeq(slavesList)) {
       slavesList.flow = false;
       const newSlaveStr = `${snName}:
+  board_type: !uint8_t 0x03
   sdo_len: !uint16_t 0
   task_count: !uint8_t 0
   latency_pub_topic: !std::string '/ecat/${snName.replace('+', '')}/latency'
@@ -696,6 +697,7 @@ export class SoemConfigWebviewProvider implements vscode.WebviewViewProvider {
     if (yaml.isSeq(slavesList)) {
       slavesList.flow = false;
       const newSlaveStr = `${snName}:
+  board_type: !uint8_t 0x03
   sdo_len: !uint16_t 0
   task_count: !uint8_t 0
   latency_pub_topic: !std::string '/ecat/${snName.replace('+', '')}/latency'
