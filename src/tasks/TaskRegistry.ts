@@ -73,6 +73,7 @@ export class TaskRegistry {
         default: field.default,
         min: field.min,
         max: field.max,
+        is_hex: field.is_hex || false,
         group: field.group,
         help: field.help,
       };

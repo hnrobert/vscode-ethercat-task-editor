@@ -35,7 +35,7 @@ export class Task03_HipnucIMUCAN extends TaskBase {
         label: 'Packet 1 ID',
         type: 'number',
         data_type: 'uint32_t',
-        default: 0x90,
+        default: 0x01,
         is_hex: true,
       },
       {
@@ -43,7 +43,7 @@ export class Task03_HipnucIMUCAN extends TaskBase {
         label: 'Packet 2 ID',
         type: 'number',
         data_type: 'uint32_t',
-        default: 0x91,
+        default: 0x02,
         is_hex: true,
       },
       {
@@ -51,7 +51,7 @@ export class Task03_HipnucIMUCAN extends TaskBase {
         label: 'Packet 3 ID',
         type: 'number',
         data_type: 'uint32_t',
-        default: 0x92,
+        default: 0x03,
         is_hex: true,
       },
       {
