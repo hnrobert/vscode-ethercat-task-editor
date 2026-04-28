@@ -5,8 +5,9 @@
 
       <PdoStatusPanel />
       <div class="slave-list">
-        <!-- Insert zone before first slave -->
+        <!-- Insert zone before first slave (hidden when no slaves) -->
         <div
+          v-if="data.slaves.length > 0"
           class="insert-zone slave-insert-zone"
           :class="{ 'drag-over': dragOverIndex === 0 }"
           @dragover="onSlaveDragOver($event, 0)"

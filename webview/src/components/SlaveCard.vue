@@ -30,8 +30,9 @@
     <SlavePdoStatus :s-index="sIndex" :slave="slave" />
 
     <div class="slave-content">
-      <!-- Insert zone before first task -->
+      <!-- Insert zone before first task (hidden when no tasks) -->
       <div
+        v-if="tasks.length > 0"
         class="insert-zone task-insert-zone"
         :class="{ 'drag-over': dragOverIndex === 0 }"
         @dragover="onTaskDragOver($event, 0)"
