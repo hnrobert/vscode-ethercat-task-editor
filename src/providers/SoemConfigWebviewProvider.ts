@@ -16,7 +16,7 @@ import { validateTags } from '../utils/tagValidator';
 function ensureBlockStyle(node: unknown) {
   if (yaml.isMap(node) || yaml.isSeq(node)) {
     node.flow = false;
-    for (const item of node.items) {
+    for (const item of node.items as any[]) {
       const child = yaml.isMap(node) ? item.value : item;
       ensureBlockStyle(child);
     }
@@ -649,12 +649,15 @@ export class SoemConfigWebviewProvider implements vscode.WebviewViewProvider {
     const doc = this.lastParsedDoc.doc;
 
     let slavesList = doc.getIn(['slaves']);
-    if (!slavesList) {
-      doc.setIn(['slaves'], []);
-      slavesList = doc.getIn(['slaves']);
+    if (!yaml.isSeq(slavesList)) {
+      const seq = new yaml.YAMLSeq();
+      seq.flow = false;
+      doc.setIn(['slaves'], seq);
+      slavesList = seq;
     }
 
     if (yaml.isSeq(slavesList)) {
+      slavesList.flow = false;
       const newSlaveStr = `${snName}:
   sdo_len: !uint16_t 0
   task_count: !uint8_t 0
@@ -683,12 +686,15 @@ export class SoemConfigWebviewProvider implements vscode.WebviewViewProvider {
     const doc = this.lastParsedDoc.doc;
 
     let slavesList = doc.getIn(['slaves']);
-    if (!slavesList) {
-      doc.setIn(['slaves'], []);
-      slavesList = doc.getIn(['slaves']);
+    if (!yaml.isSeq(slavesList)) {
+      const seq = new yaml.YAMLSeq();
+      seq.flow = false;
+      doc.setIn(['slaves'], seq);
+      slavesList = seq;
     }
 
     if (yaml.isSeq(slavesList)) {
+      slavesList.flow = false;
       const newSlaveStr = `${snName}:
   sdo_len: !uint16_t 0
   task_count: !uint8_t 0
