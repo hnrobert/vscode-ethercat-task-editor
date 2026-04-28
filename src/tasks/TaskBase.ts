@@ -108,7 +108,7 @@ export abstract class TaskBase {
   generateTemplate(taskKey: string, segment: string): string {
     let template = `${taskKey}:\n`;
     template += `  sdowrite_task_type: !uint8_t ${this.config.id}\n`;
-    template += `  conf_connection_lost_read_action: !uint8_t 1\n`;
+    template += `  conf_connection_lost_read_action: !uint8_t 2\n`;
 
     if (this.config.has_write) {
       template += `  sdowrite_connection_lost_write_action: !uint8_t 2\n`;

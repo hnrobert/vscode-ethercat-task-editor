@@ -332,7 +332,7 @@ export class Task05_DJIMotor extends TaskBase {
   ): string {
     let template = `${taskKey}:\n`;
     template += `  sdowrite_task_type: !uint8_t ${this.config.id}\n`;
-    template += `  conf_connection_lost_read_action: !uint8_t 1\n`;
+    template += `  conf_connection_lost_read_action: !uint8_t 2\n`;
     template += `  sdowrite_connection_lost_write_action: !uint8_t 2\n`;
     template += `  pub_topic: !std::string '/ecat/${segment}/read'\n`;
     template += `  pdoread_offset: !uint16_t 0\n`;
