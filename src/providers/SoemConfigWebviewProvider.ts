@@ -4,9 +4,24 @@ import { parseYamlDocumentWithTags } from '../utils/yamlParser';
 import { getBoardTypes } from '../utils/constantsParser';
 import { TaskRegistry } from '../tasks';
 import { TaskTypeMemory } from '../utils/taskTypeMemory';
-import { applyAndSaveYaml, parseTopicSegment } from '../utils/yamlUtils';
+import {
+  applyAndSaveYaml,
+  parseTopicSegment,
+  toSnakeCase,
+  nextTopicIndex,
+} from '../utils/yamlUtils';
 import { validateTopics } from '../utils/topicValidator';
 import { validateTags } from '../utils/tagValidator';
+
+function ensureBlockStyle(node: unknown) {
+  if (yaml.isMap(node) || yaml.isSeq(node)) {
+    node.flow = false;
+    for (const item of node.items as any[]) {
+      const child = yaml.isMap(node) ? item.value : item;
+      ensureBlockStyle(child);
+    }
+  }
+}
 
 export class SoemConfigWebviewProvider implements vscode.WebviewViewProvider {
   public static readonly viewType = 'ethercatTaskEditor.sidebar';
@@ -78,8 +93,6 @@ export class SoemConfigWebviewProvider implements vscode.WebviewViewProvider {
         case 'renameSlave':
           await this.renameSlave(data.sIndex, data.newName);
           break;
-        case 'renameSlaveAlias':
-          await this.renameSlaveAlias(data.sIndex, data.newAlias);
           break;
         case 'addTask':
           await this.addTask(data.sIndex);
@@ -636,20 +649,27 @@ export class SoemConfigWebviewProvider implements vscode.WebviewViewProvider {
     const doc = this.lastParsedDoc.doc;
 
     let slavesList = doc.getIn(['slaves']);
-    if (!slavesList) {
-      doc.setIn(['slaves'], []);
-      slavesList = doc.getIn(['slaves']);
+    if (!yaml.isSeq(slavesList)) {
+      const seq = new yaml.YAMLSeq();
+      seq.flow = false;
+      doc.setIn(['slaves'], seq);
+      slavesList = seq;
     }
 
     if (yaml.isSeq(slavesList)) {
+      slavesList.flow = false;
       const newSlaveStr = `${snName}:
+  board_type: !uint8_t 0x03
   sdo_len: !uint16_t 0
   task_count: !uint8_t 0
   latency_pub_topic: !std::string '/ecat/${snName.replace('+', '')}/latency'
-  tasks: []
+  tasks:
 `;
       const newSlaveNode = parseYamlDocumentWithTags(newSlaveStr).contents;
-      if (newSlaveNode) slavesList.items.push(newSlaveNode as any);
+      if (newSlaveNode) {
+        ensureBlockStyle(newSlaveNode);
+        slavesList.items.push(newSlaveNode as any);
+      }
       await this.saveDoc(editor, doc);
     }
   }
@@ -667,20 +687,25 @@ export class SoemConfigWebviewProvider implements vscode.WebviewViewProvider {
     const doc = this.lastParsedDoc.doc;
 
     let slavesList = doc.getIn(['slaves']);
-    if (!slavesList) {
-      doc.setIn(['slaves'], []);
-      slavesList = doc.getIn(['slaves']);
+    if (!yaml.isSeq(slavesList)) {
+      const seq = new yaml.YAMLSeq();
+      seq.flow = false;
+      doc.setIn(['slaves'], seq);
+      slavesList = seq;
     }
 
     if (yaml.isSeq(slavesList)) {
+      slavesList.flow = false;
       const newSlaveStr = `${snName}:
+  board_type: !uint8_t 0x03
   sdo_len: !uint16_t 0
   task_count: !uint8_t 0
   latency_pub_topic: !std::string '/ecat/${snName.replace('+', '')}/latency'
-  tasks: []
+  tasks:
 `;
       const newSlaveNode = parseYamlDocumentWithTags(newSlaveStr).contents;
       if (newSlaveNode) {
+        ensureBlockStyle(newSlaveNode);
         slavesList.items.splice(sIndex, 0, newSlaveNode as any);
         await this.saveDoc(editor, doc);
       }
@@ -719,62 +744,16 @@ export class SoemConfigWebviewProvider implements vscode.WebviewViewProvider {
 
     this.taskTypeMemory.migrateSlave(currentName, newName);
     keyNode.value = newName;
-    await this.saveDoc(editor, doc);
-  }
 
-  private async renameSlaveAlias(sIndex: number, newAlias: string) {
-    const editor = vscode.window.activeTextEditor;
-    if (!editor || !this.lastParsedDoc?.doc) return;
-    const doc = this.lastParsedDoc.doc;
-    const slaveItem = doc.getIn(['slaves', sIndex]);
-    if (!yaml.isMap(slaveItem) || slaveItem.items.length === 0) return;
-    const snKey = String(
-      yaml.isScalar(slaveItem.items[0].key) ? slaveItem.items[0].key.value : '',
-    );
-
+    // Update latency_pub_topic to use new slave name
     const latencyTopic = doc.getIn([
-      'slaves',
-      sIndex,
-      snKey,
-      'latency_pub_topic',
+      'slaves', sIndex, newName, 'latency_pub_topic',
     ]);
-    let currentAlias = snKey;
-    if (typeof latencyTopic === 'string') {
-      const m = latencyTopic.match(/^\/ecat\/([^/]+)\/latency/);
-      if (m) currentAlias = m[1];
-    }
-    if (currentAlias === newAlias) return;
-
-    if (typeof latencyTopic === 'string') {
+    if (typeof latencyTopic === 'string' && latencyTopic.includes(currentName)) {
       doc.setIn(
-        ['slaves', sIndex, snKey, 'latency_pub_topic'],
-        latencyTopic.replace(`/ecat/${currentAlias}/`, `/ecat/${newAlias}/`),
+        ['slaves', sIndex, newName, 'latency_pub_topic'],
+        latencyTopic.replace(currentName, newName),
       );
-    }
-
-    const tasksList = doc.getIn(['slaves', sIndex, snKey, 'tasks']);
-    if (yaml.isSeq(tasksList)) {
-      tasksList.items.forEach((taskNode: any, tIndex: number) => {
-        if (!yaml.isMap(taskNode) || taskNode.items.length === 0) return;
-        const taskKey = String(
-          yaml.isScalar(taskNode.items[0].key)
-            ? taskNode.items[0].key.value
-            : '',
-        );
-        const base = ['slaves', sIndex, snKey, 'tasks', tIndex, taskKey];
-        for (const field of ['pub_topic', 'sub_topic'] as const) {
-          const topic = doc.getIn([...base, field]);
-          if (
-            typeof topic === 'string' &&
-            topic.includes(`/ecat/${currentAlias}/`)
-          ) {
-            doc.setIn(
-              [...base, field],
-              topic.replace(`/ecat/${currentAlias}/`, `/ecat/${newAlias}/`),
-            );
-          }
-        }
-      });
     }
 
     await this.saveDoc(editor, doc);
@@ -818,13 +797,20 @@ export class SoemConfigWebviewProvider implements vscode.WebviewViewProvider {
     );
 
     let tasksList = doc.getIn(['slaves', sIndex, snKey, 'tasks']);
-    if (!tasksList) {
-      doc.setIn(['slaves', sIndex, snKey, 'tasks'], []);
-      tasksList = doc.getIn(['slaves', sIndex, snKey, 'tasks']);
+    if (!yaml.isSeq(tasksList)) {
+      const seq = new yaml.YAMLSeq();
+      seq.flow = false;
+      doc.setIn(['slaves', sIndex, snKey, 'tasks'], seq);
+      tasksList = seq;
     }
 
     if (yaml.isSeq(tasksList)) {
-      const segment = this.nextAppNewSegment(doc);
+      tasksList.flow = false;
+      const task = TaskRegistry.getTask(taskType);
+      if (!task) return;
+      const snakeName = toSnakeCase(task.getName());
+      const index = nextTopicIndex(doc.toJSON(), snakeName);
+      const segment = `${snakeName}_${index}`;
 
       if (tIndex === -1) {
         // Append to end
@@ -833,11 +819,11 @@ export class SoemConfigWebviewProvider implements vscode.WebviewViewProvider {
         const newTaskStr = TaskRegistry.generateTemplate(
           taskType,
           taskKey,
-          snKey,
           segment,
         );
         const newTaskNode = parseYamlDocumentWithTags(newTaskStr).contents;
         if (newTaskNode) {
+          ensureBlockStyle(newTaskNode);
           tasksList.items.push(newTaskNode as any);
           doc.setIn(
             ['slaves', sIndex, snKey, 'task_count'],
@@ -851,11 +837,11 @@ export class SoemConfigWebviewProvider implements vscode.WebviewViewProvider {
         const newTaskStr = TaskRegistry.generateTemplate(
           taskType,
           taskKey,
-          snKey,
           segment,
         );
         const newTaskNode = parseYamlDocumentWithTags(newTaskStr).contents;
         if (newTaskNode) {
+          ensureBlockStyle(newTaskNode);
           tasksList.items.splice(tIndex, 0, newTaskNode as any);
           doc.setIn(
             ['slaves', sIndex, snKey, 'task_count'],
@@ -867,32 +853,6 @@ export class SoemConfigWebviewProvider implements vscode.WebviewViewProvider {
     }
   }
 
-  private nextAppNewSegment(doc: yaml.Document): string {
-    const data = doc.toJSON();
-    let maxN = 0;
-    if (data?.slaves && Array.isArray(data.slaves)) {
-      for (const slave of data.slaves) {
-        if (!slave || typeof slave !== 'object') continue;
-        const slaveKey = Object.keys(slave)[0];
-        const tasks = slave[slaveKey]?.tasks;
-        if (!Array.isArray(tasks)) continue;
-        for (const task of tasks) {
-          if (!task || typeof task !== 'object') continue;
-          const taskKey = Object.keys(task)[0];
-          const info = task[taskKey];
-          for (const topic of [info?.pub_topic, info?.sub_topic]) {
-            if (typeof topic !== 'string') continue;
-            const match = topic.match(/\/ecat\/[^/]+\/app_new_(\d+)\//);
-            if (match) {
-              const n = parseInt(match[1], 10);
-              if (n > maxN) maxN = n;
-            }
-          }
-        }
-      }
-    }
-    return `app_new_${maxN + 1}`;
-  }
 
   private async removeTask(sIndex: number, tIndex: number) {
     const editor = vscode.window.activeTextEditor;
@@ -1025,17 +985,15 @@ export class SoemConfigWebviewProvider implements vscode.WebviewViewProvider {
     );
 
     let toTasksList = doc.getIn(['slaves', toSIndex, toSnKey, 'tasks']);
-    if (!toTasksList) {
-      doc.setIn(['slaves', toSIndex, toSnKey, 'tasks'], []);
-      toTasksList = doc.getIn(['slaves', toSIndex, toSnKey, 'tasks']);
+    if (!yaml.isSeq(toTasksList)) {
+      const seq = new yaml.YAMLSeq();
+      seq.flow = false;
+      doc.setIn(['slaves', toSIndex, toSnKey, 'tasks'], seq);
+      toTasksList = seq;
     }
 
     if (yaml.isSeq(toTasksList)) {
-      // Cross-slave: update topic namespace
-      if (fromSIndex !== toSIndex) {
-        this.remapTaskTopics(taskNode, fromSnKey, toSnKey);
-      }
-
+      toTasksList.flow = false;
       toTasksList.items.splice(adjustedTIndex, 0, taskNode);
       doc.setIn(
         ['slaves', toSIndex, toSnKey, 'task_count'],
@@ -1064,30 +1022,6 @@ export class SoemConfigWebviewProvider implements vscode.WebviewViewProvider {
     await this.saveDoc(editor, doc);
   }
 
-  /** Update /ecat/{oldSlave}/... → /ecat/{newSlave}/... in task topics */
-  private remapTaskTopics(taskNode: any, oldSnKey: string, newSnKey: string) {
-    if (!yaml.isMap(taskNode)) return;
-    const innerMap = taskNode.items[0]?.value;
-    if (!yaml.isMap(innerMap)) return;
-
-    for (const item of innerMap.items) {
-      if (!yaml.isScalar(item.key)) continue;
-      const key = String(item.key.value);
-      if (
-        (key === 'pub_topic' || key === 'sub_topic') &&
-        yaml.isScalar(item.value)
-      ) {
-        const topic = String(item.value.value);
-        if (topic.includes(`/ecat/${oldSnKey}/`)) {
-          item.value.value = topic.replace(
-            `/ecat/${oldSnKey}/`,
-            `/ecat/${newSnKey}/`,
-          );
-        }
-      }
-    }
-  }
-
   private async saveDoc(editor: vscode.TextEditor, doc: yaml.Document) {
     await applyAndSaveYaml(
       editor,
@@ -1106,6 +1040,9 @@ export class SoemConfigWebviewProvider implements vscode.WebviewViewProvider {
     const styleUri = webview.asWebviewUri(
       vscode.Uri.joinPath(extensionUri, 'dist', 'assets', 'index.css'),
     );
+    const iconUri = webview.asWebviewUri(
+      vscode.Uri.joinPath(extensionUri, 'assets', 'images', 'icon-stroke.svg'),
+    );
     const nonce = getNonce();
 
     return `<!DOCTYPE html>
@@ -1113,12 +1050,12 @@ export class SoemConfigWebviewProvider implements vscode.WebviewViewProvider {
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src ${webview.cspSource} 'unsafe-inline'; script-src 'nonce-${nonce}';">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; img-src ${webview.cspSource}; style-src ${webview.cspSource} 'unsafe-inline'; script-src 'nonce-${nonce}';">
   <link rel="stylesheet" href="${styleUri}">
   <title>EtherCAT Task Editor</title>
 </head>
 <body>
-  <div id="app"></div>
+  <div id="app" data-icon-uri="${iconUri}"></div>
   <script type="module" nonce="${nonce}" src="${scriptUri}"></script>
 </body>
 </html>`;

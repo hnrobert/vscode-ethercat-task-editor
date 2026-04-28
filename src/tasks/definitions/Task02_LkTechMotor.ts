@@ -83,6 +83,44 @@ export class Task02_LkTechMotor extends TaskBase {
     ];
   }
 
+  override generateTemplate(taskKey: string, segment: string): string {
+    let template = `${taskKey}:\n`;
+    template += `  sdowrite_task_type: !uint8_t ${this.config.id}\n`;
+    template += `  conf_connection_lost_read_action: !uint8_t 1\n`;
+    template += `  sdowrite_connection_lost_write_action: !uint8_t 2\n`;
+    template += `  pub_topic: !std::string '/ecat/${segment}/read'\n`;
+    template += `  pdoread_offset: !uint16_t 0\n`;
+    template += `  sub_topic: !std::string '/ecat/${segment}/write'\n`;
+    template += `  pdowrite_offset: !uint16_t 0\n`;
+
+    const controlTypeField = this.getField('sdowrite_control_type');
+    const controlType = controlTypeField?.default ?? 1;
+
+    // Base fields
+    for (const fieldKey of [
+      'sdowrite_control_period',
+      'sdowrite_can_inst',
+      'sdowrite_motor_id',
+    ]) {
+      const field = this.getField(fieldKey);
+      if (field && field.default !== undefined) {
+        template += `  ${field.key}: ${this.formatValue(field.default, field.data_type)}\n`;
+      }
+    }
+
+    // Skip can_packet_id when control_type is Broadcast Current (0x08)
+    if (controlType !== 8) {
+      const field = this.getField('sdowrite_can_packet_id');
+      if (field && field.default !== undefined) {
+        template += `  ${field.key}: ${this.formatValue(field.default, field.data_type)}\n`;
+      }
+    }
+
+    template += `  sdowrite_control_type: ${this.formatValue(controlType, 'uint8_t')}\n`;
+
+    return template;
+  }
+
   override calculateTxPdoSize(taskData: Record<string, any>): number {
     const cType = Number(taskData.sdowrite_control_type) || 0;
     return cType !== 8 ? 8 : 32;

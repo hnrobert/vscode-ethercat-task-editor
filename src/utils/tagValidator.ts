@@ -27,7 +27,6 @@ export function validateTags(
   const skipFields = new Set([
     'slaves',
     'tasks',
-    'alias',
     'sn',
     'board_type',
     '_fieldVisibility',

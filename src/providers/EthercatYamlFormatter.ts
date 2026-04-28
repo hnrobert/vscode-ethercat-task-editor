@@ -25,6 +25,9 @@ export class EthercatYamlFormatter implements vscode.DocumentFormattingEditProvi
         return [];
       }
 
+      // 补全缺失的必要字段
+      this.ensureRequiredFields(doc, data);
+
       // 重新排序所有 task 的字段
       this.reorderAllTaskFields(doc, data);
 
@@ -41,6 +44,61 @@ export class EthercatYamlFormatter implements vscode.DocumentFormattingEditProvi
     } catch (e) {
       // console.error('Failed to format EtherCAT YAML:', e);
       return [];
+    }
+  }
+
+  private ensureRequiredFields(doc: yaml.Document, data: any): void {
+    for (let sIndex = 0; sIndex < data.slaves.length; sIndex++) {
+      const slave = data.slaves[sIndex];
+      if (!slave || typeof slave !== 'object') continue;
+      const slaveKey = Object.keys(slave)[0];
+      const slaveData = slave[slaveKey];
+      if (!slaveData || typeof slaveData !== 'object') continue;
+
+      const slaveNode = doc.getIn(['slaves', sIndex, slaveKey], true);
+      if (!yaml.isMap(slaveNode)) continue;
+
+      // Ensure tasks exists as a proper YAMLSeq
+      const tasksNode = slaveNode.get('tasks', true);
+      if (!yaml.isSeq(tasksNode)) {
+        const seq = new yaml.YAMLSeq();
+        seq.flow = false;
+        slaveNode.set('tasks', seq);
+      }
+
+      // Ensure typed scalar fields exist
+      const requiredFields: Array<{
+        key: string;
+        tag: string;
+        value: any;
+      }> = [
+        { key: 'sdo_len', tag: '!uint16_t', value: 0 },
+        {
+          key: 'task_count',
+          tag: '!uint8_t',
+          value: Array.isArray(slaveData.tasks) ? slaveData.tasks.length : 0,
+        },
+        {
+          key: 'latency_pub_topic',
+          tag: '!std::string',
+          value: `/ecat/${slaveKey}/latency`,
+        },
+      ];
+
+      for (const field of requiredFields) {
+        if (slaveNode.get(field.key) === undefined) {
+          const node = new yaml.Scalar(field.value);
+          if (field.tag === '!std::string') {
+            node.tag = '!std::string';
+          } else {
+            node.tag = field.tag;
+            if (typeof field.value === 'number' && field.value === 0) {
+              node.format = 'HEX';
+            }
+          }
+          slaveNode.set(field.key, node);
+        }
+      }
     }
   }
 

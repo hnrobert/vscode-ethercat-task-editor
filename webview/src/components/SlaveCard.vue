@@ -20,11 +20,9 @@
       />
       <h3 v-else class="slave-title">
         <span>{{ displayAlias }}</span>
-        <span v-if="titleSuffix" class="sn-badge">{{ titleSuffix }}</span>
       </h3>
       <div class="btn-group" @click.stop>
         <button class="btn-sm btn-secondary" @click="startEditKey">Change SN</button>
-        <button class="btn-sm btn-secondary" @click="startEditAlias">Alias</button>
         <button class="btn-sm btn-danger" @click="onRemoveSlave">Delete</button>
       </div>
     </summary>
@@ -32,8 +30,9 @@
     <SlavePdoStatus :s-index="sIndex" :slave="slave" />
 
     <div class="slave-content">
-      <!-- Insert zone before first task -->
+      <!-- Insert zone before first task (hidden when no tasks) -->
       <div
+        v-if="tasks.length > 0"
         class="insert-zone task-insert-zone"
         :class="{ 'drag-over': dragOverIndex === 0 }"
         @dragover="onTaskDragOver($event, 0)"
@@ -91,7 +90,7 @@ import { computed, nextTick, ref } from 'vue';
 import TaskEditor from './TaskEditor.vue';
 import SlavePdoStatus from './SlavePdoStatus.vue';
 import {
-  addTask, addTaskAt, renameSlave, renameSlaveAlias, removeSlave,
+  addTask, addTaskAt, renameSlave, removeSlave,
   moveTask, setDragState, dragState,
 } from '../composables/useVscode';
 
@@ -114,60 +113,16 @@ function taskInfo(idx: number): Record<string, any> {
   return tasks.value[idx][taskKey(idx)];
 }
 
-/** Extract the slave/alias part from a topic string /ecat/{alias}/... */
-function extractTopicAlias(topic: string): string | null {
-  const m = topic.match(/^\/ecat\/([^/]+)\//);
-  return m ? m[1] : null;
-}
+const displayAlias = computed(() => sKey.value);
 
-/** The consistent alias used across all topics of this slave.
- *  Falls back to sKey if there are inconsistencies or no topics. */
-const topicAlias = computed<string>(() => {
-  const latency = sInfo.value?.latency_pub_topic;
-  let alias: string | null = null;
-
-  if (typeof latency === 'string') {
-    const m = latency.match(/^\/ecat\/([^/]+)\/latency/);
-    if (m) alias = m[1];
-  }
-
-  for (const task of tasks.value) {
-    const tKey = Object.keys(task)[0];
-    const info = task[tKey];
-    for (const topic of [info?.pub_topic, info?.sub_topic]) {
-      if (typeof topic !== 'string') continue;
-      const a = extractTopicAlias(topic);
-      if (!a) continue;
-      if (alias === null) {
-        alias = a;
-      } else if (alias !== a) {
-        return sKey.value; // inconsistent — fall back to sn key
-      }
-    }
-  }
-
-  return alias ?? sKey.value;
-});
-
-const displayAlias = computed(() => topicAlias.value);
-const titleSuffix = computed(() =>
-  topicAlias.value !== sKey.value ? `(${sKey.value})` : '',
-);
-
-// Inline editing — 'key' = Change SN, 'alias' = Rename topics
-const editMode = ref<'key' | 'alias' | null>(null);
+// Inline editing — 'key' = Change SN
+const editMode = ref<'key' | null>(null);
 const editingValue = ref('');
 const inputRef = ref<HTMLInputElement | null>(null);
 
 function startEditKey() {
   editingValue.value = sKey.value;
   editMode.value = 'key';
-  nextTick(() => inputRef.value?.select());
-}
-
-function startEditAlias() {
-  editingValue.value = topicAlias.value;
-  editMode.value = 'alias';
   nextTick(() => inputRef.value?.select());
 }
 
@@ -179,8 +134,6 @@ function commitEdit() {
   if (!newValue) return;
   if (mode === 'key' && newValue !== sKey.value) {
     renameSlave(props.sIndex, newValue);
-  } else if (mode === 'alias' && newValue !== topicAlias.value) {
-    renameSlaveAlias(props.sIndex, newValue);
   }
 }
 

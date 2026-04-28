@@ -227,7 +227,7 @@
       "editor/title": [
         {
           "command": "ethercatTaskEditor.showPanel",
-          "when": "ethercatTaskEditor.isEthercatYaml",
+          "when": "editorLangId == yaml || editorLangId == ethercat-yaml",
           "group": "navigation"
         }
       ]

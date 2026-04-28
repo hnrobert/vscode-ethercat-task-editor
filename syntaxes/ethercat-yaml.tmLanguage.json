@@ -96,7 +96,7 @@
         },
         {
           "comment": "EtherCAT structure keywords",
-          "match": "\\b(slaves|tasks|alias)\\s*:",
+          "match": "\\b(slaves|tasks)\\s*:",
           "captures": {
             "1": {
               "name": "keyword.control.ethercat"
