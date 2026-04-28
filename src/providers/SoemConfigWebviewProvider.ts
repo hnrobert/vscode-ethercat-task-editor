@@ -744,6 +744,18 @@ export class SoemConfigWebviewProvider implements vscode.WebviewViewProvider {
 
     this.taskTypeMemory.migrateSlave(currentName, newName);
     keyNode.value = newName;
+
+    // Update latency_pub_topic to use new slave name
+    const latencyTopic = doc.getIn([
+      'slaves', sIndex, newName, 'latency_pub_topic',
+    ]);
+    if (typeof latencyTopic === 'string' && latencyTopic.includes(currentName)) {
+      doc.setIn(
+        ['slaves', sIndex, newName, 'latency_pub_topic'],
+        latencyTopic.replace(currentName, newName),
+      );
+    }
+
     await this.saveDoc(editor, doc);
   }
 
