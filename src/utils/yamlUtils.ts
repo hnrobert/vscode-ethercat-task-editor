@@ -178,7 +178,6 @@ export function normalizeHexFormat(doc: yaml.Document) {
   const alwaysHexKeys = new Set([
     'conf_connection_lost_read_action',
     'sdowrite_connection_lost_write_action',
-    'sdowrite_task_type',
   ]);
 
   for (let sIndex = 0; sIndex < data.slaves.length; sIndex++) {

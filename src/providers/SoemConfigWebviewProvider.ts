@@ -357,7 +357,6 @@ export class SoemConfigWebviewProvider implements vscode.WebviewViewProvider {
     const alwaysHexKeys = new Set([
       'conf_connection_lost_read_action',
       'sdowrite_connection_lost_write_action',
-      'sdowrite_task_type',
       'board_type',
     ]);
     if (alwaysHexKeys.has(fieldKey)) {
