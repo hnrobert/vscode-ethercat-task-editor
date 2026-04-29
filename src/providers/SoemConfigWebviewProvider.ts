@@ -432,18 +432,37 @@ export class SoemConfigWebviewProvider implements vscode.WebviewViewProvider {
       const sIndex = propertyPath[1] as number;
       const tIndex = propertyPath[4] as number;
 
-      const taskData =
-        this.lastParsedDoc.data?.slaves?.[sIndex]?.[sKey]?.tasks?.[tIndex]?.[
-          tKey
-        ];
-      if (taskData) {
-        const oldType = Number(taskData.sdowrite_task_type);
+      // 从 YAML 文档节点读取当前值（比 lastParsedDoc.data 更可靠）
+      const taskNode = doc.getIn(
+        ['slaves', sIndex, sKey, 'tasks', tIndex, tKey],
+        true,
+      );
+      if (yaml.isMap(taskNode)) {
+        const taskTypeNode = taskNode.get('sdowrite_task_type', true);
+        const oldType = yaml.isScalar(taskTypeNode)
+          ? Number(taskTypeNode.value)
+          : Number(finalValue) === Number(taskTypeNode)
+            ? Number(taskTypeNode)
+            : 0;
 
+        // 从 YAML 节点收集所有字段值
         const valuesToSave: Record<string, any> = {};
-        for (const [key, val] of Object.entries(taskData)) {
-          if (key !== 'pdoread_offset' && key !== 'pdowrite_offset') {
-            valuesToSave[key] = val;
+        for (const item of taskNode.items) {
+          if (!yaml.isScalar(item.key)) continue;
+          const key = String(item.key.value);
+          if (key === 'pdoread_offset' || key === 'pdowrite_offset' || key.startsWith('_')) continue;
+          let val: any;
+          if (yaml.isScalar(item.value)) {
+            val = item.value.value;
+            // 十六进制字符串 → 数字
+            if (typeof val === 'string' && val.startsWith('0x')) {
+              const parsed = parseInt(val, 16);
+              if (!isNaN(parsed)) val = parsed;
+            }
+          } else {
+            val = item.value;
           }
+          valuesToSave[key] = val;
         }
         this.taskTypeMemory.save(sKey, tKey, oldType, valuesToSave);
 
@@ -590,34 +609,45 @@ export class SoemConfigWebviewProvider implements vscode.WebviewViewProvider {
 
         keysToRemove.forEach((k) => targetTaskNode.delete(k));
 
-        // 添加新 task 的默认字段
+        // 添加新 task 的默认字段（使用 yaml.Scalar 确保正确的 YAML 节点类型）
         const fields = task.getFields();
+
         for (const field of fields) {
           if (field.default !== undefined) {
-            const value = field.default;
             const dataType = field.data_type;
 
-            // 恢复保存的值（如果存在）
-            const finalFieldValue =
+          // 恢复保存的值（如果存在），确保数字字段存为数字
+            let finalFieldValue: any =
               savedTaskTypeValues && field.key in savedTaskTypeValues
                 ? savedTaskTypeValues[field.key]
-                : value;
+                : field.default;
 
-            targetTaskNode.set(field.key, finalFieldValue);
-
-            // 设置 YAML 标签
-            const node = targetTaskNode.get(field.key, true);
-            if (yaml.isScalar(node)) {
-              node.tag = `!${dataType}`;
-              if (field.is_hex && typeof finalFieldValue === 'number') {
-                node.format = 'HEX';
-                (node as any)._originalSource =
-                  '0x' + finalFieldValue.toString(16).toUpperCase();
-                node.toJSON = function () {
-                  return '0x' + (this as any).value.toString(16).toUpperCase();
-                };
+            // 十六进制字符串 "0x200" → 数字 512
+            if (typeof finalFieldValue === 'string' && finalFieldValue.startsWith('0x')) {
+              const parsed = parseInt(finalFieldValue, 16);
+              if (!isNaN(parsed)) {
+                finalFieldValue = parsed;
               }
             }
+
+            // 创建 yaml.Scalar 节点
+            const valueScalar = new yaml.Scalar(finalFieldValue);
+            valueScalar.tag = `!${dataType}`;
+            if ((field.is_hex || field.yaml_hex) && typeof finalFieldValue === 'number') {
+              valueScalar.format = 'HEX';
+              const hexStr = finalFieldValue.toString(16).toUpperCase().padStart(2, '0');
+              (valueScalar as any)._originalSource = `0x${hexStr}`;
+              valueScalar.toJSON = function () {
+                return '0x' + (this as any).value.toString(16).toUpperCase().padStart(2, '0');
+              };
+            }
+
+            // 使用 Pair 添加到 task 节点
+            const newPair = new yaml.Pair(
+              new yaml.Scalar(field.key),
+              valueScalar,
+            );
+            targetTaskNode.add(newPair);
           }
         }
       }
