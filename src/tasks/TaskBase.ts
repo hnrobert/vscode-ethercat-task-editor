@@ -14,6 +14,8 @@ export interface FieldDefinition {
   min?: number;
   max?: number;
   is_hex?: boolean;
+  /** Force hex format in YAML regardless of UI display */
+  yaml_hex?: boolean;
   /** Transform YAML value to UI display value */
   from_yaml?: (value: any) => any;
   /** Transform UI display value to YAML storage value */

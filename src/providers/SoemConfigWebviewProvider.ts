@@ -376,7 +376,7 @@ export class SoemConfigWebviewProvider implements vscode.WebviewViewProvider {
           if (task) {
             const field = task.getField(fieldKey);
             if (field) {
-              if (field.is_hex) {
+              if (field.is_hex || field.yaml_hex) {
                 isHex = true;
               } else if (typeof field.default === 'number' && field.default >= 0x100) {
                 isHex = true;

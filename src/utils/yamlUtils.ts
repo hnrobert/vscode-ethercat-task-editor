@@ -205,10 +205,10 @@ export function normalizeHexFormat(doc: yaml.Document) {
       );
       if (!yaml.isMap(taskNode)) continue;
 
-      // 收集该 task 的 is_hex 字段
+      // 收集该 task 的 is_hex / yaml_hex 字段
       const hexFieldKeys = new Set<string>();
       for (const field of taskDef.getFields()) {
-        if (field.is_hex) hexFieldKeys.add(field.key);
+        if (field.is_hex || field.yaml_hex) hexFieldKeys.add(field.key);
       }
 
       // 遍历 task 节点的所有字段，修复十六进制格式

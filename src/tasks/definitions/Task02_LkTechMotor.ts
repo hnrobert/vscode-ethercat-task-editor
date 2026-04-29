@@ -48,7 +48,7 @@ export class Task02_LkTechMotor extends TaskBase {
         default: 1,
         min: 1,
         max: 32,
-        is_hex: true,
+        yaml_hex: true,
         from_yaml: (value) => value - 0x140,
         to_yaml: (value) => value + 0x140,
         help: 'Motor driver ID (1-32). CAN packet ID = 0x140 + this ID. Not needed in broadcast mode.',
@@ -124,7 +124,7 @@ export class Task02_LkTechMotor extends TaskBase {
       const field = this.getField('sdowrite_can_packet_id');
       if (field && field.default !== undefined) {
         const yamlValue = field.to_yaml ? field.to_yaml(field.default) : field.default;
-        template += `  ${field.key}: ${this.formatValue(yamlValue, field.data_type, !!field.is_hex)}\n`;
+        template += `  ${field.key}: ${this.formatValue(yamlValue, field.data_type, !!(field.is_hex || field.yaml_hex))}\n`;
       }
     }
 
