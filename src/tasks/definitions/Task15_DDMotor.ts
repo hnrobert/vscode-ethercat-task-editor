@@ -56,6 +56,7 @@ export class Task15_DDMotor extends TaskBase {
         type: 'radio',
         data_type: 'uint32_t',
         default: 0x280,
+        is_hex: true,
         options: [
           { value: 0x280, label: '0x280 (ID 1-4)' },
           { value: 0x2c0, label: '0x2C0 (ID 5-8)' },
@@ -84,6 +85,7 @@ export class Task15_DDMotor extends TaskBase {
         type: 'select',
         data_type: 'uint32_t',
         default: defaultCanId,
+        is_hex: true,
         help: 'Set to 0 to disable this motor',
         options: [
           { value: 0, label: 'Disabled' },

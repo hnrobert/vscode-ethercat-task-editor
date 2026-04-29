@@ -28,8 +28,6 @@ export class Task06_OnboardPWM extends TaskBase {
         options: [
           { value: 1, label: 'Port 1' },
           { value: 2, label: 'Port 2' },
-          { value: 3, label: 'Port 3' },
-          { value: 4, label: 'Port 4' },
         ],
       },
       {
@@ -37,7 +35,7 @@ export class Task06_OnboardPWM extends TaskBase {
         label: 'PWM Period (μs)',
         type: 'number',
         data_type: 'uint16_t',
-        default: 20000,
+        default: 0,
         min: 0,
         max: 65535,
       },
@@ -46,7 +44,7 @@ export class Task06_OnboardPWM extends TaskBase {
         label: 'Initial Value (μs)',
         type: 'number',
         data_type: 'uint16_t',
-        default: 1500,
+        default: 0,
         min: 0,
         max: 65535,
       },

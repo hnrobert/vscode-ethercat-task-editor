@@ -132,8 +132,9 @@ const statusClass = computed(() => {
 });
 
 const statusText = computed(() => {
-  if (isTxOverflow.value) return 'TXPDO Overflow';
-  if (isRxOverflow.value) return 'RXPDO Overflow';
+  // if (isTxOverflow.value) return 'TXPDO Overflow';
+  // if (isRxOverflow.value) return 'RXPDO Overflow';
+  if (isTxOverflow.value || isRxOverflow.value) return 'Overflow';
   return 'OK';
 });
 

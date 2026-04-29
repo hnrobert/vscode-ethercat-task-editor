@@ -31,16 +31,18 @@ export class Task12_DMMotor extends TaskBase {
       {
         key: 'sdowrite_can_id',
         label: 'Motor CAN ID',
-        type: 'hex',
+        type: 'number',
         data_type: 'uint16_t',
         default: 0x01,
+        is_hex: true,
       },
       {
         key: 'sdowrite_master_id',
         label: 'Master ID',
-        type: 'hex',
+        type: 'number',
         data_type: 'uint16_t',
         default: 0x00,
+        is_hex: true,
       },
       {
         key: 'sdowrite_can_inst',

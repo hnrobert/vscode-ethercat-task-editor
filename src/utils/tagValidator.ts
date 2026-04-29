@@ -30,6 +30,7 @@ export function validateTags(
     'sn',
     'board_type',
     '_fieldVisibility',
+    '_fieldDisabled',
     '_fieldValidOptions',
   ]);
 

@@ -8,14 +8,16 @@ export const errorMessage = ref<string | null>(null);
 export interface FieldDefinition {
   key: string;
   label: string;
-  type: 'number' | 'select' | 'radio' | 'hex' | 'text';
+  type: 'number' | 'select' | 'radio' | 'text';
   data_type: string;
   default?: any;
   min?: number;
   max?: number;
+  is_hex?: boolean;
   group?: string;
   help?: string;
   has_visible_when?: boolean;
+  has_disabled_when?: boolean;
   options?: FieldOption[];
 }
 
@@ -23,6 +25,7 @@ export interface FieldOption {
   value: any;
   label: string;
   description?: string;
+  group?: string;
   has_valid_when?: boolean;
 }
 

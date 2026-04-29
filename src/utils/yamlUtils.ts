@@ -118,7 +118,6 @@ export function normalizeTaskKeys(doc: yaml.Document) {
   const data = doc.toJSON();
   if (!data?.slaves || !Array.isArray(data.slaves)) return;
 
-  // 导入 TaskRegistry
   const { TaskRegistry } = require('../tasks');
 
   for (let sIndex = 0; sIndex < data.slaves.length; sIndex++) {
@@ -159,9 +158,81 @@ export function normalizeTaskKeys(doc: yaml.Document) {
             true,
           );
           if (yaml.isMap(taskNode)) {
-            // console.log(`[normalizeTaskKeys] Reordering fields for task ${expectedKey} (type ${taskType})`);
             taskDef.reorderFields(taskNode);
           }
+        }
+      }
+    }
+  }
+}
+
+/**
+ * 修复所有十六进制字段的格式（将十进制值转为 0x 十六进制表示）
+ */
+export function normalizeHexFormat(doc: yaml.Document) {
+  const data = doc.toJSON();
+  if (!data?.slaves || !Array.isArray(data.slaves)) return;
+
+  const { TaskRegistry } = require('../tasks');
+
+  const alwaysHexKeys = new Set([
+    'conf_connection_lost_read_action',
+    'sdowrite_connection_lost_write_action',
+  ]);
+
+  for (let sIndex = 0; sIndex < data.slaves.length; sIndex++) {
+    const slave = data.slaves[sIndex];
+    if (!slave || typeof slave !== 'object') continue;
+    const slaveKey = Object.keys(slave)[0];
+    const tasks = slave[slaveKey]?.tasks;
+    if (!Array.isArray(tasks)) continue;
+
+    for (let tIndex = 0; tIndex < tasks.length; tIndex++) {
+      const task = tasks[tIndex];
+      if (!task || typeof task !== 'object') continue;
+      const taskKey = Object.keys(task)[0];
+      const taskData = task[taskKey];
+      if (!taskData?.sdowrite_task_type) continue;
+
+      const taskType = Number(taskData.sdowrite_task_type);
+      const taskDef = TaskRegistry.getTask(taskType);
+      if (!taskDef) continue;
+
+      const taskNode = doc.getIn(
+        ['slaves', sIndex, slaveKey, 'tasks', tIndex, taskKey],
+        true,
+      );
+      if (!yaml.isMap(taskNode)) continue;
+
+      // 收集该 task 的 is_hex / yaml_hex 字段
+      const hexFieldKeys = new Set<string>();
+      for (const field of taskDef.getFields()) {
+        if (field.is_hex || field.yaml_hex) hexFieldKeys.add(field.key);
+      }
+
+      // 遍历 task 节点的所有字段，修复格式
+      for (const item of taskNode.items) {
+        if (!yaml.isScalar(item.key)) continue;
+        const key = String(item.key.value);
+        const node = item.value;
+        if (!yaml.isScalar(node) || typeof node.value !== 'number') continue;
+
+        const shouldHex = alwaysHexKeys.has(key) || hexFieldKeys.has(key);
+
+        if (shouldHex) {
+          // 确保是十六进制格式
+          const numVal = node.value as number;
+          node.format = 'HEX';
+          const hexStr = numVal.toString(16).toUpperCase().padStart(2, '0');
+          (node as any)._originalSource = `0x${hexStr}`;
+          node.toJSON = function () {
+            return '0x' + (this as any).value.toString(16).toUpperCase().padStart(2, '0');
+          };
+        } else {
+          // 确保是十进制格式
+          node.format = 'PLAIN';
+          (node as any)._originalSource = undefined;
+          (node as any).toJSON = undefined;
         }
       }
     }

@@ -73,6 +73,7 @@ export class TaskRegistry {
         default: field.default,
         min: field.min,
         max: field.max,
+        is_hex: field.is_hex || false,
         group: field.group,
         help: field.help,
       };
@@ -82,12 +83,26 @@ export class TaskRegistry {
         serialized.has_visible_when = true;
       }
 
+      // 标记字段是否有 disabled_when
+      if (field.disabled_when) {
+        serialized.has_disabled_when = true;
+      }
+
+      // 标记字段是否有 from_yaml/to_yaml 转换
+      if (field.from_yaml) {
+        serialized.has_from_yaml = true;
+      }
+      if (field.to_yaml) {
+        serialized.has_to_yaml = true;
+      }
+
       // 序列化选项
       if (field.options) {
         serialized.options = field.options.map((opt: any) => ({
           value: opt.value,
           label: opt.label,
           description: opt.description,
+          group: opt.group,
           has_valid_when: !!opt.valid_when,
         }));
       }

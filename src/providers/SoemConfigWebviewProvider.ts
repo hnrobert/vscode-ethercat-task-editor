@@ -272,11 +272,20 @@ export class SoemConfigWebviewProvider implements vscode.WebviewViewProvider {
             // 为每个字段添加可见性信息
             const fields = task.getFields();
             const fieldVisibility: Record<string, boolean> = {};
+            const fieldDisabled: Record<string, boolean> = {};
             const fieldValidOptions: Record<string, any[]> = {};
 
             for (const field of fields) {
               // 计算字段可见性
               fieldVisibility[field.key] = task.isFieldVisible(field.key, normalizedTaskData);
+
+              // 计算字段禁用状态
+              fieldDisabled[field.key] = task.isFieldDisabled(field.key, normalizedTaskData);
+
+              // 应用 from_yaml 转换：YAML 值 → UI 显示值
+              if (field.from_yaml && taskData[field.key] !== undefined) {
+                taskData[field.key] = field.from_yaml(taskData[field.key]);
+              }
 
               // 计算选项有效性
               if (field.options) {
@@ -297,6 +306,7 @@ export class SoemConfigWebviewProvider implements vscode.WebviewViewProvider {
 
             // 添加到 task 数据中
             taskData._fieldVisibility = fieldVisibility;
+            taskData._fieldDisabled = fieldDisabled;
             taskData._fieldValidOptions = fieldValidOptions;
           }
         }
@@ -342,6 +352,17 @@ export class SoemConfigWebviewProvider implements vscode.WebviewViewProvider {
 
     // 检查字段定义，判断是否应该使用十六进制
     const fieldKey = propertyPath[propertyPath.length - 1] as string;
+
+    // 某些字段始终使用十六进制格式
+    const alwaysHexKeys = new Set([
+      'conf_connection_lost_read_action',
+      'sdowrite_connection_lost_write_action',
+      'board_type',
+    ]);
+    if (alwaysHexKeys.has(fieldKey)) {
+      isHex = true;
+    }
+
     if (fieldKey && propertyPath.length >= 6) {
       // 获取 task type
       const taskPath = propertyPath.slice(0, propertyPath.length - 1);
@@ -353,16 +374,15 @@ export class SoemConfigWebviewProvider implements vscode.WebviewViewProvider {
           const task = TaskRegistry.getTask(taskType);
           if (task) {
             const field = task.getField(fieldKey);
-            if (field && typeof field.default === 'number') {
-              // 检查 default 值是否是十六进制表示（>= 0x100 或特定字段）
-              const shouldBeHex =
-                field.default >= 0x100 ||
-                fieldKey.includes('can_id') ||
-                fieldKey.includes('packet_id') ||
-                fieldKey.includes('can_packet_id');
-
-              if (shouldBeHex) {
+            if (field) {
+              if (field.is_hex || field.yaml_hex) {
                 isHex = true;
+              } else if (typeof field.default === 'number' && field.default >= 0x100) {
+                isHex = true;
+              }
+              // 应用 to_yaml 转换：UI 显示值 → YAML 存储值
+              if (field.to_yaml) {
+                finalValue = field.to_yaml(finalValue);
               }
             }
           }
@@ -412,18 +432,37 @@ export class SoemConfigWebviewProvider implements vscode.WebviewViewProvider {
       const sIndex = propertyPath[1] as number;
       const tIndex = propertyPath[4] as number;
 
-      const taskData =
-        this.lastParsedDoc.data?.slaves?.[sIndex]?.[sKey]?.tasks?.[tIndex]?.[
-          tKey
-        ];
-      if (taskData) {
-        const oldType = Number(taskData.sdowrite_task_type);
+      // 从 YAML 文档节点读取当前值（比 lastParsedDoc.data 更可靠）
+      const taskNode = doc.getIn(
+        ['slaves', sIndex, sKey, 'tasks', tIndex, tKey],
+        true,
+      );
+      if (yaml.isMap(taskNode)) {
+        const taskTypeNode = taskNode.get('sdowrite_task_type', true);
+        const oldType = yaml.isScalar(taskTypeNode)
+          ? Number(taskTypeNode.value)
+          : Number(finalValue) === Number(taskTypeNode)
+            ? Number(taskTypeNode)
+            : 0;
 
+        // 从 YAML 节点收集所有字段值
         const valuesToSave: Record<string, any> = {};
-        for (const [key, val] of Object.entries(taskData)) {
-          if (key !== 'pdoread_offset' && key !== 'pdowrite_offset') {
-            valuesToSave[key] = val;
+        for (const item of taskNode.items) {
+          if (!yaml.isScalar(item.key)) continue;
+          const key = String(item.key.value);
+          if (key === 'pdoread_offset' || key === 'pdowrite_offset' || key.startsWith('_')) continue;
+          let val: any;
+          if (yaml.isScalar(item.value)) {
+            val = item.value.value;
+            // 十六进制字符串 → 数字
+            if (typeof val === 'string' && val.startsWith('0x')) {
+              const parsed = parseInt(val, 16);
+              if (!isNaN(parsed)) val = parsed;
+            }
+          } else {
+            val = item.value;
           }
+          valuesToSave[key] = val;
         }
         this.taskTypeMemory.save(sKey, tKey, oldType, valuesToSave);
 
@@ -491,7 +530,16 @@ export class SoemConfigWebviewProvider implements vscode.WebviewViewProvider {
       const fieldKey = propertyPath[propertyPath.length - 1] as string;
       let dataType: string | undefined;
 
-      if (fieldKey && propertyPath.length >= 6) {
+      // 已知的特殊字段数据类型
+      const knownFieldTypes: Record<string, string> = {
+        conf_connection_lost_read_action: 'uint8_t',
+        sdowrite_connection_lost_write_action: 'uint8_t',
+      };
+      if (fieldKey in knownFieldTypes) {
+        dataType = knownFieldTypes[fieldKey];
+      }
+
+      if (!dataType && fieldKey && propertyPath.length >= 6) {
         const taskPath = propertyPath.slice(0, propertyPath.length - 1);
         const taskNode = doc.getIn(taskPath, true);
         if (yaml.isMap(taskNode)) {
@@ -517,10 +565,10 @@ export class SoemConfigWebviewProvider implements vscode.WebviewViewProvider {
       if (isHex) {
         // 设置为十六进制格式
         targetNode.format = 'HEX';
-        (targetNode as any)._originalSource =
-          `0x${finalValue.toString(16).toUpperCase()}`;
+        const hexStr = finalValue.toString(16).toUpperCase().padStart(2, '0');
+        (targetNode as any)._originalSource = `0x${hexStr}`;
         targetNode.toJSON = function () {
-          return '0x' + (this as any).value.toString(16).toUpperCase();
+          return '0x' + (this as any).value.toString(16).toUpperCase().padStart(2, '0');
         };
       } else if (typeof finalValue === 'number') {
         targetNode.format = 'PLAIN';
@@ -561,27 +609,50 @@ export class SoemConfigWebviewProvider implements vscode.WebviewViewProvider {
 
         keysToRemove.forEach((k) => targetTaskNode.delete(k));
 
-        // 添加新 task 的默认字段
+        // 构建默认 taskData 用于 isFieldVisible 判断
         const fields = task.getFields();
-        for (const field of fields) {
-          if (field.default !== undefined) {
-            const value = field.default;
-            const dataType = field.data_type;
-
-            // 恢复保存的值（如果存在）
-            const finalFieldValue =
-              savedTaskTypeValues && field.key in savedTaskTypeValues
-                ? savedTaskTypeValues[field.key]
-                : value;
-
-            targetTaskNode.set(field.key, finalFieldValue);
-
-            // 设置 YAML 标签
-            const node = targetTaskNode.get(field.key, true);
-            if (yaml.isScalar(node)) {
-              node.tag = `!${dataType}`;
+        const defaultData: Record<string, any> = {};
+        for (const f of fields) {
+          if (f.default !== undefined) defaultData[f.key] = f.default;
+        }
+        // 如果有保存的值，覆盖默认值
+        if (savedTaskTypeValues) {
+          for (const [k, v] of Object.entries(savedTaskTypeValues)) {
+            if (typeof v === 'string' && v.startsWith('0x')) {
+              const parsed = parseInt(v, 16);
+              if (!isNaN(parsed)) { defaultData[k] = parsed; continue; }
             }
+            defaultData[k] = v;
           }
+        }
+
+        // 添加新 task 的默认字段（使用 yaml.Scalar 确保正确的 YAML 节点类型）
+        for (const field of fields) {
+          if (field.default === undefined) continue;
+          // 跳过不可见的字段（如 control_type=1 时隐藏的 PID 字段）
+          if (!task.isFieldVisible(field.key, defaultData)) continue;
+
+          let finalFieldValue: any = defaultData[field.key] ?? field.default;
+
+          // 十六进制字符串 "0x200" → 数字 512
+          if (typeof finalFieldValue === 'string' && finalFieldValue.startsWith('0x')) {
+            const parsed = parseInt(finalFieldValue, 16);
+            if (!isNaN(parsed)) finalFieldValue = parsed;
+          }
+
+          // 创建 yaml.Scalar 节点
+          const valueScalar = new yaml.Scalar(finalFieldValue);
+          valueScalar.tag = `!${field.data_type}`;
+          if ((field.is_hex || field.yaml_hex) && typeof finalFieldValue === 'number') {
+            valueScalar.format = 'HEX';
+            const hexStr = finalFieldValue.toString(16).toUpperCase().padStart(2, '0');
+            (valueScalar as any)._originalSource = `0x${hexStr}`;
+            valueScalar.toJSON = function () {
+              return '0x' + (this as any).value.toString(16).toUpperCase().padStart(2, '0');
+            };
+          }
+
+          targetTaskNode.add(new yaml.Pair(new yaml.Scalar(field.key), valueScalar));
         }
       }
     }

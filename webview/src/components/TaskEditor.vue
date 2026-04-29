@@ -55,8 +55,11 @@ const props = defineProps<{
 }>();
 
 const visibleProps = computed(() => {
-  // 获取 task type
-  const taskType = props.tInfo.sdowrite_task_type;
+  // 获取 task type（标准化为数字）
+  const rawTaskType = props.tInfo.sdowrite_task_type;
+  const taskType = typeof rawTaskType === 'string' && rawTaskType.startsWith('0x')
+    ? parseInt(rawTaskType, 16)
+    : rawTaskType;
   if (!taskType) {
     // 如果没有 task type，使用原来的逻辑
     return Object.keys(props.tInfo).filter(
