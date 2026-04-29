@@ -609,46 +609,50 @@ export class SoemConfigWebviewProvider implements vscode.WebviewViewProvider {
 
         keysToRemove.forEach((k) => targetTaskNode.delete(k));
 
-        // 添加新 task 的默认字段（使用 yaml.Scalar 确保正确的 YAML 节点类型）
+        // 构建默认 taskData 用于 isFieldVisible 判断
         const fields = task.getFields();
-
-        for (const field of fields) {
-          if (field.default !== undefined) {
-            const dataType = field.data_type;
-
-          // 恢复保存的值（如果存在），确保数字字段存为数字
-            let finalFieldValue: any =
-              savedTaskTypeValues && field.key in savedTaskTypeValues
-                ? savedTaskTypeValues[field.key]
-                : field.default;
-
-            // 十六进制字符串 "0x200" → 数字 512
-            if (typeof finalFieldValue === 'string' && finalFieldValue.startsWith('0x')) {
-              const parsed = parseInt(finalFieldValue, 16);
-              if (!isNaN(parsed)) {
-                finalFieldValue = parsed;
-              }
+        const defaultData: Record<string, any> = {};
+        for (const f of fields) {
+          if (f.default !== undefined) defaultData[f.key] = f.default;
+        }
+        // 如果有保存的值，覆盖默认值
+        if (savedTaskTypeValues) {
+          for (const [k, v] of Object.entries(savedTaskTypeValues)) {
+            if (typeof v === 'string' && v.startsWith('0x')) {
+              const parsed = parseInt(v, 16);
+              if (!isNaN(parsed)) { defaultData[k] = parsed; continue; }
             }
-
-            // 创建 yaml.Scalar 节点
-            const valueScalar = new yaml.Scalar(finalFieldValue);
-            valueScalar.tag = `!${dataType}`;
-            if ((field.is_hex || field.yaml_hex) && typeof finalFieldValue === 'number') {
-              valueScalar.format = 'HEX';
-              const hexStr = finalFieldValue.toString(16).toUpperCase().padStart(2, '0');
-              (valueScalar as any)._originalSource = `0x${hexStr}`;
-              valueScalar.toJSON = function () {
-                return '0x' + (this as any).value.toString(16).toUpperCase().padStart(2, '0');
-              };
-            }
-
-            // 使用 Pair 添加到 task 节点
-            const newPair = new yaml.Pair(
-              new yaml.Scalar(field.key),
-              valueScalar,
-            );
-            targetTaskNode.add(newPair);
+            defaultData[k] = v;
           }
+        }
+
+        // 添加新 task 的默认字段（使用 yaml.Scalar 确保正确的 YAML 节点类型）
+        for (const field of fields) {
+          if (field.default === undefined) continue;
+          // 跳过不可见的字段（如 control_type=1 时隐藏的 PID 字段）
+          if (!task.isFieldVisible(field.key, defaultData)) continue;
+
+          let finalFieldValue: any = defaultData[field.key] ?? field.default;
+
+          // 十六进制字符串 "0x200" → 数字 512
+          if (typeof finalFieldValue === 'string' && finalFieldValue.startsWith('0x')) {
+            const parsed = parseInt(finalFieldValue, 16);
+            if (!isNaN(parsed)) finalFieldValue = parsed;
+          }
+
+          // 创建 yaml.Scalar 节点
+          const valueScalar = new yaml.Scalar(finalFieldValue);
+          valueScalar.tag = `!${field.data_type}`;
+          if ((field.is_hex || field.yaml_hex) && typeof finalFieldValue === 'number') {
+            valueScalar.format = 'HEX';
+            const hexStr = finalFieldValue.toString(16).toUpperCase().padStart(2, '0');
+            (valueScalar as any)._originalSource = `0x${hexStr}`;
+            valueScalar.toJSON = function () {
+              return '0x' + (this as any).value.toString(16).toUpperCase().padStart(2, '0');
+            };
+          }
+
+          targetTaskNode.add(new yaml.Pair(new yaml.Scalar(field.key), valueScalar));
         }
       }
     }
