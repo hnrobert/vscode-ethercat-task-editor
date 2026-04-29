@@ -211,7 +211,7 @@ export function normalizeHexFormat(doc: yaml.Document) {
         if (field.is_hex || field.yaml_hex) hexFieldKeys.add(field.key);
       }
 
-      // 遍历 task 节点的所有字段，修复十六进制格式
+      // 遍历 task 节点的所有字段，修复格式
       for (const item of taskNode.items) {
         if (!yaml.isScalar(item.key)) continue;
         const key = String(item.key.value);
@@ -219,15 +219,22 @@ export function normalizeHexFormat(doc: yaml.Document) {
         if (!yaml.isScalar(node) || typeof node.value !== 'number') continue;
 
         const shouldHex = alwaysHexKeys.has(key) || hexFieldKeys.has(key);
-        if (!shouldHex) continue;
 
-        const numVal = node.value as number;
-        node.format = 'HEX';
-        const hexStr = numVal.toString(16).toUpperCase().padStart(2, '0');
-        (node as any)._originalSource = `0x${hexStr}`;
-        node.toJSON = function () {
-          return '0x' + (this as any).value.toString(16).toUpperCase().padStart(2, '0');
-        };
+        if (shouldHex) {
+          // 确保是十六进制格式
+          const numVal = node.value as number;
+          node.format = 'HEX';
+          const hexStr = numVal.toString(16).toUpperCase().padStart(2, '0');
+          (node as any)._originalSource = `0x${hexStr}`;
+          node.toJSON = function () {
+            return '0x' + (this as any).value.toString(16).toUpperCase().padStart(2, '0');
+          };
+        } else {
+          // 确保是十进制格式
+          node.format = 'PLAIN';
+          (node as any)._originalSource = undefined;
+          (node as any).toJSON = undefined;
+        }
       }
     }
   }
