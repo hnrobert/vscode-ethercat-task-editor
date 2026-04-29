@@ -1,6 +1,7 @@
 import * as vscode from 'vscode';
 import * as yaml from 'yaml';
 import { parseYamlDocumentWithTags } from '../utils/yamlParser';
+import { normalizeHexFormat } from '../utils/yamlUtils';
 import { TaskRegistry } from '../tasks';
 
 /**
@@ -30,6 +31,9 @@ export class EthercatYamlFormatter implements vscode.DocumentFormattingEditProvi
 
       // 重新排序所有 task 的字段
       this.reorderAllTaskFields(doc, data);
+
+      // 修复十六进制字段格式（十进制 → 0x 十六进制）
+      normalizeHexFormat(doc);
 
       // 生成格式化后的文本
       const formattedText = this.stringifyWithProperSpacing(doc);

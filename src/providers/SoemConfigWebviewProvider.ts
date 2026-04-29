@@ -352,6 +352,18 @@ export class SoemConfigWebviewProvider implements vscode.WebviewViewProvider {
 
     // 检查字段定义，判断是否应该使用十六进制
     const fieldKey = propertyPath[propertyPath.length - 1] as string;
+
+    // 某些字段始终使用十六进制格式
+    const alwaysHexKeys = new Set([
+      'conf_connection_lost_read_action',
+      'sdowrite_connection_lost_write_action',
+      'sdowrite_task_type',
+      'board_type',
+    ]);
+    if (alwaysHexKeys.has(fieldKey)) {
+      isHex = true;
+    }
+
     if (fieldKey && propertyPath.length >= 6) {
       // 获取 task type
       const taskPath = propertyPath.slice(0, propertyPath.length - 1);
@@ -500,7 +512,16 @@ export class SoemConfigWebviewProvider implements vscode.WebviewViewProvider {
       const fieldKey = propertyPath[propertyPath.length - 1] as string;
       let dataType: string | undefined;
 
-      if (fieldKey && propertyPath.length >= 6) {
+      // 已知的特殊字段数据类型
+      const knownFieldTypes: Record<string, string> = {
+        conf_connection_lost_read_action: 'uint8_t',
+        sdowrite_connection_lost_write_action: 'uint8_t',
+      };
+      if (fieldKey in knownFieldTypes) {
+        dataType = knownFieldTypes[fieldKey];
+      }
+
+      if (!dataType && fieldKey && propertyPath.length >= 6) {
         const taskPath = propertyPath.slice(0, propertyPath.length - 1);
         const taskNode = doc.getIn(taskPath, true);
         if (yaml.isMap(taskNode)) {
@@ -526,10 +547,10 @@ export class SoemConfigWebviewProvider implements vscode.WebviewViewProvider {
       if (isHex) {
         // 设置为十六进制格式
         targetNode.format = 'HEX';
-        (targetNode as any)._originalSource =
-          `0x${finalValue.toString(16).toUpperCase()}`;
+        const hexStr = finalValue.toString(16).toUpperCase().padStart(2, '0');
+        (targetNode as any)._originalSource = `0x${hexStr}`;
         targetNode.toJSON = function () {
-          return '0x' + (this as any).value.toString(16).toUpperCase();
+          return '0x' + (this as any).value.toString(16).toUpperCase().padStart(2, '0');
         };
       } else if (typeof finalValue === 'number') {
         targetNode.format = 'PLAIN';

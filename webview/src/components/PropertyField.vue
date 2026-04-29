@@ -12,7 +12,7 @@
     <select
       v-if="prop === 'sdowrite_task_type'"
       class="prop-select"
-      :value="String(val)"
+      :value="String(normalizedValue)"
       @change="onTaskTypeChange"
     >
       <option v-for="ty in taskTypes" :key="ty.id" :value="ty.id">
@@ -160,9 +160,13 @@ const taskData = computed(() => {
   return data.value?.slaves?.[sIndex]?.[sKey]?.tasks?.[tIndex]?.[tKey];
 });
 
-// 获取当前 task type
+// 获取当前 task type（标准化为数字）
 const taskTypeId = computed(() => {
-  return taskData.value?.sdowrite_task_type;
+  const raw = taskData.value?.sdowrite_task_type;
+  if (typeof raw === 'string' && raw.startsWith('0x')) {
+    return parseInt(raw, 16);
+  }
+  return typeof raw === 'number' ? raw : Number(raw);
 });
 
 // 获取字段定义
