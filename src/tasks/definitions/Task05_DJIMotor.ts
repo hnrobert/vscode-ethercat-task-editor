@@ -214,7 +214,7 @@ export class Task05_DJIMotor extends TaskBase {
         label: `Motor ${motorIndex} Speed Kp`,
         type: 'number',
         data_type: 'float',
-        default: 13.5,
+        default: 1,
         group: `Motor ${motorIndex} Speed PID`,
         visible_when: (data) =>
           data[`sdowrite_motor${motorIndex}_can_id`] !== 0 &&
@@ -225,7 +225,7 @@ export class Task05_DJIMotor extends TaskBase {
         label: `Motor ${motorIndex} Speed Ki`,
         type: 'number',
         data_type: 'float',
-        default: 1.0,
+        default: 0.0,
         group: `Motor ${motorIndex} Speed PID`,
         visible_when: (data) =>
           data[`sdowrite_motor${motorIndex}_can_id`] !== 0 &&
@@ -247,7 +247,7 @@ export class Task05_DJIMotor extends TaskBase {
         label: `Motor ${motorIndex} Speed Max Out`,
         type: 'number',
         data_type: 'float',
-        default: 16384.0,
+        default: 10000.0,
         group: `Motor ${motorIndex} Speed PID`,
         visible_when: (data) =>
           data[`sdowrite_motor${motorIndex}_can_id`] !== 0 &&
@@ -258,7 +258,7 @@ export class Task05_DJIMotor extends TaskBase {
         label: `Motor ${motorIndex} Speed Max IOut`,
         type: 'number',
         data_type: 'float',
-        default: 2000.0,
+        default: 1000.0,
         group: `Motor ${motorIndex} Speed PID`,
         visible_when: (data) =>
           data[`sdowrite_motor${motorIndex}_can_id`] !== 0 &&
