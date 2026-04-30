@@ -24,7 +24,7 @@ export class Task08_MS5837 extends TaskBase {
         label: 'I2C ID',
         type: 'select',
         data_type: 'uint8_t',
-        default: 1,
+        default: 3,
         options: [
           // { value: 1, label: 'I2C 1' },
           // { value: 2, label: 'I2C 2' },
@@ -47,13 +47,13 @@ export class Task08_MS5837 extends TaskBase {
           { value: 6, label: '6' },
         ],
       },
-      {
-        key: 'conf_frame_name',
-        label: 'Frame Name',
-        type: 'text',
-        data_type: 'std::string',
-        default: 'pressure_sensor',
-      },
+      // {
+      //   key: 'conf_frame_name',
+      //   label: 'Frame Name',
+      //   type: 'text',
+      //   data_type: 'std::string',
+      //   default: 'pressure_sensor',
+      // },
     ];
   }
 

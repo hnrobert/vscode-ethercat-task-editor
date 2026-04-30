@@ -46,8 +46,8 @@ export class Task15_DDMotor extends TaskBase {
         data_type: 'uint8_t',
         default: 1,
         options: [
-          { value: 1, label: 'Standard CAN' },
-          { value: 2, label: 'CAN FD' },
+          { value: 1, label: 'Standard CAN (1M)' },
+          { value: 2, label: 'CAN FD (500K)' },
         ],
       },
       {
