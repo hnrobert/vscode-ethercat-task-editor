@@ -19,13 +19,13 @@ export class Task11_SBUSRC extends TaskBase {
 
   private static buildFields(): FieldDefinition[] {
     return [
-      {
-        key: 'conf_frame_name',
-        label: 'Frame Name',
-        type: 'text',
-        data_type: 'std::string',
-        default: 'sbus_rc',
-      },
+      // {
+      //   key: 'conf_frame_name',
+      //   label: 'Frame Name',
+      //   type: 'text',
+      //   data_type: 'std::string',
+      //   default: 'sbus_rc',
+      // },
     ];
   }
 

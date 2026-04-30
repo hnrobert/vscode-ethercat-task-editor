@@ -19,13 +19,13 @@ export class Task01_DJIRC extends TaskBase {
 
   private static buildFields(): FieldDefinition[] {
     return [
-      {
-        key: 'conf_frame_name',
-        label: 'Frame Name',
-        type: 'text',
-        data_type: 'std::string',
-        default: 'dji_rc',
-      },
+      // {
+      //   key: 'conf_frame_name',
+      //   label: 'Frame Name',
+      //   type: 'text',
+      //   data_type: 'std::string',
+      //   default: 'dji_rc',
+      // },
     ];
   }
 
