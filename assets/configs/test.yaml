@@ -1,0 +1,170 @@
+slaves:
+  - sn0000000:
+      board_type: !uint8_t 0x03
+      sdo_len: !uint16_t 138
+      task_count: !uint8_t 15
+      latency_pub_topic: !std::string '/ecat/sn0000000/latency'
+
+      tasks:
+        - app_1:
+            sdowrite_task_type: !uint8_t 1
+            conf_connection_lost_read_action: !uint8_t 0x02
+            pub_topic: !std::string '/ecat/dji_rc_1/read'
+            pdoread_offset: !uint16_t 0
+
+        - app_2:
+            sdowrite_task_type: !uint8_t 2
+            conf_connection_lost_read_action: !uint8_t 0x02
+            sdowrite_connection_lost_write_action: !uint8_t 0x02
+            pub_topic: !std::string '/ecat/lktech_motor_1/read'
+            pdoread_offset: !uint16_t 19
+            sub_topic: !std::string '/ecat/lktech_motor_1/write'
+            pdowrite_offset: !uint16_t 0
+            sdowrite_control_period: !uint16_t 1
+            sdowrite_can_inst: !uint8_t 1
+            sdowrite_can_packet_id: !uint32_t 0x141
+            sdowrite_control_type: !uint8_t 1
+
+        - app_3:
+            sdowrite_task_type: !uint8_t 3
+            conf_connection_lost_read_action: !uint8_t 0x02
+            pub_topic: !std::string '/ecat/hipnuc_imu_can_1/read'
+            pdoread_offset: !uint16_t 27
+            sdowrite_can_inst: !uint8_t 1
+            sdowrite_packet1_id: !uint32_t 0x01
+            sdowrite_packet2_id: !uint32_t 0x02
+            sdowrite_packet3_id: !uint32_t 0x03
+            conf_frame_name: !std::string 'imu_link'
+
+        - app_4:
+            sdowrite_task_type: !uint8_t 4
+            sdowrite_connection_lost_write_action: !uint8_t 0x02
+            sub_topic: !std::string '/ecat/dshot_1/write'
+            pdowrite_offset: !uint16_t 3
+            sdowrite_dshot_id: !uint8_t 1
+            sdowrite_init_value: !uint16_t 0
+
+        - app_5:
+            sdowrite_task_type: !uint8_t 5
+            conf_connection_lost_read_action: !uint8_t 0x02
+            sdowrite_connection_lost_write_action: !uint8_t 0x02
+            pub_topic: !std::string '/ecat/dji_motor_1/read'
+            pdoread_offset: !uint16_t 48
+            sub_topic: !std::string '/ecat/dji_motor_1/write'
+            pdowrite_offset: !uint16_t 11
+            sdowrite_control_period: !uint16_t 1
+            sdowrite_can_inst: !uint8_t 1
+            sdowrite_can_packet_id: !uint32_t 0x200
+            sdowrite_motor1_can_id: !uint32_t 0x201
+            sdowrite_motor1_control_type: !uint8_t 1
+            sdowrite_motor2_can_id: !uint32_t 0x202
+            sdowrite_motor2_control_type: !uint8_t 1
+            sdowrite_motor3_can_id: !uint32_t 0x203
+            sdowrite_motor3_control_type: !uint8_t 1
+            sdowrite_motor4_can_id: !uint32_t 0x204
+            sdowrite_motor4_control_type: !uint8_t 1
+
+        - app_6:
+            sdowrite_task_type: !uint8_t 6
+            sdowrite_connection_lost_write_action: !uint8_t 0x02
+            sub_topic: !std::string '/ecat/onboard_pwm_1/write'
+            pdowrite_offset: !uint16_t 23
+            sdowrite_port_id: !uint8_t 1
+            sdowrite_pwm_period: !uint16_t 0
+            sdowrite_init_value: !uint16_t 0
+
+        - app_7:
+            sdowrite_task_type: !uint8_t 7
+            sdowrite_connection_lost_write_action: !uint8_t 0x02
+            sub_topic: !std::string '/ecat/external_pwm_1/write'
+            pdowrite_offset: !uint16_t 31
+            sdowrite_uart_id: !uint8_t 1
+            sdowrite_channel_num: !uint8_t 1
+            sdowrite_pwm_period: !uint16_t 0
+            sdowrite_init_value: !uint16_t 0
+
+        - app_8:
+            sdowrite_task_type: !uint8_t 8
+            conf_connection_lost_read_action: !uint8_t 0x02
+            pub_topic: !std::string '/ecat/ms5837_30ba_1/read'
+            pdoread_offset: !uint16_t 84
+            sdowrite_i2c_id: !uint8_t 3
+            sdowrite_osr_id: !uint8_t 1
+
+        - app_9:
+            sdowrite_task_type: !uint8_t 9
+            conf_connection_lost_read_action: !uint8_t 0x02
+            pub_topic: !std::string '/ecat/adc_1/read'
+            pdoread_offset: !uint16_t 93
+            conf_frame_name: !std::string 'adc'
+
+        - app_10:
+            sdowrite_task_type: !uint8_t 10
+            conf_connection_lost_read_action: !uint8_t 0x02
+            pub_topic: !std::string '/ecat/can_pmu_1/read'
+            pdoread_offset: !uint16_t 93
+            sdowrite_can_inst: !uint8_t 1
+            sdowrite_can_id: !uint32_t 529
+
+        - app_11:
+            sdowrite_task_type: !uint8_t 11
+            conf_connection_lost_read_action: !uint8_t 0x02
+            pub_topic: !std::string '/ecat/sbus_rc_1/read'
+            pdoread_offset: !uint16_t 100
+
+        - app_12:
+            sdowrite_task_type: !uint8_t 12
+            conf_connection_lost_read_action: !uint8_t 0x02
+            sdowrite_connection_lost_write_action: !uint8_t 0x02
+            pub_topic: !std::string '/ecat/dm_motor_1/read'
+            pdoread_offset: !uint16_t 124
+            sub_topic: !std::string '/ecat/dm_motor_1/write'
+            pdowrite_offset: !uint16_t 33
+            sdowrite_control_period: !uint16_t 1
+            sdowrite_can_inst: !uint8_t 1
+            sdowrite_can_id: !uint16_t 0x01
+            sdowrite_master_id: !uint16_t 0x11
+            sdowrite_control_type: !uint8_t 1
+            conf_pmax: !float 3.141592653589793
+            conf_vmax: !float 30
+            conf_tmax: !float 10
+
+        - app_13:
+            sdowrite_task_type: !uint8_t 13
+            conf_connection_lost_read_action: !uint8_t 0x02
+            sdowrite_connection_lost_write_action: !uint8_t 0x02
+            pub_topic: !std::string '/ecat/super_capacitor_1/read'
+            pdoread_offset: !uint16_t 133
+            sub_topic: !std::string '/ecat/super_capacitor_1/write'
+            pdowrite_offset: !uint16_t 42
+            sdowrite_can_inst: !uint8_t 1
+            sdowrite_chassis_to_cap_id: !uint32_t 0x01
+            sdowrite_cap_to_chassis_id: !uint32_t 0x02
+
+        - app_14:
+            sdowrite_task_type: !uint8_t 14
+            conf_connection_lost_read_action: !uint8_t 0x02
+            pub_topic: !std::string '/ecat/vt13_rc_1/read'
+            pdoread_offset: !uint16_t 140
+            conf_frame_name: !std::string 'vt13_rc'
+
+        - app_15:
+            sdowrite_task_type: !uint8_t 15
+            conf_connection_lost_read_action: !uint8_t 0x02
+            sdowrite_connection_lost_write_action: !uint8_t 0x02
+            pub_topic: !std::string '/ecat/dd_motor_1/read'
+            pdoread_offset: !uint16_t 158
+            sub_topic: !std::string '/ecat/dd_motor_1/write'
+            pdowrite_offset: !uint16_t 46
+            sdowrite_control_period: !uint16_t 1
+            sdowrite_can_inst: !uint8_t 1
+            sdowrite_can_baudrate: !uint8_t 1
+            sdowrite_can_packet_id: !uint32_t 0x33
+            sdowrite_motor1_can_id: !uint32_t 0x97
+            sdowrite_motor1_control_type: !uint8_t 1
+            sdowrite_motor2_can_id: !uint32_t 0x98
+            sdowrite_motor2_control_type: !uint8_t 1
+            sdowrite_motor3_can_id: !uint32_t 0x99
+            sdowrite_motor3_control_type: !uint8_t 1
+            sdowrite_motor4_can_id: !uint32_t 0x9A
+            sdowrite_motor4_control_type: !uint8_t 1
