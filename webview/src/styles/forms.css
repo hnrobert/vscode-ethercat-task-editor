@@ -24,20 +24,40 @@
   display: flex;
   align-items: center;
   gap: 4px;
-  cursor: help;
 }
 
 .help-icon {
-  display: inline-block;
+  position: relative;
+  display: inline-flex;
+  cursor: help;
+  align-items: center;
+  justify-content: center;
   width: 14px;
   height: 14px;
-  line-height: 14px;
-  text-align: center;
   border-radius: 50%;
   background: var(--vscode-badge-background);
   color: var(--vscode-badge-foreground);
   font-size: 10px;
   font-weight: bold;
+  flex-shrink: 0;
+}
+
+.help-tooltip {
+  position: fixed;
+  padding: 6px 10px;
+  background: var(--vscode-notifications-background, #252526);
+  color: var(--vscode-notifications-foreground, #ccc);
+  border: 1px solid var(--vscode-widget-border, #454545);
+  border-radius: 4px;
+  font-size: 12px;
+  font-weight: normal;
+  line-height: 1.4;
+  white-space: normal;
+  width: max-content;
+  max-width: 280px;
+  z-index: 2147483647;
+  pointer-events: none;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
 }
 
 .prop-row .error-message {

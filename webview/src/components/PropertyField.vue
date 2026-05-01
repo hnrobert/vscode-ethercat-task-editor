@@ -1,9 +1,14 @@
 <template>
   <div v-if="isVisible" class="prop-row" :class="{ 'has-error': validationError }">
     <div class="prop-label-container">
-      <label class="prop-label" :title="fieldDef?.help">
+      <label class="prop-label">
         {{ displayLabel }}
-        <span v-if="fieldDef?.help" class="help-icon">?</span>
+        <span
+          v-if="fieldDef?.help"
+          class="help-icon"
+          @mouseenter="showTooltip($event, fieldDef!.help!)"
+          @mouseleave="hideTooltip"
+        >?</span>
       </label>
       <span v-if="validationError" class="error-message">{{ validationError.message }}</span>
     </div>
@@ -408,6 +413,38 @@ function onHexChange(e: Event) {
     if (!isNaN(numValue)) {
       updateValue(props.path, numValue);
     }
+  }
+}
+
+let tooltipEl: HTMLDivElement | null = null;
+
+function showTooltip(e: MouseEvent, text: string) {
+  hideTooltip();
+  const el = document.createElement('div');
+  el.className = 'help-tooltip';
+  el.textContent = text;
+  document.body.appendChild(el);
+
+  const rect = (e.target as HTMLElement).getBoundingClientRect();
+  const pad = 6;
+  let left = rect.left + rect.width / 2 - el.offsetWidth / 2;
+  let top = rect.top - el.offsetHeight - pad;
+
+  // Clamp to viewport
+  left = Math.max(4, Math.min(left, window.innerWidth - el.offsetWidth - 4));
+  if (top < 4) {
+    top = rect.bottom + pad;
+  }
+
+  el.style.left = left + 'px';
+  el.style.top = top + 'px';
+  tooltipEl = el;
+}
+
+function hideTooltip() {
+  if (tooltipEl) {
+    tooltipEl.remove();
+    tooltipEl = null;
   }
 }
 </script>
