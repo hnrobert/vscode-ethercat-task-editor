@@ -13,6 +13,18 @@ const STRUCTURAL_FIELDS = new Set([
   'pdowrite_offset',
 ]);
 
+const READ_FIELDS: Record<string, string> = {
+  pub_topic: 'pub_topic',
+  pdoread_offset: 'pdoread_offset',
+  conf_connection_lost_read_action: 'conf_connection_lost_read_action',
+};
+
+const WRITE_FIELDS: Record<string, string> = {
+  sub_topic: 'sub_topic',
+  pdowrite_offset: 'pdowrite_offset',
+  sdowrite_connection_lost_write_action: 'sdowrite_connection_lost_write_action',
+};
+
 export function validateOffsets(
   document: vscode.TextDocument,
   doc: yaml.Document,
@@ -158,7 +170,23 @@ function validateTaskFields(
     Object.keys(taskValues).filter((k) => !k.startsWith('_')),
   );
 
-  // Missing fields
+  // Check required structural fields based on has_read/has_write
+  const config = taskDef.getConfig();
+  const requiredStructural: string[] = [];
+  if (config.has_read) {
+    requiredStructural.push(...Object.keys(READ_FIELDS));
+  }
+  if (config.has_write) {
+    requiredStructural.push(...Object.keys(WRITE_FIELDS));
+  }
+  const missingStructural: string[] = [];
+  for (const key of requiredStructural) {
+    if (!actualFields.has(key)) {
+      missingStructural.push(key);
+    }
+  }
+
+  // Missing task-specific fields
   const missingFields: string[] = [];
   for (const key of expectedKeys) {
     if (!actualFields.has(key)) {
@@ -177,6 +205,20 @@ function validateTaskFields(
   }
 
   // Report missing fields — range on task key
+  if (missingStructural.length > 0) {
+    const range = getFieldRange(document, doc, pathBase);
+    if (range) {
+      const d = new vscode.Diagnostic(
+        range,
+        `Missing required field${missingStructural.length > 1 ? 's' : ''}: ${missingStructural.join(', ')}`,
+        vscode.DiagnosticSeverity.Error,
+      );
+      d.source = 'ethercat-task-editor';
+      d.code = 'field-mismatch';
+      diagnostics.push(d);
+    }
+  }
+
   if (missingFields.length > 0) {
     const range = getFieldRange(document, doc, pathBase);
     if (range) {

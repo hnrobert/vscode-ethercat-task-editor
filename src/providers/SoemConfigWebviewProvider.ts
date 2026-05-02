@@ -12,7 +12,7 @@ import {
 } from '../utils/yamlUtils';
 import { validateTopics } from '../utils/topicValidator';
 import { validateTags } from '../utils/tagValidator';
-import { validateOffsets } from '../utils/offsetValidator';
+import { validateOffsets } from '../utils/fieldValidator';
 
 function ensureBlockStyle(node: unknown) {
   if (yaml.isMap(node) || yaml.isSeq(node)) {
