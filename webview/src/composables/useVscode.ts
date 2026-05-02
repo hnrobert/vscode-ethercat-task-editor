@@ -93,6 +93,25 @@ window.addEventListener('message', (event) => {
     case 'taskFieldsResponse':
       taskFieldsCache.value.set(message.taskType, message.fields);
       break;
+    case 'scrollToSlave': {
+      const el = document.getElementById(`slave-${message.sIndex}`);
+      if (el) {
+        (el as HTMLDetailsElement).open = true;
+        el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }
+      break;
+    }
+    case 'scrollToTask': {
+      const el = document.getElementById(`task-${message.sIndex}-${message.tIndex}`);
+      if (el) {
+        // Ensure parent slave is expanded
+        const parent = document.getElementById(`slave-${message.sIndex}`);
+        if (parent) (parent as HTMLDetailsElement).open = true;
+        (el as HTMLDetailsElement).open = true;
+        el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }
+      break;
+    }
   }
 });
 function postMessage(msg: any) {
@@ -152,6 +171,10 @@ export function setDragState(state: DragState) {
   dragState = state;
   document.body.classList.toggle('dragging-task', state?.type === 'task');
   document.body.classList.toggle('dragging-slave', state?.type === 'slave');
+}
+
+export function revealYamlPosition(sIndex: number, tIndex?: number) {
+  postMessage({ type: 'revealYamlPosition', sIndex, tIndex });
 }
 
 export function moveTask(

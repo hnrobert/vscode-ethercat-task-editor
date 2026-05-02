@@ -1,6 +1,7 @@
 import * as vscode from 'vscode';
 import { SoemConfigWebviewProvider } from './providers/SoemConfigWebviewProvider';
 import { EthercatYamlFormatter } from './providers/EthercatYamlFormatter';
+import { EthercatCodeLensProvider } from './providers/EthercatCodeLensProvider';
 import { isEthercatYaml, setEthercatYamlLanguage } from './utils/languageDetector';
 import { configureFileIcon } from './utils/iconConfigurator';
 
@@ -28,6 +29,33 @@ export function activate(context: vscode.ExtensionContext) {
     vscode.languages.registerDocumentFormattingEditProvider(
       'ethercat-yaml',
       new EthercatYamlFormatter(),
+    ),
+  );
+
+  // 注册 CodeLens 提供者
+  context.subscriptions.push(
+    vscode.languages.registerCodeLensProvider(
+      'ethercat-yaml',
+      new EthercatCodeLensProvider(),
+    ),
+  );
+
+  // CodeLens 点击后在 webview 中定位
+  context.subscriptions.push(
+    vscode.commands.registerCommand(
+      'ethercatTaskEditor.focusInWebview',
+      async (args: { sIndex: number; tIndex?: number }) => {
+        provider.show();
+        await vscode.commands.executeCommand('ethercatTaskEditor.sidebar.focus');
+        // 短暂延迟等待 webview 就绪
+        setTimeout(() => {
+          if (args.tIndex !== undefined) {
+            provider.scrollToTask(args.sIndex, args.tIndex);
+          } else {
+            provider.scrollToSlave(args.sIndex);
+          }
+        }, 150);
+      },
     ),
   );
 

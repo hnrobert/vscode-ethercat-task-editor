@@ -1,5 +1,5 @@
 <template>
-  <details class="task-container" :class="{ dragging: isDragging }" open @toggle="onToggle">
+  <details :id="'task-' + sIndex + '-' + tIndex" class="task-container" :class="{ dragging: isDragging }" open @toggle="onToggle">
     <summary
       class="task-title"
       draggable="true"
@@ -24,6 +24,9 @@
         <span class="task-key-badge">{{ tKey }}</span>
       </template>
       <div class="btn-group" @click.stop>
+        <button class="btn-sm btn-secondary loc-btn" title="Jump to YAML" @click="onJumpToYaml">
+          <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor"><path d="M14 2H2a1 1 0 0 0-1 1v10a1 1 0 0 0 1 1h5l1.5 2 1.5-2h4a1 1 0 0 0 1-1V3a1 1 0 0 0-1-1zm-1 10H9.5l-1 1.33L7.5 12H3V4h10v8z"/></svg>
+        </button>
         <button class="btn-sm btn-secondary" @click="startRename">Alias</button>
         <button class="btn-sm btn-danger" @click="onRemove">Delete</button>
       </div>
@@ -44,7 +47,7 @@
 <script setup lang="ts">
 import { computed, nextTick, ref } from 'vue';
 import PropertyField from './PropertyField.vue';
-import { renameTask, removeTask, setDragState, taskTypes } from '../composables/useVscode';
+import { renameTask, removeTask, setDragState, taskTypes, revealYamlPosition } from '../composables/useVscode';
 
 const props = defineProps<{
   sIndex: number;
@@ -152,6 +155,10 @@ function cancelRename() {
 
 function onRemove() {
   removeTask(props.sIndex, props.tIndex);
+}
+
+function onJumpToYaml() {
+  revealYamlPosition(props.sIndex, props.tIndex);
 }
 
 // Drag

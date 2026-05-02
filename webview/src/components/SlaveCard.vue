@@ -1,5 +1,5 @@
 <template>
-  <details class="slave-panel" :class="{ dragging: isSlaveDragging }" open @toggle="onToggle">
+  <details :id="'slave-' + sIndex" class="slave-panel" :class="{ dragging: isSlaveDragging }" open @toggle="onToggle">
     <summary
       class="header-row"
       draggable="true"
@@ -22,6 +22,9 @@
         <span>{{ displayAlias }}</span>
       </h3>
       <div class="btn-group" @click.stop>
+        <button class="btn-sm btn-secondary loc-btn" title="Jump to YAML" @click="onJumpToYaml">
+          <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor"><path d="M14 2H2a1 1 0 0 0-1 1v10a1 1 0 0 0 1 1h5l1.5 2 1.5-2h4a1 1 0 0 0 1-1V3a1 1 0 0 0-1-1zm-1 10H9.5l-1 1.33L7.5 12H3V4h10v8z"/></svg>
+        </button>
         <button class="btn-sm btn-secondary" @click="startEditKey">Change SN</button>
         <button class="btn-sm btn-danger" @click="onRemoveSlave">Delete</button>
       </div>
@@ -91,7 +94,7 @@ import TaskEditor from './TaskEditor.vue';
 import SlavePdoStatus from './SlavePdoStatus.vue';
 import {
   addTask, addTaskAt, renameSlave, removeSlave,
-  moveTask, setDragState, dragState,
+  moveTask, setDragState, dragState, revealYamlPosition,
 } from '../composables/useVscode';
 
 const props = defineProps<{
@@ -151,6 +154,10 @@ function onInsertTask(tIndex: number) {
 
 function onRemoveSlave() {
   removeSlave(props.sIndex);
+}
+
+function onJumpToYaml() {
+  revealYamlPosition(props.sIndex);
 }
 
 // --- Slave drag ---
