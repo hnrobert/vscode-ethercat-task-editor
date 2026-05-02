@@ -121,10 +121,10 @@ const visibleProps = computed(() => {
   return orderedProps;
 });
 
-/** Extract the topic segment from pub_topic, e.g. /ecat/dji_motor_1/read → dji_motor_1 */
+/** Extract the topic segment from pub_topic, e.g. /ecat/board_2/app1/read → board_2/app1 */
 const segment = computed(() => {
   const topic = props.tInfo.pub_topic || props.tInfo.sub_topic || '';
-  const match = topic.match(/^\/ecat\/([^/]+)\//);
+  const match = topic.match(/^\/ecat\/(.+?)\/(read|write)$/);
   if (match) return match[1];
   return props.tKey.replace('_', '');
 });
