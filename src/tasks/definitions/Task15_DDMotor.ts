@@ -322,23 +322,6 @@ export class Task15_DDMotor extends TaskBase {
     return true;
   }
 
-  override getExpectedFields(taskData: Record<string, any>): string[] {
-    const fields: string[] = [
-      'sdowrite_control_period',
-      'sdowrite_can_inst',
-      'sdowrite_can_baudrate',
-      'sdowrite_can_packet_id',
-    ];
-    for (let i = 1; i <= 4; i++) {
-      fields.push(`sdowrite_motor${i}_can_id`);
-      const canId = taskData[`sdowrite_motor${i}_can_id`];
-      if (canId !== undefined && Number(canId) !== 0) {
-        fields.push(`sdowrite_motor${i}_control_type`);
-      }
-    }
-    return fields;
-  }
-
   override calculateTxPdoSize(taskData: Record<string, any>): number {
     let size = 0;
     for (let i = 1; i <= 4; i++) {

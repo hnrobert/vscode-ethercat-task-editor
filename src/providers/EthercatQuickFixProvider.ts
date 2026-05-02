@@ -4,6 +4,18 @@ import { parseYamlDocumentWithTags, stringifyYamlDocumentWithTags } from '../uti
 import { calculateOffsets } from '../utils/offsetCalculator';
 import { TaskRegistry } from '../tasks';
 
+function normalizeTaskData(taskData: Record<string, any>): Record<string, any> {
+  const normalized: Record<string, any> = {};
+  for (const [key, value] of Object.entries(taskData)) {
+    if (typeof value === 'string' && value.startsWith('0x')) {
+      normalized[key] = parseInt(value, 16);
+    } else {
+      normalized[key] = value;
+    }
+  }
+  return normalized;
+}
+
 const STRUCTURAL_FIELDS = new Set([
   'sdowrite_task_type',
   'conf_connection_lost_read_action',
@@ -96,8 +108,9 @@ export class EthercatQuickFixProvider implements vscode.CodeActionProvider {
         const taskNode = doc.getIn(pathBase, true);
         if (!yaml.isMap(taskNode)) return;
 
-        // Add missing visible fields
-        const expectedKeys = taskDef.getExpectedFields(taskValues);
+        // Add missing visible fields (normalize hex strings for visible_when checks)
+        const normalized = normalizeTaskData(taskValues);
+        const expectedKeys = taskDef.getExpectedFields(normalized);
         const fields = taskDef.getFields();
         const fieldMap = new Map(fields.map((f) => [f.key, f]));
         for (const key of expectedKeys) {

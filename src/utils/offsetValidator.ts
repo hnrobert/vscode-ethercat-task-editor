@@ -107,8 +107,9 @@ export function validateOffsets(
         pdoread_offset += taskDef.calculateTxPdoSize(taskValues);
         pdowrite_offset += taskDef.calculateRxPdoSize(taskValues);
 
-        // Field validation
-        validateTaskFields(document, doc, pathBase, taskKey, taskValues, taskDef, diagnostics);
+        // Field validation (normalize hex strings to numbers for visible_when checks)
+        const normalized = normalizeTaskData(taskValues);
+        validateTaskFields(document, doc, pathBase, taskKey, normalized, taskDef, diagnostics);
       }
     });
 
@@ -129,6 +130,18 @@ export function validateOffsets(
   });
 
   return diagnostics;
+}
+
+function normalizeTaskData(taskData: Record<string, any>): Record<string, any> {
+  const normalized: Record<string, any> = {};
+  for (const [key, value] of Object.entries(taskData)) {
+    if (typeof value === 'string' && value.startsWith('0x')) {
+      normalized[key] = parseInt(value, 16);
+    } else {
+      normalized[key] = value;
+    }
+  }
+  return normalized;
 }
 
 function validateTaskFields(
