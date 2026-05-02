@@ -112,10 +112,39 @@ export function validateOffsets(
         else if (tag === '!uint32_t' || tag === '!int32_t' || tag === '!float') sdoLen += 4;
       }
 
-      // Advance offsets
+      // Validate task type
+      const hasTaskType = taskValues.sdowrite_task_type !== undefined;
       const type = Number(taskValues.sdowrite_task_type);
       const taskDef = TaskRegistry.getTask(type);
+
+      if (!hasTaskType) {
+        const range = getAppKeyRange(document, doc, pathBase);
+        if (range) {
+          const d = new vscode.Diagnostic(
+            range,
+            'Missing required field: sdowrite_task_type',
+            vscode.DiagnosticSeverity.Error,
+          );
+          d.source = 'ethercat-task-editor';
+          d.code = 'field-mismatch';
+          diagnostics.push(d);
+        }
+      } else if (!taskDef) {
+        const range = getFieldRange(document, doc, [...pathBase, 'sdowrite_task_type']);
+        if (range) {
+          const d = new vscode.Diagnostic(
+            range,
+            `Unknown task type: ${taskValues.sdowrite_task_type}`,
+            vscode.DiagnosticSeverity.Error,
+          );
+          d.source = 'ethercat-task-editor';
+          d.code = 'field-mismatch';
+          diagnostics.push(d);
+        }
+      }
+
       if (taskDef) {
+        // Advance offsets
         pdoread_offset += taskDef.calculateTxPdoSize(taskValues);
         pdowrite_offset += taskDef.calculateRxPdoSize(taskValues);
 
@@ -204,9 +233,9 @@ function validateTaskFields(
     }
   }
 
-  // Report missing fields — range on task key
+  // Report missing fields — range on app key line
   if (missingStructural.length > 0) {
-    const range = getFieldRange(document, doc, pathBase);
+    const range = getAppKeyRange(document, doc, pathBase);
     if (range) {
       const d = new vscode.Diagnostic(
         range,
@@ -220,7 +249,7 @@ function validateTaskFields(
   }
 
   if (missingFields.length > 0) {
-    const range = getFieldRange(document, doc, pathBase);
+    const range = getAppKeyRange(document, doc, pathBase);
     if (range) {
       const d = new vscode.Diagnostic(
         range,
@@ -246,6 +275,31 @@ function validateTaskFields(
       d.code = 'field-mismatch';
       diagnostics.push(d);
     }
+  }
+}
+
+function getAppKeyRange(
+  document: vscode.TextDocument,
+  doc: yaml.Document,
+  pathBase: (string | number)[],
+): vscode.Range | null {
+  try {
+    const parentPath = pathBase.slice(0, -1);
+    const parentNode = doc.getIn(parentPath, true);
+    if (yaml.isMap(parentNode) && parentNode.items.length > 0) {
+      const key = parentNode.items[0].key;
+      if (yaml.isScalar(key) && key.range) {
+        const line = document.positionAt(key.range[0]).line;
+        const lineEnd = document.lineAt(line).range.end;
+        return new vscode.Range(
+          document.positionAt(key.range[0]),
+          lineEnd,
+        );
+      }
+    }
+    return null;
+  } catch {
+    return null;
   }
 }
 
