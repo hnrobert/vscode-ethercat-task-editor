@@ -2,6 +2,7 @@ import * as vscode from 'vscode';
 import { SoemConfigWebviewProvider } from './providers/SoemConfigWebviewProvider';
 import { EthercatYamlFormatter } from './providers/EthercatYamlFormatter';
 import { EthercatCodeLensProvider } from './providers/EthercatCodeLensProvider';
+import { OffsetQuickFixProvider } from './providers/OffsetQuickFixProvider';
 import { isEthercatYaml, setEthercatYamlLanguage } from './utils/languageDetector';
 import { configureFileIcon } from './utils/iconConfigurator';
 
@@ -37,6 +38,15 @@ export function activate(context: vscode.ExtensionContext) {
     vscode.languages.registerCodeLensProvider(
       'ethercat-yaml',
       new EthercatCodeLensProvider(),
+    ),
+  );
+
+  // 注册 Offset Quick Fix 提供者
+  context.subscriptions.push(
+    vscode.languages.registerCodeActionsProvider(
+      'ethercat-yaml',
+      new OffsetQuickFixProvider(),
+      { providedCodeActionKinds: [vscode.CodeActionKind.QuickFix] },
     ),
   );
 
