@@ -41,9 +41,15 @@ export class EthercatQuickFixProvider implements vscode.CodeActionProvider {
 
     const offsetDiags = context.diagnostics.filter((d) => d.code === 'offset-mismatch');
     const fieldDiags = context.diagnostics.filter((d) => d.code === 'field-mismatch');
+    const tagDiags = context.diagnostics.filter((d) => d.code === 'tag-mismatch');
 
     // "Fix this" — only fix the single diagnostic under the cursor
-    const clickedField = fieldDiags.find((d) => d.range.contains(range));
+    // Skip auto-fix for task type errors — user must choose the correct type manually
+    const clickedField = fieldDiags.find((d) => {
+      if (!d.range.contains(range)) return false;
+      if (d.message.includes('sdowrite_task_type')) return false;
+      return true;
+    });
     if (clickedField) {
       const action = new vscode.CodeAction('Fix this', vscode.CodeActionKind.QuickFix);
       action.diagnostics = [clickedField];
@@ -59,10 +65,21 @@ export class EthercatQuickFixProvider implements vscode.CodeActionProvider {
       actions.push(action);
     }
 
-    // "Fix all"
-    if (fieldDiags.length > 0) {
+    const clickedTag = tagDiags.find((d) => d.range.contains(range));
+    if (clickedTag) {
+      const action = new vscode.CodeAction('Fix tag', vscode.CodeActionKind.QuickFix);
+      action.diagnostics = [clickedTag];
+      action.edit = this.createSingleTagFix(document, clickedTag);
+      actions.push(action);
+    }
+
+    // "Fix all" — exclude task type errors (user must choose manually)
+    const fixableFieldDiags = fieldDiags.filter(
+      (d) => !d.message.includes('sdowrite_task_type'),
+    );
+    if (fixableFieldDiags.length > 0) {
       const action = new vscode.CodeAction('Fix all field issues', vscode.CodeActionKind.QuickFix);
-      action.diagnostics = fieldDiags;
+      action.diagnostics = fixableFieldDiags;
       action.isPreferred = true;
       action.edit = this.createAllFieldFix(document);
       actions.push(action);
@@ -72,6 +89,13 @@ export class EthercatQuickFixProvider implements vscode.CodeActionProvider {
       const action = new vscode.CodeAction('Fix all offsets and lengths', vscode.CodeActionKind.QuickFix);
       action.diagnostics = offsetDiags;
       action.edit = this.createOffsetFix(document);
+      actions.push(action);
+    }
+
+    if (tagDiags.length > 0) {
+      const action = new vscode.CodeAction('Fix all tag issues', vscode.CodeActionKind.QuickFix);
+      action.diagnostics = tagDiags;
+      action.edit = this.createAllTagFix(document);
       actions.push(action);
     }
 
@@ -390,6 +414,78 @@ export class EthercatQuickFixProvider implements vscode.CodeActionProvider {
     const data = doc.toJSON();
     calculateOffsets(doc, data);
     return this.applyEdit(document, text, doc);
+  }
+
+  private createSingleTagFix(
+    document: vscode.TextDocument,
+    diag: vscode.Diagnostic,
+  ): vscode.WorkspaceEdit {
+    const text = document.getText();
+    const doc = parseYamlDocumentWithTags(text);
+    this.fixAllTags(doc);
+    return this.applyEdit(document, text, doc);
+  }
+
+  private createAllTagFix(document: vscode.TextDocument): vscode.WorkspaceEdit {
+    const text = document.getText();
+    const doc = parseYamlDocumentWithTags(text);
+    this.fixAllTags(doc);
+    return this.applyEdit(document, text, doc);
+  }
+
+  private fixAllTags(doc: yaml.Document): void {
+    const data = doc.toJSON();
+    if (!data?.slaves || !Array.isArray(data.slaves)) return;
+
+    const STRUCTURAL_TAG: Record<string, string> = {
+      sdowrite_task_type: 'uint8_t',
+      conf_connection_lost_read_action: 'uint8_t',
+      sdowrite_connection_lost_write_action: 'uint8_t',
+      pub_topic: 'std::string',
+      sub_topic: 'std::string',
+      pdoread_offset: 'uint16_t',
+      pdowrite_offset: 'uint16_t',
+    };
+
+    for (let sIndex = 0; sIndex < data.slaves.length; sIndex++) {
+      const slave = data.slaves[sIndex];
+      if (!slave || typeof slave !== 'object') continue;
+      const slaveKey = Object.keys(slave)[0];
+      const tasks = slave[slaveKey]?.tasks;
+      if (!Array.isArray(tasks)) continue;
+
+      for (let tIndex = 0; tIndex < tasks.length; tIndex++) {
+        const task = tasks[tIndex];
+        if (!task || typeof task !== 'object') continue;
+        const taskKey = Object.keys(task)[0];
+        const taskData = task[taskKey];
+        if (!taskData || typeof taskData !== 'object') continue;
+
+        const pathBase = ['slaves', sIndex, slaveKey, 'tasks', tIndex, taskKey] as (string | number)[];
+        const taskDef = TaskRegistry.getTask(Number(taskData.sdowrite_task_type));
+
+        for (const key of Object.keys(taskData)) {
+          if (key.startsWith('_')) continue;
+
+          let expectedTag: string | undefined;
+          if (key in STRUCTURAL_TAG) {
+            expectedTag = STRUCTURAL_TAG[key];
+          } else if (taskDef) {
+            const field = taskDef.getField(key);
+            if (field) expectedTag = field.data_type;
+          }
+          if (!expectedTag) continue;
+
+          const fieldNode = doc.getIn([...pathBase, key], true);
+          if (!yaml.isScalar(fieldNode)) continue;
+
+          const actualTag = fieldNode.tag?.replace(/^!/, '');
+          if (!actualTag || actualTag === '?' || actualTag === expectedTag) continue;
+
+          fieldNode.tag = `!${expectedTag}`;
+        }
+      }
+    }
   }
 
   private addFieldNode(taskNode: yaml.YAMLMap, field: { key: string; data_type: string; default?: any; is_hex?: boolean; yaml_hex?: boolean }) {

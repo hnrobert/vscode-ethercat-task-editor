@@ -313,6 +313,18 @@ const validOptions = computed<FieldOption[]>(() => {
 
 // 验证错误
 const validationError = computed<ValidationError | null>(() => {
+  // Check for unknown task type — no definition found in registry
+  if (props.prop === 'sdowrite_task_type' && normalizedValue.value !== undefined) {
+    const knownType = taskTypes.value.find((t: any) => t.id === normalizedValue.value);
+    if (!knownType) {
+      return {
+        field: props.prop,
+        message: `Unknown task type: ${normalizedValue.value}`,
+        severity: 'error',
+      };
+    }
+  }
+
   if (!fieldDef.value || !taskData.value) return null;
 
   const field = fieldDef.value;

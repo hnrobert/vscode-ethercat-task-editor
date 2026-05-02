@@ -25,6 +25,16 @@ const WRITE_FIELDS: Record<string, string> = {
   sdowrite_connection_lost_write_action: 'sdowrite_connection_lost_write_action',
 };
 
+const STRUCTURAL_TAG: Record<string, string> = {
+  sdowrite_task_type: 'uint8_t',
+  conf_connection_lost_read_action: 'uint8_t',
+  sdowrite_connection_lost_write_action: 'uint8_t',
+  pub_topic: 'std::string',
+  sub_topic: 'std::string',
+  pdoread_offset: 'uint16_t',
+  pdowrite_offset: 'uint16_t',
+};
+
 export function validateOffsets(
   document: vscode.TextDocument,
   doc: yaml.Document,
@@ -143,6 +153,9 @@ export function validateOffsets(
         }
       }
 
+      // Tag validation — check YAML tags match expected data types
+      validateFieldTags(document, doc, pathBase, taskValues, taskDef, diagnostics);
+
       if (taskDef) {
         // Advance offsets
         pdoread_offset += taskDef.calculateTxPdoSize(taskValues);
@@ -171,6 +184,50 @@ export function validateOffsets(
   });
 
   return diagnostics;
+}
+
+function validateFieldTags(
+  document: vscode.TextDocument,
+  doc: yaml.Document,
+  pathBase: (string | number)[],
+  taskValues: Record<string, any>,
+  taskDef: TaskBase | undefined,
+  diagnostics: vscode.Diagnostic[],
+): void {
+  for (const key of Object.keys(taskValues)) {
+    if (key.startsWith('_')) continue;
+
+    // Determine expected tag
+    let expectedTag: string | undefined;
+    if (key in STRUCTURAL_TAG) {
+      expectedTag = STRUCTURAL_TAG[key];
+    } else if (taskDef) {
+      const field = taskDef.getField(key);
+      if (field) expectedTag = field.data_type;
+    }
+
+    if (!expectedTag) continue;
+
+    const fieldNode = doc.getIn([...pathBase, key], true);
+    if (!yaml.isScalar(fieldNode)) continue;
+
+    const actualTag = fieldNode.tag?.replace(/^!/, '');
+    if (!actualTag || actualTag === '?') continue;
+    if (actualTag === expectedTag) continue;
+
+    // Tag mismatch — point to the value range
+    const range = getFieldRange(document, doc, [...pathBase, key]);
+    if (range) {
+      const d = new vscode.Diagnostic(
+        range,
+        `Wrong tag '!${actualTag}' for '${key}', expected '!${expectedTag}'`,
+        vscode.DiagnosticSeverity.Error,
+      );
+      d.source = 'ethercat-task-editor';
+      d.code = 'tag-mismatch';
+      diagnostics.push(d);
+    }
+  }
 }
 
 function normalizeTaskData(taskData: Record<string, any>): Record<string, any> {
