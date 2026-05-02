@@ -26,6 +26,11 @@ const STRUCTURAL_FIELDS = new Set([
   'pdowrite_offset',
 ]);
 
+const STRUCTURAL_DEFAULTS: Record<string, number> = {
+  pdoread_offset: 0,
+  pdowrite_offset: 0,
+};
+
 export class EthercatQuickFixProvider implements vscode.CodeActionProvider {
   provideCodeActions(
     document: vscode.TextDocument,
@@ -101,8 +106,88 @@ export class EthercatQuickFixProvider implements vscode.CodeActionProvider {
       // Remove just the one extra field
       const fieldKey = msg.replace('Unexpected field: ', '');
       taskNode.delete(fieldKey);
+    } else if (msg.startsWith('Missing required field')) {
+      // Add missing structural fields at the correct position.
+      // Use calculateOffsets to get correct values, then insert in place.
+      const fieldList = msg.includes(': ') ? msg.split(': ')[1].split(', ') : [];
+
+      // Calculate what the correct offset should be by computing from scratch
+      const slaveKey2 = taskPath[2] as string;
+      const sIndex2 = taskPath[1] as number;
+      const tIndex2 = taskPath[4] as number;
+      let readOff = 0;
+      let writeOff = 0;
+      const slaveData = data.slaves[sIndex2];
+      if (slaveData) {
+        const sv = slaveData[slaveKey2];
+        if (sv?.tasks) {
+          for (let ti = 0; ti < sv.tasks.length; ti++) {
+            const tk = Object.keys(sv.tasks[ti])[0];
+            const tv = sv.tasks[ti][tk];
+            // For the target task, use 0 as placeholder (will be overwritten)
+            if (ti === tIndex2) {
+              // Insert placeholder
+              if (fieldList.includes('pdoread_offset')) readOff = readOff; // value = readOff
+              if (fieldList.includes('pdowrite_offset')) writeOff = writeOff;
+            }
+            const ttype = Number(tv?.sdowrite_task_type);
+            const td = TaskRegistry.getTask(ttype);
+            if (td) {
+              readOff += td.calculateTxPdoSize(tv || {});
+              writeOff += td.calculateRxPdoSize(tv || {});
+            }
+          }
+        }
+      }
+
+      // Recompute: offsets at target task are the accumulated offsets BEFORE that task
+      let rOff = 0;
+      let wOff = 0;
+      const sv2 = data.slaves[sIndex2]?.[slaveKey2];
+      if (sv2?.tasks) {
+        for (let ti = 0; ti <= tIndex2; ti++) {
+          if (ti === tIndex2) {
+            rOff = rOff;
+            wOff = wOff;
+            break;
+          }
+          const tk = Object.keys(sv2.tasks[ti])[0];
+          const tv = sv2.tasks[ti][tk];
+          const ttype = Number(tv?.sdowrite_task_type);
+          const td = TaskRegistry.getTask(ttype);
+          if (td) {
+            rOff += td.calculateTxPdoSize(tv || {});
+            wOff += td.calculateRxPdoSize(tv || {});
+          }
+        }
+      }
+
+      for (const key of fieldList) {
+        const val = key === 'pdoread_offset' ? rOff : key === 'pdowrite_offset' ? wOff : 0;
+        const valueScalar = new yaml.Scalar(val);
+        valueScalar.tag = '!uint16_t';
+        const pair = new yaml.Pair(new yaml.Scalar(key), valueScalar);
+        const anchor = key === 'pdowrite_offset' ? 'sub_topic' : 'pub_topic';
+        const idx = taskNode.items.findIndex((item: any) =>
+          yaml.isScalar(item.key) && String(item.key.value) === anchor,
+        );
+        if (idx >= 0) {
+          taskNode.items.splice(idx + 1, 0, pair);
+        } else {
+          // Fallback: insert before first sdowrite_ field
+          const sdIdx = taskNode.items.findIndex((item: any) =>
+            yaml.isScalar(item.key) && String(item.key.value).startsWith('sdowrite_'),
+          );
+          if (sdIdx >= 0) {
+            taskNode.items.splice(sdIdx, 0, pair);
+          } else {
+            taskNode.add(pair);
+          }
+        }
+      }
+      return this.applyEdit(document, text, doc);
     } else if (msg.startsWith('Missing field')) {
-      // Add only the listed missing fields
+      // Add only the listed missing task-specific fields
       const fieldList = msg.includes(': ') ? msg.split(': ')[1].split(', ') : [];
       const type = Number(taskValues.sdowrite_task_type);
       const taskDef = TaskRegistry.getTask(type);
@@ -240,7 +325,38 @@ export class EthercatQuickFixProvider implements vscode.CodeActionProvider {
         const fields = taskDef.getFields();
         const fieldMap = new Map(fields.map((f) => [f.key, f]));
 
-        // Add missing fields
+        // Add missing structural fields
+        const config = taskDef.getConfig();
+        if (config.has_read) {
+          for (const key of ['pub_topic', 'pdoread_offset', 'conf_connection_lost_read_action']) {
+            if (!(key in taskValues)) {
+              const val = STRUCTURAL_DEFAULTS[key as keyof typeof STRUCTURAL_DEFAULTS];
+              if (val !== undefined) {
+                const valueScalar = new yaml.Scalar(val);
+                valueScalar.tag = '!uint16_t';
+                valueScalar.format = 'HEX';
+                (valueScalar as any)._originalSource = '0x' + val.toString(16).padStart(4, '0');
+                taskNode.add(new yaml.Pair(new yaml.Scalar(key), valueScalar));
+              }
+            }
+          }
+        }
+        if (config.has_write) {
+          for (const key of ['sub_topic', 'pdowrite_offset', 'sdowrite_connection_lost_write_action']) {
+            if (!(key in taskValues)) {
+              const val = STRUCTURAL_DEFAULTS[key as keyof typeof STRUCTURAL_DEFAULTS];
+              if (val !== undefined) {
+                const valueScalar = new yaml.Scalar(val);
+                valueScalar.tag = '!uint16_t';
+                valueScalar.format = 'HEX';
+                (valueScalar as any)._originalSource = '0x' + val.toString(16).padStart(4, '0');
+                taskNode.add(new yaml.Pair(new yaml.Scalar(key), valueScalar));
+              }
+            }
+          }
+        }
+
+        // Add missing task-specific fields
         for (const key of expectedKeys) {
           if (key in taskValues) continue;
           const field = fieldMap.get(key);

@@ -93,11 +93,11 @@ export function calculateOffsets(
 
       if (taskValues.pdoread_offset !== undefined) {
         taskValues.pdoread_offset = pdoread_offset;
-        doc.setIn([...pathBase, 'pdoread_offset'], pdoread_offset);
+        updateOffsetNode(doc, [...pathBase, 'pdoread_offset'], pdoread_offset);
       }
       if (taskValues.pdowrite_offset !== undefined) {
         taskValues.pdowrite_offset = pdowrite_offset;
-        doc.setIn([...pathBase, 'pdowrite_offset'], pdowrite_offset);
+        updateOffsetNode(doc, [...pathBase, 'pdowrite_offset'], pdowrite_offset);
       }
 
       // Accumulate sdo_len: sum sdowrite_* field sizes by YAML type tag
@@ -125,4 +125,25 @@ export function calculateOffsets(
 
   // Maintain spacing after offset calculation
   maintainYamlSpacing(doc);
+}
+
+function updateOffsetNode(
+  doc: yaml.Document,
+  path: (string | number)[],
+  value: number,
+): void {
+  const node = doc.getIn(path, true);
+  if (yaml.isScalar(node)) {
+    node.value = value;
+    // Preserve existing hex format or set it
+    if (node.format === 'HEX' || (node as any)._originalSource) {
+      const hexStr = value.toString(16).toUpperCase().padStart(4, '0');
+      (node as any)._originalSource = '0x' + hexStr;
+      node.toJSON = function () {
+        return '0x' + (this as any).value.toString(16).toUpperCase().padStart(4, '0');
+      };
+    }
+  } else {
+    doc.setIn(path, value);
+  }
 }
