@@ -69,7 +69,7 @@ export function setValueAtPath(
 }
 
 export function parseTopicSegment(topic: string): string | null {
-  const match = topic.match(/^\/ecat\/([^/]+)\//);
+  const match = topic.match(/^\/ecat\/(.+?)\/(read|write)$/);
   return match ? match[1] : null;
 }
 

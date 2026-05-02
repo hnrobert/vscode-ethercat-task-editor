@@ -173,6 +173,18 @@ export abstract class TaskBase {
   }
 
   /**
+   * 获取当前 task 数据下期望存在的字段 key 列表
+   * 子类可重写以处理动态字段逻辑
+   * @param taskData - 当前 task 的所有数据
+   * @returns 期望存在于 YAML 中的字段 key 数组
+   */
+  getExpectedFields(taskData: Record<string, any>): string[] {
+    return this.config.fields
+      .filter((f) => this.isFieldVisible(f.key, taskData))
+      .map((f) => f.key);
+  }
+
+  /**
    * 检查字段是否禁用
    */
   isFieldDisabled(fieldKey: string, taskData: Record<string, any>): boolean {

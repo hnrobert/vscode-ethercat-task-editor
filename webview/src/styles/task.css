@@ -30,13 +30,19 @@
 .task-label {
   min-width: 0;
   flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .task-key-badge {
   font-size: 10px;
   font-weight: 400;
   opacity: 0.45;
-  flex-shrink: 0;
+  flex-shrink: 999;
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
   margin-right: 4px;
 }
 

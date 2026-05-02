@@ -93,6 +93,31 @@ window.addEventListener('message', (event) => {
     case 'taskFieldsResponse':
       taskFieldsCache.value.set(message.taskType, message.fields);
       break;
+    case 'scrollToSlave': {
+      const el = document.getElementById(`slave-${message.sIndex}`);
+      if (el) {
+        (el as HTMLDetailsElement).open = true;
+        el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }
+      break;
+    }
+    case 'scrollToTask': {
+      const el = document.getElementById(`task-${message.sIndex}-${message.tIndex}`);
+      if (el) {
+        const parent = document.getElementById(`slave-${message.sIndex}`);
+        if (parent) (parent as HTMLDetailsElement).open = true;
+        (el as HTMLDetailsElement).open = true;
+        // Wait for layout, then scroll with sticky header offset
+        requestAnimationFrame(() => {
+          const header = parent?.querySelector('.header-row') as HTMLElement | null;
+          const pdo = parent?.querySelector('.slave-pdo-status') as HTMLElement | null;
+          const offset = (header?.offsetHeight ?? 0) + (pdo?.offsetHeight ?? 0);
+          const top = el.getBoundingClientRect().top + window.scrollY - offset;
+          window.scrollTo({ top, behavior: 'smooth' });
+        });
+      }
+      break;
+    }
   }
 });
 function postMessage(msg: any) {
@@ -152,6 +177,10 @@ export function setDragState(state: DragState) {
   dragState = state;
   document.body.classList.toggle('dragging-task', state?.type === 'task');
   document.body.classList.toggle('dragging-slave', state?.type === 'slave');
+}
+
+export function revealYamlPosition(sIndex: number, tIndex?: number) {
+  postMessage({ type: 'revealYamlPosition', sIndex, tIndex });
 }
 
 export function moveTask(

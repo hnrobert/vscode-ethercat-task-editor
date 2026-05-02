@@ -12,6 +12,7 @@ import {
 } from '../utils/yamlUtils';
 import { validateTopics } from '../utils/topicValidator';
 import { validateTags } from '../utils/tagValidator';
+import { validateOffsets } from '../utils/fieldValidator';
 
 function ensureBlockStyle(node: unknown) {
   if (yaml.isMap(node) || yaml.isSeq(node)) {
@@ -144,6 +145,9 @@ export class SoemConfigWebviewProvider implements vscode.WebviewViewProvider {
         case 'validateTask':
           this.handleValidateTask(data.taskType, data.taskData);
           break;
+        case 'revealYamlPosition':
+          this.handleRevealYamlPosition(data.sIndex, data.tIndex);
+          break;
       }
     });
 
@@ -214,10 +218,11 @@ export class SoemConfigWebviewProvider implements vscode.WebviewViewProvider {
       const data = doc.toJSON();
       this.lastParsedDoc = { doc, data, isValid: true };
 
-      // Validate topics and tags, set diagnostics
+      // Validate topics, tags, and offsets; set diagnostics
       const topicDiagnostics = validateTopics(editor.document, doc, data);
       const tagDiagnostics = validateTags(editor.document, doc);
-      const allDiagnostics = [...topicDiagnostics, ...tagDiagnostics];
+      const offsetDiagnostics = validateOffsets(editor.document, doc, data);
+      const allDiagnostics = [...topicDiagnostics, ...tagDiagnostics, ...offsetDiagnostics];
       this.diagnosticCollection.set(editor.document.uri, allDiagnostics);
 
       // Compute field visibility and option validity for all tasks
@@ -1216,6 +1221,64 @@ export class SoemConfigWebviewProvider implements vscode.WebviewViewProvider {
       taskType,
       errors,
     });
+  }
+
+  /**
+   * 滚动 webview 到指定 slave
+   */
+  public scrollToSlave(sIndex: number) {
+    this._view?.webview.postMessage({ type: 'scrollToSlave', sIndex });
+  }
+
+  /**
+   * 滚动 webview 到指定 task
+   */
+  public scrollToTask(sIndex: number, tIndex: number) {
+    this._view?.webview.postMessage({ type: 'scrollToTask', sIndex, tIndex });
+  }
+
+  /**
+   * 处理 webview 中点击定位图标，在 YAML 编辑器中跳转到对应行
+   */
+  private handleRevealYamlPosition(sIndex: number, tIndex?: number) {
+    const editor = vscode.window.activeTextEditor;
+    if (!editor || !this.lastParsedDoc?.doc) return;
+
+    const doc = this.lastParsedDoc.doc;
+    const root = doc.contents;
+    if (!yaml.isMap(root)) return;
+
+    const slavesNode = root.get('slaves', true);
+    if (!yaml.isSeq(slavesNode)) return;
+
+    const slaveItem = slavesNode.items[sIndex];
+    if (!yaml.isMap(slaveItem) || slaveItem.items.length === 0) return;
+
+    if (tIndex === undefined) {
+      // Reveal slave
+      const keyNode = slaveItem.items[0].key;
+      if (!yaml.isScalar(keyNode) || !keyNode.range) return;
+      const offset = keyNode.range[0];
+      const pos = editor.document.positionAt(offset);
+      vscode.window.showTextDocument(editor.document, {
+        selection: new vscode.Range(pos.line, 0, pos.line, 0),
+      });
+    } else {
+      // Reveal task
+      const slaveData = slaveItem.items[0].value;
+      if (!yaml.isMap(slaveData)) return;
+      const tasksNode = slaveData.get('tasks', true);
+      if (!yaml.isSeq(tasksNode)) return;
+      const taskItem = tasksNode.items[tIndex];
+      if (!yaml.isMap(taskItem) || taskItem.items.length === 0) return;
+      const taskKeyNode = taskItem.items[0].key;
+      if (!yaml.isScalar(taskKeyNode) || !taskKeyNode.range) return;
+      const offset = taskKeyNode.range[0];
+      const pos = editor.document.positionAt(offset);
+      vscode.window.showTextDocument(editor.document, {
+        selection: new vscode.Range(pos.line, 0, pos.line, 0),
+      });
+    }
   }
 }
 
