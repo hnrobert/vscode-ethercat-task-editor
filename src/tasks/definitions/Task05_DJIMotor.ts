@@ -671,6 +671,40 @@ export class Task05_DJIMotor extends TaskBase {
     return true;
   }
 
+  override getExpectedFields(taskData: Record<string, any>): string[] {
+    const fields: string[] = [
+      'sdowrite_control_period',
+      'sdowrite_can_inst',
+      'sdowrite_can_packet_id',
+    ];
+    for (let i = 1; i <= 4; i++) {
+      fields.push(`sdowrite_motor${i}_can_id`);
+      const canId = taskData[`sdowrite_motor${i}_can_id`];
+      if (canId !== undefined && Number(canId) !== 0) {
+        fields.push(`sdowrite_motor${i}_control_type`);
+        const cType = Number(taskData[`sdowrite_motor${i}_control_type`]) || 0;
+        if (cType >= 2) {
+          fields.push(
+            `sdowrite_motor${i}_kp`,
+            `sdowrite_motor${i}_ki`,
+            `sdowrite_motor${i}_kd`,
+            `sdowrite_motor${i}_i_limit`,
+            `sdowrite_motor${i}_max_output`,
+          );
+        }
+        if (cType >= 3) {
+          fields.push(
+            `sdowrite_motor${i}_speed_kp`,
+            `sdowrite_motor${i}_speed_ki`,
+            `sdowrite_motor${i}_speed_i_limit`,
+            `sdowrite_motor${i}_max_speed`,
+          );
+        }
+      }
+    }
+    return fields;
+  }
+
   override calculateTxPdoSize(taskData: Record<string, any>): number {
     let size = 0;
     for (let i = 1; i <= 4; i++) {

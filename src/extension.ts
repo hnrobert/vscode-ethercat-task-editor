@@ -2,7 +2,7 @@ import * as vscode from 'vscode';
 import { SoemConfigWebviewProvider } from './providers/SoemConfigWebviewProvider';
 import { EthercatYamlFormatter } from './providers/EthercatYamlFormatter';
 import { EthercatCodeLensProvider } from './providers/EthercatCodeLensProvider';
-import { OffsetQuickFixProvider } from './providers/OffsetQuickFixProvider';
+import { EthercatQuickFixProvider } from './providers/EthercatQuickFixProvider';
 import { isEthercatYaml, setEthercatYamlLanguage } from './utils/languageDetector';
 import { configureFileIcon } from './utils/iconConfigurator';
 
@@ -45,7 +45,7 @@ export function activate(context: vscode.ExtensionContext) {
   context.subscriptions.push(
     vscode.languages.registerCodeActionsProvider(
       'ethercat-yaml',
-      new OffsetQuickFixProvider(),
+      new EthercatQuickFixProvider(),
       { providedCodeActionKinds: [vscode.CodeActionKind.QuickFix] },
     ),
   );

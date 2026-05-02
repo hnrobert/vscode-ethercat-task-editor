@@ -1,6 +1,17 @@
 import * as vscode from 'vscode';
 import * as yaml from 'yaml';
 import { TaskRegistry } from '../tasks';
+import type { TaskBase } from '../tasks/TaskBase';
+
+const STRUCTURAL_FIELDS = new Set([
+  'sdowrite_task_type',
+  'conf_connection_lost_read_action',
+  'sdowrite_connection_lost_write_action',
+  'pub_topic',
+  'sub_topic',
+  'pdoread_offset',
+  'pdowrite_offset',
+]);
 
 export function validateOffsets(
   document: vscode.TextDocument,
@@ -95,6 +106,9 @@ export function validateOffsets(
       if (taskDef) {
         pdoread_offset += taskDef.calculateTxPdoSize(taskValues);
         pdowrite_offset += taskDef.calculateRxPdoSize(taskValues);
+
+        // Field validation
+        validateTaskFields(document, doc, pathBase, taskKey, taskValues, taskDef, diagnostics);
       }
     });
 
@@ -117,6 +131,69 @@ export function validateOffsets(
   return diagnostics;
 }
 
+function validateTaskFields(
+  document: vscode.TextDocument,
+  doc: yaml.Document,
+  pathBase: (string | number)[],
+  _taskKey: string,
+  taskValues: Record<string, any>,
+  taskDef: TaskBase,
+  diagnostics: vscode.Diagnostic[],
+): void {
+  const expectedKeys = new Set(taskDef.getExpectedFields(taskValues));
+  const actualFields = new Set(
+    Object.keys(taskValues).filter((k) => !k.startsWith('_')),
+  );
+
+  // Missing fields
+  const missingFields: string[] = [];
+  for (const key of expectedKeys) {
+    if (!actualFields.has(key)) {
+      missingFields.push(key);
+    }
+  }
+
+  // Extra fields (sdowrite_*/conf_* not in expected set)
+  const extraFields: string[] = [];
+  for (const key of actualFields) {
+    if (STRUCTURAL_FIELDS.has(key)) continue;
+    if (expectedKeys.has(key)) continue;
+    if (key.startsWith('sdowrite_') || key.startsWith('conf_')) {
+      extraFields.push(key);
+    }
+  }
+
+  // Report missing fields — range on task key
+  if (missingFields.length > 0) {
+    const range = getFieldRange(document, doc, pathBase);
+    if (range) {
+      const d = new vscode.Diagnostic(
+        range,
+        `Missing field${missingFields.length > 1 ? 's' : ''}: ${missingFields.join(', ')}`,
+        vscode.DiagnosticSeverity.Error,
+      );
+      d.source = 'ethercat-task-editor';
+      d.code = 'field-mismatch';
+      diagnostics.push(d);
+    }
+  }
+
+  // Report extra fields — range on each extra field
+  for (const key of extraFields) {
+    const range = getFieldRange(document, doc, [...pathBase, key]);
+    if (range) {
+      const d = new vscode.Diagnostic(
+        range,
+        `Unexpected field: ${key}`,
+        vscode.DiagnosticSeverity.Warning,
+      );
+      d.source = 'ethercat-task-editor';
+      d.code = 'field-mismatch';
+      diagnostics.push(d);
+    }
+  }
+}
+
 function getFieldRange(
   document: vscode.TextDocument,
   doc: yaml.Document,
@@ -124,13 +201,30 @@ function getFieldRange(
 ): vscode.Range | null {
   try {
     const node = doc.getIn(path, true);
-    if (!node || !yaml.isScalar(node)) return null;
-    const range = node.range;
-    if (!range) return null;
-    return new vscode.Range(
-      document.positionAt(range[0]),
-      document.positionAt(range[1]),
-    );
+    if (!node) return null;
+
+    // Scalar node — return its range directly
+    if (yaml.isScalar(node) && node.range) {
+      return new vscode.Range(
+        document.positionAt(node.range[0]),
+        document.positionAt(node.range[1]),
+      );
+    }
+
+    // Map/Pair node — use the key's range for task-level diagnostics
+    if (yaml.isMap(node) && node.items.length > 0) {
+      const key = node.items[0].key;
+      if (yaml.isScalar(key) && key.range) {
+        const line = document.positionAt(key.range[0]).line;
+        const lineEnd = document.lineAt(line).range.end;
+        return new vscode.Range(
+          document.positionAt(key.range[0]),
+          lineEnd,
+        );
+      }
+    }
+
+    return null;
   } catch {
     return null;
   }
