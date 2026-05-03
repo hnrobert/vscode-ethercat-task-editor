@@ -8,6 +8,8 @@
 
 A VS Code extension providing a visual sidebar editor for AIMEtherCAT SOEM YAML configuration files.
 
+![demo](assets/images/demo.png)
+
 ## Features
 
 - **Visual slave/task editor** — Add, remove, reorder, and configure EtherCAT slaves and their tasks through a sidebar panel
