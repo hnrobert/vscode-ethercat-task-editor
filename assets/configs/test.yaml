@@ -1,7 +1,7 @@
 slaves:
   - sn0000000:
       board_type: !uint8_t 0x03
-      sdo_len: !uint16_t 138
+      sdo_len: !uint16_t 133
       task_count: !uint8_t 15
       latency_pub_topic: !std::string '/ecat/sn0000000/latency'
 
@@ -103,8 +103,6 @@ slaves:
             conf_connection_lost_read_action: !uint8_t 0x02
             pub_topic: !std::string '/ecat/can_pmu_1/read'
             pdoread_offset: !uint16_t 93
-            sdowrite_can_inst: !uint8_t 1
-            sdowrite_can_id: !uint32_t 529
 
         - app_11:
             sdowrite_task_type: !uint8_t 11
