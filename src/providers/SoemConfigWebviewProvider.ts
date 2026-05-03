@@ -218,12 +218,16 @@ export class SoemConfigWebviewProvider implements vscode.WebviewViewProvider {
       const data = doc.toJSON();
       this.lastParsedDoc = { doc, data, isValid: true };
 
-      // Validate topics, tags, and offsets; set diagnostics
-      const topicDiagnostics = validateTopics(editor.document, doc, data);
-      const tagDiagnostics = validateTags(editor.document, doc);
-      const offsetDiagnostics = validateOffsets(editor.document, doc, data);
-      const allDiagnostics = [...topicDiagnostics, ...tagDiagnostics, ...offsetDiagnostics];
-      this.diagnosticCollection.set(editor.document.uri, allDiagnostics);
+      // Validate topics, tags, and offsets; set diagnostics (only for EtherCAT config)
+      if (data && Array.isArray(data.slaves)) {
+        const topicDiagnostics = validateTopics(editor.document, doc, data);
+        const tagDiagnostics = validateTags(editor.document, doc);
+        const offsetDiagnostics = validateOffsets(editor.document, doc, data);
+        const allDiagnostics = [...topicDiagnostics, ...tagDiagnostics, ...offsetDiagnostics];
+        this.diagnosticCollection.set(editor.document.uri, allDiagnostics);
+      } else {
+        this.diagnosticCollection.delete(editor.document.uri);
+      }
 
       // Compute field visibility and option validity for all tasks
       const enrichedData = this.enrichDataWithVisibility(data);
