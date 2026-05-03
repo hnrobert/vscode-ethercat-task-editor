@@ -1,8 +1,8 @@
 {
   "publisher": "HNRobert",
   "name": "vscode-ethercat-task-editor",
-  "displayName": "EtherCAT Task Editor",
-  "description": "Visual sidebar editor for EtherCAT SOEM YAML configuration files.",
+  "displayName": "AIMEtherCAT Task Editor",
+  "description": "Visual sidebar editor for AIMEtherCAT SOEM YAML configuration files.",
   "version": "1.1.0",
   "license": "Apache-2.0",
   "repository": {
