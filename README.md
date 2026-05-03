@@ -1,4 +1,4 @@
-# EtherCAT Task Editor
+# AIMEtherCAT Task Editor
 
 [![Visual Studio Marketplace](https://flat.badgen.net/vs-marketplace/i/HNRobert.vscode-ethercat-task-editor?icon=visualstudio)](https://marketplace.visualstudio.com/items?itemName=HNRobert.vscode-ethercat-task-editor)
 [![GitHub](https://flat.badgen.net/github/release/hnrobert/vscode-ethercat-task-editor?icon=github)](https://github.com/hnrobert/vscode-ethercat-task-editor)
@@ -6,7 +6,7 @@
 [![Open Issues](https://flat.badgen.net/github/open-issues/hnrobert/vscode-ethercat-task-editor?icon=github)](https://github.com/hnrobert/vscode-ethercat-task-editor/issues)
 [![Closed Issues](https://flat.badgen.net/github/closed-issues/hnrobert/vscode-ethercat-task-editor?icon=github)](https://github.com/hnrobert/vscode-ethercat-task-editor/issues?q=is%3Aissue+is%3Aclosed)
 
-A VS Code extension providing a visual sidebar editor for EtherCAT SOEM YAML configuration files.
+A VS Code extension providing a visual sidebar editor for AIMEtherCAT SOEM YAML configuration files.
 
 ## Features
 
@@ -147,3 +147,12 @@ See [`src/tasks/README.md`](src/tasks/README.md) for the full guide on creating 
 ## License
 
 Apache 2.0 License. See [LICENSE](LICENSE) for details.
+
+## Acknowledgements
+
+This VS Code extension is inspired by and builds upon the work of the following projects:
+
+- **[TaskEditor](https://github.com/AIMEtherCAT/TaskEditor)** — The original Vue-based web app for EtherCAT module configuration and YAML generation. This extension evolved from its concept into a native VS Code sidebar editor with real-time diagnostics and quick-fix support.
+- **[EcatV2_Master](https://github.com/AIMEtherCAT/EcatV2_Master)** — The EtherCAT master wrapper library (based on ROS 2 and SOEM) that consumes the YAML configuration files produced by this editor.
+- **[SOEM](https://github.com/OpenEtherCATsociety/SOEM)** — Simple Open EtherCAT Master, the underlying communication library.
+- **[RT-Labs](https://rt-labs.com)** — Sponsor of the AIMEtherCAT project.
