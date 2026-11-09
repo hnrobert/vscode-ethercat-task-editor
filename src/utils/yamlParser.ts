@@ -55,14 +55,24 @@ const CustomTags: yaml.Tags = [
   },
 ];
 
-const yamlParseOptions: YamlParseOptions = { customTags: CustomTags };
+const yamlParseOptions: YamlParseOptions = {
+  customTags: CustomTags,
+  prettyErrors: true,
+};
 
 export function parseYamlWithTags(text: string): unknown {
   return yaml.parse(text, yamlParseOptions);
 }
 
 export function parseYamlDocumentWithTags(text: string): yaml.Document {
-  return yaml.parseDocument(text, yamlParseOptions);
+  const doc = yaml.parseDocument(text, yamlParseOptions);
+  // parseDocument never throws on syntax errors; it returns a best-effort
+  // document that would silently corrupt the file if serialized back.
+  // Surface the first error (YAMLParseError carries linePos for diagnostics).
+  if (doc.errors.length > 0) {
+    throw doc.errors[0];
+  }
+  return doc;
 }
 
 export function stringifyYamlDocumentWithTags(doc: yaml.Document): string {

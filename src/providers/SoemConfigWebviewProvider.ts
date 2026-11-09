@@ -243,7 +243,21 @@ export class SoemConfigWebviewProvider implements vscode.WebviewViewProvider {
         type: 'setError',
         message: 'Invalid YAML format: ' + e,
       });
-      this.diagnosticCollection.clear();
+      // Point the diagnostic at the syntax error position (1-based linePos)
+      const linePos: any = (e as any)?.linePos;
+      const start = Array.isArray(linePos) ? linePos[0] : linePos;
+      if (start && typeof start.line === 'number') {
+        const line = Math.max(0, start.line - 1);
+        const col = Math.max(0, (start.col ?? 1) - 1);
+        const diag = new vscode.Diagnostic(
+          new vscode.Range(line, col, line, col + 1),
+          e instanceof Error ? e.message : String(e),
+          vscode.DiagnosticSeverity.Error,
+        );
+        this.diagnosticCollection.set(editor.document.uri, [diag]);
+      } else {
+        this.diagnosticCollection.clear();
+      }
     }
   }
 
