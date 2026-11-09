@@ -39,64 +39,69 @@ export class EthercatQuickFixProvider implements vscode.CodeActionProvider {
   ): vscode.CodeAction[] {
     const actions: vscode.CodeAction[] = [];
 
-    const offsetDiags = context.diagnostics.filter((d) => d.code === 'offset-mismatch');
-    const fieldDiags = context.diagnostics.filter((d) => d.code === 'field-mismatch');
-    const tagDiags = context.diagnostics.filter((d) => d.code === 'tag-mismatch');
+    try {
+      const offsetDiags = context.diagnostics.filter((d) => d.code === 'offset-mismatch');
+      const fieldDiags = context.diagnostics.filter((d) => d.code === 'field-mismatch');
+      const tagDiags = context.diagnostics.filter((d) => d.code === 'tag-mismatch');
 
-    // "Fix this" — only fix the single diagnostic under the cursor
-    // Skip auto-fix for task type errors — user must choose the correct type manually
-    const clickedField = fieldDiags.find((d) => {
-      if (!d.range.contains(range)) return false;
-      if (d.message.includes('sdowrite_task_type')) return false;
-      return true;
-    });
-    if (clickedField) {
-      const action = new vscode.CodeAction('Fix this', vscode.CodeActionKind.QuickFix);
-      action.diagnostics = [clickedField];
-      action.edit = this.createSingleFieldFix(document, clickedField);
-      actions.push(action);
-    }
+      // "Fix this" — only fix the single diagnostic under the cursor
+      // Skip auto-fix for task type errors — user must choose the correct type manually
+      const clickedField = fieldDiags.find((d) => {
+        if (!d.range.contains(range)) return false;
+        if (d.message.includes('sdowrite_task_type')) return false;
+        return true;
+      });
+      if (clickedField) {
+        const action = new vscode.CodeAction('Fix this', vscode.CodeActionKind.QuickFix);
+        action.diagnostics = [clickedField];
+        action.edit = this.createSingleFieldFix(document, clickedField);
+        actions.push(action);
+      }
 
-    const clickedOffset = offsetDiags.find((d) => d.range.contains(range));
-    if (clickedOffset) {
-      const action = new vscode.CodeAction('Fix this', vscode.CodeActionKind.QuickFix);
-      action.diagnostics = [clickedOffset];
-      action.edit = this.createSingleOffsetFix(document, clickedOffset);
-      actions.push(action);
-    }
+      const clickedOffset = offsetDiags.find((d) => d.range.contains(range));
+      if (clickedOffset) {
+        const action = new vscode.CodeAction('Fix this', vscode.CodeActionKind.QuickFix);
+        action.diagnostics = [clickedOffset];
+        action.edit = this.createSingleOffsetFix(document, clickedOffset);
+        actions.push(action);
+      }
 
-    const clickedTag = tagDiags.find((d) => d.range.contains(range));
-    if (clickedTag) {
-      const action = new vscode.CodeAction('Fix tag', vscode.CodeActionKind.QuickFix);
-      action.diagnostics = [clickedTag];
-      action.edit = this.createSingleTagFix(document, clickedTag);
-      actions.push(action);
-    }
+      const clickedTag = tagDiags.find((d) => d.range.contains(range));
+      if (clickedTag) {
+        const action = new vscode.CodeAction('Fix tag', vscode.CodeActionKind.QuickFix);
+        action.diagnostics = [clickedTag];
+        action.edit = this.createSingleTagFix(document, clickedTag);
+        actions.push(action);
+      }
 
-    // "Fix all" — exclude task type errors (user must choose manually)
-    const fixableFieldDiags = fieldDiags.filter(
-      (d) => !d.message.includes('sdowrite_task_type'),
-    );
-    if (fixableFieldDiags.length > 0) {
-      const action = new vscode.CodeAction('Fix all field issues', vscode.CodeActionKind.QuickFix);
-      action.diagnostics = fixableFieldDiags;
-      action.isPreferred = true;
-      action.edit = this.createAllFieldFix(document);
-      actions.push(action);
-    }
+      // "Fix all" — exclude task type errors (user must choose manually)
+      const fixableFieldDiags = fieldDiags.filter(
+        (d) => !d.message.includes('sdowrite_task_type'),
+      );
+      if (fixableFieldDiags.length > 0) {
+        const action = new vscode.CodeAction('Fix all field issues', vscode.CodeActionKind.QuickFix);
+        action.diagnostics = fixableFieldDiags;
+        action.isPreferred = true;
+        action.edit = this.createAllFieldFix(document);
+        actions.push(action);
+      }
 
-    if (offsetDiags.length > 0) {
-      const action = new vscode.CodeAction('Fix all offsets and lengths', vscode.CodeActionKind.QuickFix);
-      action.diagnostics = offsetDiags;
-      action.edit = this.createOffsetFix(document);
-      actions.push(action);
-    }
+      if (offsetDiags.length > 0) {
+        const action = new vscode.CodeAction('Fix all offsets and lengths', vscode.CodeActionKind.QuickFix);
+        action.diagnostics = offsetDiags;
+        action.edit = this.createOffsetFix(document);
+        actions.push(action);
+      }
 
-    if (tagDiags.length > 0) {
-      const action = new vscode.CodeAction('Fix all tag issues', vscode.CodeActionKind.QuickFix);
-      action.diagnostics = tagDiags;
-      action.edit = this.createAllTagFix(document);
-      actions.push(action);
+      if (tagDiags.length > 0) {
+        const action = new vscode.CodeAction('Fix all tag issues', vscode.CodeActionKind.QuickFix);
+        action.diagnostics = tagDiags;
+        action.edit = this.createAllTagFix(document);
+        actions.push(action);
+      }
+    } catch {
+      // Malformed YAML — offering fixes built from a broken parse would
+      // corrupt the file; return whatever was built before the failure
     }
 
     return actions;
@@ -418,7 +423,7 @@ export class EthercatQuickFixProvider implements vscode.CodeActionProvider {
 
   private createSingleTagFix(
     document: vscode.TextDocument,
-    diag: vscode.Diagnostic,
+    _diag: vscode.Diagnostic,
   ): vscode.WorkspaceEdit {
     const text = document.getText();
     const doc = parseYamlDocumentWithTags(text);

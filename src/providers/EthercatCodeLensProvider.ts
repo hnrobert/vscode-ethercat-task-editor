@@ -4,6 +4,15 @@ import { parseYamlDocumentWithTags } from '../utils/yamlParser';
 
 export class EthercatCodeLensProvider implements vscode.CodeLensProvider {
   provideCodeLenses(document: vscode.TextDocument): vscode.CodeLens[] {
+    try {
+      return this.buildCodeLenses(document);
+    } catch {
+      // Malformed YAML — no lenses instead of a provider error
+      return [];
+    }
+  }
+
+  private buildCodeLenses(document: vscode.TextDocument): vscode.CodeLens[] {
     const text = document.getText();
     const doc = parseYamlDocumentWithTags(text);
     const root = doc.contents;
