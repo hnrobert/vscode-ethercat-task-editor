@@ -716,6 +716,18 @@ export class SoemConfigWebviewProvider implements vscode.WebviewViewProvider {
     await this.saveDoc(editor, doc);
   }
 
+  private async pickBoardType(): Promise<number | undefined> {
+    const boardTypes = getBoardTypes(this.context.extensionPath);
+    const items = boardTypes.map(bt => ({
+      label: `0x${bt.id.toString(16).padStart(2, '0').toUpperCase()} - ${bt.name}`,
+      value: bt.id,
+    }));
+    const picked = await vscode.window.showQuickPick(items, {
+      placeHolder: 'Select board type',
+    });
+    return picked?.value;
+  }
+
   private async addSlave() {
     const editor = vscode.window.activeTextEditor;
     if (!editor || !this.lastParsedDoc?.doc) return;
@@ -725,6 +737,10 @@ export class SoemConfigWebviewProvider implements vscode.WebviewViewProvider {
       value: 'sn0000000',
     });
     if (!snName) return;
+
+    const boardType = await this.pickBoardType();
+    if (boardType === undefined) return;
+    const boardTypeHex = boardType.toString(16).padStart(2, '0');
 
     const doc = this.lastParsedDoc.doc;
 
@@ -739,7 +755,7 @@ export class SoemConfigWebviewProvider implements vscode.WebviewViewProvider {
     if (yaml.isSeq(slavesList)) {
       slavesList.flow = false;
       const newSlaveStr = `${snName}:
-  board_type: !uint8_t 0x03
+  board_type: !uint8_t 0x${boardTypeHex}
   sdo_len: !uint16_t 0
   task_count: !uint8_t 0
   latency_pub_topic: !std::string '/ecat/${snName.replace('+', '')}/latency'
@@ -764,6 +780,10 @@ export class SoemConfigWebviewProvider implements vscode.WebviewViewProvider {
     });
     if (!snName) return;
 
+    const boardType = await this.pickBoardType();
+    if (boardType === undefined) return;
+    const boardTypeHex = boardType.toString(16).padStart(2, '0');
+
     const doc = this.lastParsedDoc.doc;
 
     let slavesList = doc.getIn(['slaves']);
@@ -777,7 +797,7 @@ export class SoemConfigWebviewProvider implements vscode.WebviewViewProvider {
     if (yaml.isSeq(slavesList)) {
       slavesList.flow = false;
       const newSlaveStr = `${snName}:
-  board_type: !uint8_t 0x03
+  board_type: !uint8_t 0x${boardTypeHex}
   sdo_len: !uint16_t 0
   task_count: !uint8_t 0
   latency_pub_topic: !std::string '/ecat/${snName.replace('+', '')}/latency'
